@@ -2,7 +2,9 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-stabble_vault = "359c376ustKUBAy8ZJdjyRub9Kf7W4LHxxahXP8P9LEW"
+pool-composable-stable = "99TTqzz6CLm1NNjUAbvePk9L2FHSrht53RVaZCWCLryE"
+pool-weighted = "7qmGmnrVnCjEjTnyxnCYJcraarutuX7Dsw3Wt5LU7ree"
+vault = "359c376ustKUBAy8ZJdjyRub9Kf7W4LHxxahXP8P9LEW"
 
 [registry]
 url = "https://api.apr.dev"
