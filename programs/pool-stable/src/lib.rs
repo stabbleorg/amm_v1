@@ -7,7 +7,7 @@ use anchor_lang::prelude::*;
 declare_id!("99TTqzz6CLm1NNjUAbvePk9L2FHSrht53RVaZCWCLryE");
 
 #[program]
-pub mod pool_composable_stable {
+pub mod pool_stable {
     use super::*;
 
     /// initialize a pool

@@ -21,5 +21,5 @@ pub struct Pool {
 }
 
 impl Pool {
-    pub const AUTHORITY_PREFIX: &'static [u8] = b"Composable Stable Pool Authority";
+    pub const AUTHORITY_PREFIX: &'static [u8] = b"Stable Pool Authority";
 }
