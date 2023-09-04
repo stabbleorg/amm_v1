@@ -16,7 +16,8 @@ pub struct Pool {
 
     pub mint: Pubkey,
     pub vault: Pubkey,
-    pub admin: Pubkey,
+
+    pub owner: Pubkey,
 
     pub tokens: Vec<PoolToken>,
 }

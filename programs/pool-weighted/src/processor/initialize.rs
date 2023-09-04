@@ -4,7 +4,7 @@ use vault::state::Vault;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    pub admin: Signer<'info>,
+    pub owner: Signer<'info>,
     #[account(zero, rent_exempt = enforce)]
     pub pool: Account<'info, Pool>,
     /// CHECK: OK

@@ -12,10 +12,12 @@ pub struct Pool {
     pub authority_bump: u8,
     pub is_active: bool,
     pub swap_fee_bps: u16,
+    pub amp_bps: u16,
 
     pub mint: Pubkey,
     pub vault: Pubkey,
-    pub admin: Pubkey,
+
+    pub owner: Pubkey,
 
     pub tokens: Vec<PoolToken>,
 }
