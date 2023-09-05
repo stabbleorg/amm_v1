@@ -12,8 +12,8 @@ pub mod pool_weighted {
 
     /// initialize a pool
     #[access_control(Initialize::validate(&ctx))]
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        process_initialize(ctx)
+    pub fn initialize(ctx: Context<Initialize>, weights: Vec<u16>) -> Result<()> {
+        process_initialize(ctx, weights)
     }
 
     /// add liquidity

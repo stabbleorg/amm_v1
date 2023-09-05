@@ -19,6 +19,6 @@ impl<'info> Initialize<'info> {
     }
 }
 
-pub fn process_initialize(ctx: Context<Initialize>) -> Result<()> {
+pub fn process_initialize(ctx: Context<Initialize>, weights: Vec<u16>) -> Result<()> {
     Ok(())
 }
