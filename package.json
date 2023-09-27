@@ -1,11 +1,15 @@
 {
+  "private": true,
   "scripts": {
+    "build": "tsc",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "format": "rustfmt programs/**/src/lib.rs"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.28.0",
-    "@solana/web3.js": "^1.78.0"
+    "@coral-xyz/anchor": "^0.28.1-beta.2",
+    "@solana/spl-token": "^0.3.8",
+    "@solana/web3.js": "^1.78.5"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.1",
@@ -14,7 +18,11 @@
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
     "prettier": "^3.0.0",
+    "rustfmt": "^0.1.0",
     "ts-mocha": "^10.0.0",
-    "typescript": "^5.1.6"
-  }
+    "typescript": "^5.2.0"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

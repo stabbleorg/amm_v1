@@ -17,5 +17,5 @@ default = []
 
 [dependencies]
 anchor-lang = "0.28.0"
-anchor-spl = { version = "0.28.0", features = ["metadata"] }
+anchor-spl = "0.28.0"
 vault = { path = "../vault", features = ["cpi"] }

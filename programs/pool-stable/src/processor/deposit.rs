@@ -20,10 +20,6 @@ impl<'info> Deposit<'info> {
     }
 }
 
-pub fn process_deposit(
-    ctx: Context<Deposit>,
-    amounts: Vec<u64>,
-    min_amount_out: u64,
-) -> Result<()> {
+pub fn process_deposit(ctx: Context<Deposit>, amounts: Vec<u64>, min_amount_out: u64) -> Result<()> {
     Ok(())
 }

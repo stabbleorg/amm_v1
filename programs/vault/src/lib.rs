@@ -1,3 +1,4 @@
+pub mod located;
 pub mod processor;
 pub mod state;
 
@@ -10,17 +11,22 @@ declare_id!("359c376ustKUBAy8ZJdjyRub9Kf7W4LHxxahXP8P9LEW");
 pub mod vault {
     use super::*;
 
-    #[access_control(Initialize::validate(&ctx))]
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        process_initialize(ctx)
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        withdraw_authority: Pubkey,
+        withdraw_authority_bump: u8,
+        beneficiary: Pubkey,
+        beneficiary_fee: u16,
+    ) -> Result<()> {
+        process_initialize(
+            ctx,
+            withdraw_authority,
+            withdraw_authority_bump,
+            beneficiary,
+            beneficiary_fee,
+        )
     }
 
-    #[access_control(Deposit::validate(&ctx))]
-    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-        process_deposit(ctx, amount)
-    }
-
-    #[access_control(Withdraw::validate(&ctx))]
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         process_withdraw(ctx, amount)
     }

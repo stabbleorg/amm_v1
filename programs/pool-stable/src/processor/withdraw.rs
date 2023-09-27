@@ -20,10 +20,6 @@ impl<'info> Withdraw<'info> {
     }
 }
 
-pub fn process_withdraw(
-    ctx: Context<Withdraw>,
-    amount: u64,
-    min_amounts_out: Vec<u64>,
-) -> Result<()> {
+pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64, min_amounts_out: Vec<u64>) -> Result<()> {
     Ok(())
 }

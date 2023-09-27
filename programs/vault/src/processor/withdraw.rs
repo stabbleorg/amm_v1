@@ -1,20 +1,40 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_spl::token::{transfer, Token, Transfer};
+
+pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+    ctx.accounts.vault.authority_seeds(|signer_seed| {
+        transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault_token.to_account_info(),
+                    to: ctx.accounts.dest_token.to_account_info(),
+                    authority: ctx.accounts.vault_authority.to_account_info(),
+                },
+            )
+            .with_signer(&[signer_seed]),
+            amount,
+        )
+    })
+}
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
+    pub withdraw_authority: Signer<'info>,
+
+    #[account(has_one = withdraw_authority)]
     pub vault: Account<'info, Vault>,
     /// CHECK: OK
     #[account(seeds = [Vault::AUTHORITY_PREFIX, vault.key().as_ref()], bump = vault.authority_bump)]
     pub vault_authority: UncheckedAccount<'info>,
-}
 
-impl<'info> Withdraw<'info> {
-    pub fn validate(ctx: &Context<Withdraw>) -> Result<()> {
-        Ok(())
-    }
-}
+    /// CHECK: OK
+    #[account(mut)]
+    pub vault_token: UncheckedAccount<'info>,
+    /// CHECK: OK
+    #[account(mut)]
+    pub dest_token: UncheckedAccount<'info>,
 
-pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-    Ok(())
+    pub token_program: Program<'info, Token>,
 }
