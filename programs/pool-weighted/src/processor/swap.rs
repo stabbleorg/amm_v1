@@ -12,6 +12,18 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     amount_in: u64,
     min_amount_out: u64,
 ) -> Result<()> {
+    transfer(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.user_token_in.to_account_info(),
+                to: ctx.accounts.vault_token_in.to_account_info(),
+                authority: ctx.accounts.user.to_account_info(),
+            },
+        ),
+        amount_in,
+    )?;
+
     let amount_out_without_fee = math::calc_out_given_in(
         ctx.accounts.pool.get_balance(ctx.accounts.vault_token_in.mint),
         ctx.accounts
@@ -69,18 +81,6 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
                 .unwrap(),
         )
         .unwrap();
-
-    transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.user_token_in.to_account_info(),
-                to: ctx.accounts.vault_token_in.to_account_info(),
-                authority: ctx.accounts.user.to_account_info(),
-            },
-        ),
-        amount_in,
-    )?;
 
     ctx.accounts.pool.emit_updated_event();
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {

@@ -1,3 +1,6 @@
+pub mod error;
+pub mod located;
+pub mod math;
 pub mod processor;
 pub mod state;
 
@@ -11,14 +14,18 @@ pub mod pool_stable {
     use super::*;
 
     /// initialize a pool
-    #[access_control(Initialize::validate(&ctx))]
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        process_initialize(ctx)
+    #[access_control(Initialize::validate(&ctx, amp, swap_fee))]
+    pub fn initialize(ctx: Context<Initialize>, amp: u16, swap_fee: u16) -> Result<()> {
+        process_initialize(ctx, amp, swap_fee)
     }
 
     /// add liquidity
-    #[access_control(Deposit::validate(&ctx))]
-    pub fn deposit(ctx: Context<Deposit>, amounts: Vec<u64>, min_amount_out: u64) -> Result<()> {
+    #[access_control(Deposit::validate(&ctx, &amounts))]
+    pub fn deposit<'a, 'b, 'c, 'info>(
+        ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
+        amounts: Vec<u64>,
+        min_amount_out: u64,
+    ) -> Result<()> {
         process_deposit(ctx, amounts, min_amount_out)
     }
 
@@ -35,13 +42,9 @@ pub mod pool_stable {
         process_swap(ctx, amount_in, min_amount_out)
     }
 
-    /// check slippage tolerance for batch swap
-    /// should be appended at the end of swap instructions for batch swap transaction
-    pub fn assert_batch_swap(
-        ctx: Context<AssertBatchSwap>,
-        amount_in: u64,      // token_in balance before swap
-        min_amount_out: u64, // min_amount_out expected after batch swap
-    ) -> Result<()> {
-        process_assert_batch_swap(ctx, amount_in, min_amount_out)
+    /// assert min balance after batch swap
+    /// should append to swap instructions in batch swap transaction
+    pub fn assert_batch_swap(ctx: Context<AssertBatchSwap>, min_balance: u64) -> Result<()> {
+        process_assert_batch_swap(ctx, min_balance)
     }
 }
