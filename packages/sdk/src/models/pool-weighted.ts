@@ -1,6 +1,5 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import { Vault } from "./vault";
 import { TokenAmountUtil } from "../utils";
 
 export type WeightedPoolTokenData = {

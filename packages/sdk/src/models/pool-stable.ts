@@ -1,14 +1,13 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import { Vault } from "./vault";
 import { TokenAmountUtil } from "../utils";
 
 export type StablePoolTokenData = {
   mint: PublicKey;
-  decimals: number;
-  multiplier: number;
-  scalingFactor: number;
-  balance: BN;
+  decimals: number; // u8
+  multiplier: number; // u32
+  scalingFactor: number; // u32
+  balance: BN; // u64
 };
 
 export type StablePoolData = {
@@ -35,6 +34,7 @@ export type StablePoolToken = {
 
 export class StablePool {
   static DECIMALS = 9;
+  static POOL_TOKEN_SIZE = 32 + 1 + 4 + 4 + 8;
 
   constructor(
     readonly address: PublicKey,

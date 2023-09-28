@@ -1,7 +1,7 @@
 import { PublicKey, Cluster } from "@solana/web3.js";
 
 export interface TokenMeta {
-  address: PublicKey;
+  address: string;
   decimals: number;
   cluster: Cluster;
   name: string;
@@ -11,7 +11,7 @@ export interface TokenMeta {
 
 export const tokens: TokenMeta[] = [
   {
-    address: new PublicKey("STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1"),
+    address: "STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1",
     decimals: 9,
     cluster: "devnet",
     name: "stabble",
@@ -20,7 +20,7 @@ export const tokens: TokenMeta[] = [
       "https://raez4ibvox5vdzauhhqo2baxrrvl7rd542lwmfepwlddlqu5b3va.arweave.net/iAmeIDV1-1HkFDng7QQXjGq_xH3ml2YUj7LGNcKdDuo",
   },
   {
-    address: new PublicKey("AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX"),
+    address: "AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX",
     decimals: 6,
     cluster: "devnet",
     name: "USD Coin",
@@ -28,7 +28,7 @@ export const tokens: TokenMeta[] = [
     image: "https://assets.coingecko.com/coins/images/6319/large/usdc.png",
   },
   {
-    address: new PublicKey("AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX"),
+    address: "AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX",
     decimals: 6,
     cluster: "devnet",
     name: "USDT",
@@ -36,7 +36,7 @@ export const tokens: TokenMeta[] = [
     image: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
   },
   {
-    address: new PublicKey("HhskQmZneTQem7QzaeZQ2q1baz9LCrngBMrWgM5jetPz"),
+    address: "HhskQmZneTQem7QzaeZQ2q1baz9LCrngBMrWgM5jetPz",
     decimals: 6,
     cluster: "devnet",
     name: "USDH",

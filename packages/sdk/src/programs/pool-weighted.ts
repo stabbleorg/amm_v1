@@ -174,7 +174,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     weights: string[],
     mintAddresses: PublicKey[],
   ): Promise<TransactionInstruction[]> {
-    const poolAccountSize = this.program.account.pool.size + WeightedPool.POOL_TOKEN_SIZE * weights.length + 4;
+    const poolAccountSize = this.program.account.pool.size + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
     const metadataAddress = Metaplex.make(this.provider.connection).nfts().pdas().metadata({ mint: poolMintAddress });
 
