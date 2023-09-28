@@ -1,0 +1,14 @@
+{
+  "name": "@stabbleorg/solana-registry",
+  "version": "0.1.0",
+  "main": "src",
+  "types": "src/index.d.ts",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/web3.js": "^1.78.5",
+    "bn.js": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.2"
+  }
+}
