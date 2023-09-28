@@ -50,7 +50,7 @@ where
         f(&[
             Vault::WITHDRAW_AUTHORITY_PREFIX,
             &self.key().to_bytes(),
-            &[self.as_ref().authority_bump],
+            &[self.as_ref().withdraw_authority_bump],
         ])
     }
 }

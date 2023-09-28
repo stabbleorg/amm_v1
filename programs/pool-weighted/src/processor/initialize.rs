@@ -23,8 +23,8 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<
         ctx.accounts.pool.tokens.push(PoolToken {
             mint: account.key(),
             decimals: data.decimals,
-            multiplier: 10 ^ decimals,
-            scaling_factor: 10 ^ (Pool::MAX_TOKEN_DECIMALS.saturating_sub(decimals)),
+            multiplier: 10u32.saturating_pow(decimals),
+            scaling_factor: 10u32.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(decimals)),
             balance: 0,
             weight: weights[token_index],
         });
@@ -34,6 +34,7 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<
 
 impl<'info> Initialize<'info> {
     pub fn validate(ctx: &Context<Initialize>, swap_fee: u16, weights: &Vec<u16>) -> Result<()> {
+        assert_eq!(ctx.accounts.mint.supply, 0);
         assert_eq!(ctx.accounts.mint.decimals, Pool::POOL_TOKEN_DECIMALS);
         assert_eq!(
             ctx.accounts.mint.mint_authority.unwrap(),

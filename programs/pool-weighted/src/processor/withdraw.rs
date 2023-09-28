@@ -62,6 +62,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             )
             .unwrap();
 
+        msg!("Amount out [{}]: {}", token_index, amounts_out[token_index]);
         let vault_account = &ctx.remaining_accounts[token_index + amounts_out.len()];
         ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
             withdraw_vault(
@@ -118,13 +119,12 @@ pub struct Withdraw<'info> {
     #[account(mut, has_one = vault)]
     pub pool: Account<'info, Pool>,
     /// CHECK: OK
-    #[account(seeds = [Pool::AUTHORITY_PREFIX, vault.key().as_ref()], bump = pool.authority_bump)]
+    #[account(seeds = [Pool::AUTHORITY_PREFIX, pool.key().as_ref()], bump = pool.authority_bump)]
     pub pool_authority: UncheckedAccount<'info>,
 
-    /// CHECK: OK
+    /// CHECK: checked in vault program
     pub withdraw_authority: UncheckedAccount<'info>,
 
-    #[account(has_one = withdraw_authority)]
     pub vault: Account<'info, Vault>,
     /// CHECK: checked in vault program
     pub vault_authority: UncheckedAccount<'info>,

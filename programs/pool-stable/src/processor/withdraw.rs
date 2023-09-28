@@ -49,7 +49,7 @@ pub struct Withdraw<'info> {
     #[account(mut, has_one = vault)]
     pub pool: Account<'info, Pool>,
     /// CHECK: OK
-    #[account(seeds = [Pool::AUTHORITY_PREFIX, vault.key().as_ref()], bump = pool.authority_bump)]
+    #[account(seeds = [Pool::AUTHORITY_PREFIX, pool.key().as_ref()], bump = pool.authority_bump)]
     pub pool_authority: UncheckedAccount<'info>,
 
     /// CHECK: OK

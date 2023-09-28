@@ -9,6 +9,3 @@ pub use withdraw::*;
 
 pub mod swap;
 pub use swap::*;
-
-pub mod assert_batch_swap;
-pub use assert_batch_swap::*;

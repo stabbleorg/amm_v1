@@ -10,6 +10,7 @@ pub fn process_initialize(ctx: Context<Initialize>, amp: u16, swap_fee: u16) -> 
         mint: ctx.accounts.mint.key(),
         invariant: 0,
         amp,
+        amp_start: 0,
         amp_start_time: 0,
         amp_end_time: 0,
         amp_duration: 0,
@@ -26,8 +27,8 @@ pub fn process_initialize(ctx: Context<Initialize>, amp: u16, swap_fee: u16) -> 
         ctx.accounts.pool.tokens.push(PoolToken {
             mint: account.key(),
             decimals: data.decimals,
-            multiplier: 10 ^ decimals,
-            scaling_factor: 10 ^ (Pool::MAX_TOKEN_DECIMALS.saturating_sub(decimals)),
+            multiplier: 10u32.saturating_pow(decimals),
+            scaling_factor: 10u32.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(decimals)),
             balance: 0,
         });
     }
@@ -38,6 +39,7 @@ impl<'info> Initialize<'info> {
     pub fn validate(ctx: &Context<Initialize>, amp: u16, swap_fee: u16) -> Result<()> {
         // custom stable pool is not allowed
         assert_eq!(ctx.accounts.owner.key(), ctx.accounts.vault.admin);
+        assert_eq!(ctx.accounts.mint.supply, 0);
         assert_eq!(ctx.accounts.mint.decimals, Pool::POOL_TOKEN_DECIMALS);
         assert_eq!(
             ctx.accounts.mint.mint_authority.unwrap(),

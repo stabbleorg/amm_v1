@@ -49,10 +49,4 @@ pub mod pool_weighted {
     ) -> Result<()> {
         process_swap(ctx, amount_in, min_amount_out)
     }
-
-    /// assert min balance after batch swap
-    /// should append to swap instructions in batch swap transaction
-    pub fn assert_batch_swap(ctx: Context<AssertBatchSwap>, min_balance: u64) -> Result<()> {
-        process_assert_batch_swap(ctx, min_balance)
-    }
 }

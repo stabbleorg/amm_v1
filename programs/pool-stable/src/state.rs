@@ -28,6 +28,7 @@ pub struct Pool {
     pub invariant: u64,
     pub swap_fee: u16,
     pub amp: u16,
+    pub amp_start: u16,
     pub amp_start_time: i64,
     pub amp_end_time: i64,
     pub amp_duration: u32,
