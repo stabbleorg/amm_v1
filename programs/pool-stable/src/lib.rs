@@ -7,7 +7,7 @@ pub mod state;
 use crate::processor::*;
 use anchor_lang::prelude::*;
 
-declare_id!("99TTqzz6CLm1NNjUAbvePk9L2FHSrht53RVaZCWCLryE");
+declare_id!("CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f");
 
 #[program]
 pub mod pool_stable {

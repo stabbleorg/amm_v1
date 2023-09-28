@@ -2,9 +2,9 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-vault = "359c376ustKUBAy8ZJdjyRub9Kf7W4LHxxahXP8P9LEW"
-pool_weighted = "7qmGmnrVnCjEjTnyxnCYJcraarutuX7Dsw3Wt5LU7ree"
-pool_stable = "99TTqzz6CLm1NNjUAbvePk9L2FHSrht53RVaZCWCLryE"
+vault = "7oh6tTdSfoWdKgqFXotGtPfS3Gqk6Jwc2yDZ7NCErYLW"
+pool_weighted = "GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4"
+pool_stable = "CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f"
 
 [registry]
 url = "https://api.apr.dev"

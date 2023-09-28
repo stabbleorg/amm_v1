@@ -1,7 +1,8 @@
 import { Program, Provider } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import { WalletContext } from "../wallet";
 import { type PoolStable as IDLType, IDL } from "../generated/pool_stable";
+import { WalletContext } from "../wallet";
+import { StablePool } from "../models";
 
 export type StablePoolProgram = Program<IDLType>;
 
@@ -12,7 +13,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     super(provider);
     this.program = new Program(
       IDL,
-      programId || new PublicKey("99TTqzz6CLm1NNjUAbvePk9L2FHSrht53RVaZCWCLryE"),
+      programId || new PublicKey("CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f"),
       provider,
     );
   }
@@ -29,5 +30,28 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
       [Buffer.from("Withdraw Authority"), vaultAddress.toBuffer()],
       this.program.programId,
     );
+  }
+
+  async loadPool(poolAddress: PublicKey): Promise<StablePool> {
+    const data = await this.program.account.pool.fetch(poolAddress);
+    return new StablePool(poolAddress, data);
+  }
+
+  async loadPools(poolAddresses: PublicKey[]): Promise<StablePool[]> {
+    return (await this.program.account.pool.fetchMultiple(poolAddresses)).map(
+      (data, index) => new StablePool(poolAddresses[index], data!),
+    );
+  }
+
+  async loadPoolsByVault(vaultAddress: PublicKey): Promise<StablePool[]> {
+    const accounts = await this.program.account.pool.all([
+      {
+        memcmp: {
+          offset: 40, // 8+32
+          bytes: vaultAddress.toBase58(),
+        },
+      },
+    ]);
+    return accounts.map((account) => new StablePool(account.publicKey, account.account));
   }
 }

@@ -15,7 +15,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     super(provider);
     this.program = new Program(
       IDL,
-      programId || new PublicKey("359c376ustKUBAy8ZJdjyRub9Kf7W4LHxxahXP8P9LEW"),
+      programId || new PublicKey("7oh6tTdSfoWdKgqFXotGtPfS3Gqk6Jwc2yDZ7NCErYLW"),
       provider,
     );
   }

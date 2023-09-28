@@ -24,7 +24,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     super(provider);
     this.program = new Program(
       IDL,
-      programId || new PublicKey("7qmGmnrVnCjEjTnyxnCYJcraarutuX7Dsw3Wt5LU7ree"),
+      programId || new PublicKey("GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4"),
       provider,
     );
   }
@@ -52,6 +52,18 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     return (await this.program.account.pool.fetchMultiple(poolAddresses)).map(
       (data, index) => new WeightedPool(poolAddresses[index], data!),
     );
+  }
+
+  async loadPoolsByVault(vaultAddress: PublicKey): Promise<WeightedPool[]> {
+    const accounts = await this.program.account.pool.all([
+      {
+        memcmp: {
+          offset: 40, // 8+32
+          bytes: vaultAddress.toBase58(),
+        },
+      },
+    ]);
+    return accounts.map((account) => new WeightedPool(account.publicKey, account.account));
   }
 
   async depositInstructions(
