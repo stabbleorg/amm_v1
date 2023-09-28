@@ -9,15 +9,17 @@ import {
   createInitializeMint2Instruction,
   createSetAuthorityInstruction,
 } from "@solana/spl-token";
-import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
+import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { type PoolWeighted as IDLType, IDL } from "../generated/pool_weighted";
 import { WalletContext } from "../wallet";
-import { WeightedPool } from "../models";
+import { WeightedPool, WeightedPoolData } from "../models";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE } from "../consts";
 import { TokenAmountUtil } from "../utils";
 
 export type WeightedPoolProgram = Program<IDLType>;
 
 export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
+  private _listener?: number;
   readonly program: WeightedPoolProgram;
 
   constructor(provider: T, programId?: PublicKey) {
@@ -41,6 +43,25 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
       [Buffer.from("Withdraw Authority"), vaultAddress.toBuffer()],
       this.program.programId,
     );
+  }
+
+  setEventListener(callback: (event: DataUpdatedEvent<Partial<WeightedPoolData>>) => void) {
+    this.removeEventListener();
+    this._listener = this.program.addEventListener(
+      "PoolUpdatedEvent",
+      (event: DataUpdatedEvent<Partial<WeightedPoolData>>, slot: number, signature: TransactionSignature) => {
+        if (signature !== SIMULATED_SIGNATURE) {
+          callback(event);
+        }
+      },
+    );
+  }
+
+  removeEventListener() {
+    if (this._listener !== undefined) {
+      this.program.removeEventListener(this._listener);
+      this._listener = undefined;
+    }
   }
 
   async loadPool(poolAddress: PublicKey): Promise<WeightedPool> {

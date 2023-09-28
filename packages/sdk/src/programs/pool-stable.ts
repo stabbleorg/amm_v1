@@ -9,15 +9,17 @@ import {
   createInitializeMint2Instruction,
   createSetAuthorityInstruction,
 } from "@solana/spl-token";
-import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
+import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { type PoolStable as IDLType, IDL } from "../generated/pool_stable";
 import { WalletContext } from "../wallet";
-import { StablePool } from "../models";
+import { StablePool, StablePoolData } from "../models";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE } from "../consts";
 import { TokenAmountUtil } from "../utils";
 
 export type StablePoolProgram = Program<IDLType>;
 
 export class StablePoolContext<T extends Provider> extends WalletContext<T> {
+  private _listener?: number;
   readonly program: StablePoolProgram;
 
   constructor(provider: T, programId?: PublicKey) {
@@ -41,6 +43,25 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
       [Buffer.from("Withdraw Authority"), vaultAddress.toBuffer()],
       this.program.programId,
     );
+  }
+
+  setEventListener(callback: (event: DataUpdatedEvent<Partial<StablePoolData>>) => void) {
+    this.removeEventListener();
+    this._listener = this.program.addEventListener(
+      "PoolUpdatedEvent",
+      (event: DataUpdatedEvent<Partial<StablePoolData>>, slot: number, signature: TransactionSignature) => {
+        if (signature !== SIMULATED_SIGNATURE) {
+          callback(event);
+        }
+      },
+    );
+  }
+
+  removeEventListener() {
+    if (this._listener !== undefined) {
+      this.program.removeEventListener(this._listener);
+      this._listener = undefined;
+    }
   }
 
   async loadPool(poolAddress: PublicKey): Promise<StablePool> {
