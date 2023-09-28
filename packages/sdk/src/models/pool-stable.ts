@@ -49,6 +49,10 @@ export class StablePool {
     }));
   }
 
+  get vaultAddress(): PublicKey {
+    return this.data.vault;
+  }
+
   get ownerAddress(): PublicKey {
     return this.data.owner;
   }

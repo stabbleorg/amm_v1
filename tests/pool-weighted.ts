@@ -77,6 +77,11 @@ describe("Weighted Pool", () => {
     });
 
     it("should initialize weighted pool", async () => {
+      const balanceRatio_STB_USDC = WeightedMath.calcBalanceRatio(0.7, 0.0175, 0.3, 1);
+      const balanceRatio_STB_USDT = WeightedMath.calcBalanceRatio(0.8, 0.0175, 0.2, 1);
+      console.log("STB70/USDC30", balanceRatio_STB_USDC);
+      console.log("STB80/USDT20", balanceRatio_STB_USDT);
+
       const ixs = await adminWeightedPoolContext.initializeInstructions(
         vaultAddress,
         poolAddress,
