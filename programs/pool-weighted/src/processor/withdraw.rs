@@ -62,7 +62,6 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             )
             .unwrap();
 
-        msg!("Amount out [{}]: {}", token_index, amounts_out[token_index]);
         let vault_account = &ctx.remaining_accounts[token_index + amounts_out.len()];
         ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
             withdraw_vault(

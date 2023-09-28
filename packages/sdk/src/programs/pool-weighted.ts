@@ -14,7 +14,7 @@ import { type PoolWeighted as IDLType, IDL } from "../generated/pool_weighted";
 import { WalletContext } from "../wallet";
 import { WeightedPool, WeightedPoolData } from "../models";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE } from "../consts";
-import { TokenAmountUtil } from "../utils";
+import { TokenAmountUtil, WeightedMath } from "../utils";
 
 export type WeightedPoolProgram = Program<IDLType>;
 
@@ -36,6 +36,10 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
       [Buffer.from("Weighted Pool Authority"), poolAddress.toBuffer()],
       this.program.programId,
     )[0];
+  }
+
+  findWithdrawAuthorityAddress(vaultAddress: PublicKey): PublicKey {
+    return this.findWithdrawAuthorityAddressAndBump(vaultAddress)[0];
   }
 
   findWithdrawAuthorityAddressAndBump(vaultAddress: PublicKey): [PublicKey, number] {
@@ -85,6 +89,52 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
       },
     ]);
     return accounts.map((account) => new WeightedPool(account.publicKey, account.account));
+  }
+
+  async swapInstructions(
+    vaultAddress: PublicKey,
+    vaultAuthorityAddress: PublicKey,
+    beneficiaryAddress: PublicKey,
+    vaultProgramAddress: PublicKey,
+    poolAddress: PublicKey,
+    mintInAddress: PublicKey,
+    mintOutAddress: PublicKey,
+    decimalsIn: number,
+    decimalsOut: number,
+    amountIn: string,
+    minAmountOut: number = 0,
+  ): Promise<TransactionInstruction[]> {
+    const instructions: TransactionInstruction[] = [];
+
+    const { address: userTokenOutAddress, instruction: userTokenOutInstruction } =
+      await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress);
+    if (userTokenOutInstruction) instructions.push(userTokenOutInstruction);
+
+    const { address: beneficiaryTokenOutAddress, instruction: beneficiaryTokenOutInstruction } =
+      await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress, beneficiaryAddress);
+    if (beneficiaryTokenOutInstruction) instructions.push(beneficiaryTokenOutInstruction);
+
+    instructions.push(
+      await this.program.methods
+        .swap(TokenAmountUtil.toBigAmount(amountIn, decimalsIn), TokenAmountUtil.toBigAmount(minAmountOut, decimalsOut))
+        .accounts({
+          user: this.walletAddress,
+          userTokenIn: this.getAssociatedTokenAddress(mintInAddress),
+          userTokenOut: userTokenOutAddress,
+          vaultTokenIn: this.getAssociatedTokenAddress(mintInAddress, vaultAuthorityAddress),
+          vaultTokenOut: this.getAssociatedTokenAddress(mintOutAddress, vaultAuthorityAddress),
+          beneficiaryTokenOut: beneficiaryTokenOutAddress,
+          pool: poolAddress,
+          withdrawAuthority: this.findWithdrawAuthorityAddress(vaultAddress),
+          vault: vaultAddress,
+          vaultAuthority: vaultAuthorityAddress,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          vaultProgram: vaultProgramAddress,
+        })
+        .instruction(),
+    );
+
+    return instructions;
   }
 
   async depositInstructions(

@@ -11,7 +11,7 @@ import { setupStablePoolProgram } from "./pool-stable";
 import { parseKeypair } from "./utils";
 
 program
-  .version("0.1.1")
+  .version("0.1.3")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
   .option("-s, --simulate", "simulate transaction")

@@ -26,6 +26,13 @@ export const pools: PoolMeta[] = [
     image: "",
   },
   {
+    address: "E19KQr8pBnZn5C2oefC3JMCqvyn2QqdCHuroxew1R1Zr",
+    cluster: "devnet",
+    kind: "weighted",
+    name: "STB40-PSOL35-USDC25",
+    image: "",
+  },
+  {
     address: "4bJ6m57f6ugoy5ANqtdPz1QPFoVNQTENa4k4BQhQ6K2K",
     cluster: "devnet",
     kind: "stable",

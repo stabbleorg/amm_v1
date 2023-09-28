@@ -38,6 +38,10 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     )[0];
   }
 
+  findWithdrawAuthorityAddress(vaultAddress: PublicKey): PublicKey {
+    return this.findWithdrawAuthorityAddressAndBump(vaultAddress)[0];
+  }
+
   findWithdrawAuthorityAddressAndBump(vaultAddress: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
       [Buffer.from("Withdraw Authority"), vaultAddress.toBuffer()],
