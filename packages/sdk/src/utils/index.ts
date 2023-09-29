@@ -1,2 +1,2 @@
-export * from "./math-weighted";
+export * from "./math";
 export * from "./token-amount";

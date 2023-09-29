@@ -1,6 +1,7 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import { TokenAmountUtil } from "../utils";
+import { StableMath, TokenAmountUtil } from "../utils";
+import { PriceInfo } from "../consts";
 
 export type StablePoolTokenData = {
   mint: PublicKey;
@@ -29,7 +30,7 @@ export type StablePoolData = {
 export type StablePoolToken = {
   mintAddress: PublicKey;
   decimals: number;
-  balance: string;
+  balance: number;
 };
 
 export class StablePool {
@@ -45,7 +46,7 @@ export class StablePool {
     return this.data.tokens.map((token) => ({
       mintAddress: token.mint,
       decimals: token.decimals,
-      balance: TokenAmountUtil.toUiAmount(token.balance, StablePool.DECIMALS),
+      balance: Number(TokenAmountUtil.toUiAmount(token.balance, StablePool.DECIMALS)),
     }));
   }
 
@@ -71,5 +72,20 @@ export class StablePool {
 
   get isActive(): boolean {
     return this.data.isActive;
+  }
+
+  getEstAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {
+    const tokenInIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenInAddress));
+    if (tokenInIndex === -1) return 0;
+    const tokenOutIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenOutAddress));
+    if (tokenOutIndex === -1) return 0;
+    const amountOut = StableMath.calcOutGivenIn(
+      [...this.tokens.map((token) => token.balance)],
+      this.amplification,
+      tokenInIndex,
+      tokenOutIndex,
+      amountIn,
+    );
+    return Math.max(amountOut, 0);
   }
 }

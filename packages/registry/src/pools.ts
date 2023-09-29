@@ -38,6 +38,14 @@ export const pools: PoolMeta[] = [
     kind: "stable",
     name: "USDH-USDT-USDC",
     image: "",
+    tags: ["usd", "usdh"],
+  },
+  {
+    address: "EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV",
+    cluster: "devnet",
+    kind: "stable",
+    name: "USDT-USDC",
+    image: "",
     tags: ["usd"],
   },
 ];

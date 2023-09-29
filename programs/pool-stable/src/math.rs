@@ -1,7 +1,10 @@
 use crate::error::*;
 use anchor_lang::prelude::*;
 
-pub const AMP_PRECISION: u128 = 1000;
+pub const MIN_AMP: u128 = 1;
+pub const MAX_AMP: u128 = 5000;
+
+pub const MAX_STABLE_TOKENS: usize = 5;
 
 // StableMath._calculateInvariant
 // Computes the invariant given the current balances, using the Newton-Raphson approximation.
@@ -28,7 +31,7 @@ pub fn calc_invariant(amp: u128, balances: Vec<u128>) -> Result<u128> {
     let mut invariant = sum; // D in the Curve version
     let amp_times_total = amp.checked_mul(num_tokens).unwrap(); // Ann in the Curve version
 
-    for _ in 0..128 {
+    for _ in 0..255 {
         let mut p = invariant;
 
         for j in 0..balances.len() {
@@ -45,19 +48,15 @@ pub fn calc_invariant(amp: u128, balances: Vec<u128>) -> Result<u128> {
         invariant = amp_times_total
             .checked_mul(sum)
             .unwrap()
-            .checked_div(AMP_PRECISION)
-            .unwrap()
             .checked_add(p.checked_mul(num_tokens).unwrap())
             .unwrap()
             .checked_mul(invariant)
             .unwrap()
             .checked_div(
                 amp_times_total
-                    .checked_sub(AMP_PRECISION)
+                    .checked_sub(1)
                     .unwrap()
                     .checked_mul(invariant)
-                    .unwrap()
-                    .checked_div(AMP_PRECISION)
                     .unwrap()
                     .checked_add(num_tokens.saturating_add(1).checked_mul(p).unwrap())
                     .unwrap(),
@@ -406,14 +405,10 @@ fn get_token_balance_given_invariant_and_all_other_balances(
     let c = inv_2
         .checked_div(amp_times_total.checked_mul(p).unwrap())
         .unwrap()
-        .checked_mul(AMP_PRECISION)
-        .unwrap()
         .checked_mul(balances[token_index])
         .unwrap();
     let b = invariant
         .checked_div(amp_times_total)
-        .unwrap()
-        .checked_mul(AMP_PRECISION)
         .unwrap()
         .checked_add(sum)
         .unwrap();
@@ -428,7 +423,7 @@ fn get_token_balance_given_invariant_and_all_other_balances(
         .checked_div(invariant.checked_add(b).unwrap())
         .unwrap();
 
-    for _ in 0..128 {
+    for _ in 0..255 {
         prev_token_balance = token_balance;
 
         token_balance = prev_token_balance

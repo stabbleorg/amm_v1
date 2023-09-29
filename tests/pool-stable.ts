@@ -3,7 +3,7 @@ import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { createAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
 import { TokenAmountUtil, VaultContext, StablePoolContext } from "@stabbleorg/solana-sdk";
-import { stableVaultKP, stableN3PoolKP, stableN3PoolMintKP, adminKP, userKP, swapFee } from "./consts";
+import { stableVaultKP, stableN3PoolKP, stableN3PoolMintKP, beneficiaryKP, adminKP, userKP, swapFee } from "./consts";
 
 describe("Stable Pool", () => {
   const provider = AnchorProvider.env();
@@ -13,6 +13,7 @@ describe("Stable Pool", () => {
   const userStablePoolContext = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(userKP), {}));
   const vaultContext = new VaultContext({ connection: provider.connection });
   const vaultAddress = stableVaultKP.publicKey;
+  const beneficiaryAddress = beneficiaryKP.publicKey;
 
   let mintUSDH: PublicKey, mintUSDT: PublicKey, mintUSDC: PublicKey;
 
@@ -81,7 +82,7 @@ describe("Stable Pool", () => {
         poolAddress,
         poolMintAddress,
         swapFee,
-        500,
+        1000,
         [mintUSDH, mintUSDT, mintUSDC],
       );
       const tx = await adminStablePoolContext.newTX(ixs);
@@ -110,6 +111,52 @@ describe("Stable Pool", () => {
         adminStablePoolContext.getAssociatedTokenAddress(poolMintAddress),
       );
       console.log("LP out:", balance.uiAmount!);
+    });
+
+    it("should swap 100 USDH for USDC", async () => {
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDC),
+      );
+
+      // should be preloaded & up to date in real-time by event listener in dapp
+      const pools = await adminStablePoolContext.loadPoolsByVault(vaultAddress);
+      // pick the best pool
+      const pool = pools
+        .filter((pool) => pool.isActive)
+        .sort((a, b) => b.getEstAmountOut(mintUSDH, mintUSDC, 100) - a.getEstAmountOut(mintUSDH, mintUSDC, 100))[0];
+      if (!pool) assert.fail();
+
+      // price info
+      const amountOut = pool.getEstAmountOut(mintUSDH, mintUSDC, 100);
+      // estimated amount out
+      console.log("Est. amount out:", amountOut);
+      // given slippage 0.1% (0.001)
+      const minAmountOut = amountOut * (1 - 0.001);
+
+      try {
+        const ixs = await adminStablePoolContext.swapInstructions(
+          vaultAddress,
+          vaultContext.findVaultAuthorityAddress(vaultAddress),
+          beneficiaryAddress,
+          vaultContext.program.programId,
+          poolAddress,
+          mintUSDH,
+          mintUSDC,
+          6,
+          6,
+          "100",
+          minAmountOut,
+        );
+        const tx = await adminStablePoolContext.newTX(ixs);
+        await adminStablePoolContext.provider.sendAndConfirm!(tx);
+      } catch (err) {
+        console.error(err);
+      }
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDC),
+      );
+      console.log("USDC out:", postBalance.uiAmount! - balance.uiAmount!);
     });
   });
 });

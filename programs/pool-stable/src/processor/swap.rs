@@ -38,7 +38,6 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
         invariant,
     )?)
     .unwrap();
-    assert!(amount_out >= min_amount_out); // slippage
 
     // add in token balance
     ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index]
@@ -50,6 +49,11 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
         .balance
         .checked_sub(amount_out)
         .unwrap();
+
+    let amount_out = amount_out
+        .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u64)
+        .unwrap();
+    assert!(amount_out >= min_amount_out); // slippage
 
     ctx.accounts.pool.emit_updated_event();
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
