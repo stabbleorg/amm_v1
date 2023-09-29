@@ -150,36 +150,17 @@ describe("Weighted Pool", () => {
         .sort((a, b) => b.getEstAmountOut(mintUSDC, mintSTB, 100) - a.getEstAmountOut(mintUSDC, mintSTB, 100))[0];
       if (!pool) assert.fail();
 
-      // const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintUSDC))!;
-      // const tokenOut = pool.tokens.find((token) => token.mintAddress.equals(mintSTB))!;
-      // // USDC/STB price impact
-      // const currentPrice = WeightedMath.calcSpotPrice(
-      //   tokenIn.balance,
-      //   tokenIn.weight,
-      //   tokenOut.balance,
-      //   tokenOut.weight,
-      //   pool.swapFee,
-      // );
-      // const postPrice = WeightedMath.calcPostPrice(
-      //   tokenIn.balance,
-      //   tokenIn.weight,
-      //   tokenOut.balance,
-      //   tokenOut.weight,
-      //   100,
-      //   pool.swapFee,
-      // );
-      // // STB buy price
-      // console.log("STB buy price:", 1 / currentPrice);
-      // console.log("Post price:", 1 / postPrice);
+      // price info
+      const price = pool.getPriceInfo(mintUSDC, mintSTB, 100);
+      if (price === null) assert.fail();
 
+      console.log("1 USDC =", price.currentPrice, "STB");
       // price impact
-      const priceImpactRatio = pool.getPriceImpactRatio(mintUSDC, mintSTB, 100);
-      console.log("Price impact ratio:", priceImpactRatio);
+      console.log("Price impact ratio:", price.priceImpactRatio);
       // estimated amount out
-      const amountOut = pool.getEstAmountOut(mintUSDC, mintSTB, 100);
-      console.log("Est. amount out:", amountOut);
+      console.log("Est. amount out:", price.amountOut);
       // given slippage 0.1% (0.001)
-      const minAmountOut = amountOut * (1 - 0.001);
+      const minAmountOut = price.amountOut * (1 - 0.001);
 
       const ixs = await adminWeightedPoolContext.swapInstructions(
         vaultAddress,
@@ -216,36 +197,17 @@ describe("Weighted Pool", () => {
         .sort((a, b) => b.getEstAmountOut(mintSTB, mintUSDC, 5650) - a.getEstAmountOut(mintSTB, mintUSDC, 5650))[0];
       if (!pool) assert.fail();
 
-      // const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintSTB))!;
-      // const tokenOut = pool.tokens.find((token) => token.mintAddress.equals(mintUSDC))!;
-      // // STB/USDC price impact
-      // const currentPrice = WeightedMath.calcSpotPrice(
-      //   tokenIn.balance,
-      //   tokenIn.weight,
-      //   tokenOut.balance,
-      //   tokenOut.weight,
-      //   pool.swapFee,
-      // );
-      // const postPrice = WeightedMath.calcPostPrice(
-      //   tokenIn.balance,
-      //   tokenIn.weight,
-      //   tokenOut.balance,
-      //   tokenOut.weight,
-      //   5000,
-      //   pool.swapFee,
-      // );
-      // // STB sell price
-      // console.log("STB sell price:", currentPrice);
-      // console.log("Post price:", postPrice);
+      // price info
+      const price = pool.getPriceInfo(mintSTB, mintUSDC, 5650);
+      if (price === null) assert.fail();
 
+      console.log("1 STB =", price.currentPrice, "USDC");
       // price impact
-      const priceImpactRatio = pool.getPriceImpactRatio(mintSTB, mintUSDC, 5650);
-      console.log("Price impact ratio:", priceImpactRatio);
+      console.log("Price impact ratio:", price.priceImpactRatio);
       // estimated amount out
-      const amountOut = pool.getEstAmountOut(mintSTB, mintUSDC, 5650);
-      console.log("Est. amount out:", amountOut);
+      console.log("Est. amount out:", price.amountOut);
       // given slippage 0.1% (0.001)
-      const minAmountOut = amountOut * (1 - 0.001);
+      const minAmountOut = price.amountOut * (1 - 0.001);
 
       const ixs = await adminWeightedPoolContext.swapInstructions(
         vaultAddress,

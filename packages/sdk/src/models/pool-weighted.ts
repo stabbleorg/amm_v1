@@ -1,6 +1,7 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { TokenAmountUtil, WeightedMath } from "../utils";
+import { PriceInfo } from "../consts";
 
 export type WeightedPoolTokenData = {
   mint: PublicKey;
@@ -67,11 +68,11 @@ export class WeightedPool {
     return this.data.isActive;
   }
 
-  getPriceImpactRatio(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {
+  getPriceInfo(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): PriceInfo | null {
     const tokenIn = this.tokens.find((token) => token.mintAddress.equals(tokenInAddress));
-    if (!tokenIn) return 0;
+    if (!tokenIn) return null;
     const tokenOut = this.tokens.find((token) => token.mintAddress.equals(tokenOutAddress));
-    if (!tokenOut) return 0;
+    if (!tokenOut) return null;
     const currentPrice = WeightedMath.calcSpotPrice(
       tokenIn.balance,
       tokenIn.weight,
@@ -87,7 +88,21 @@ export class WeightedPool {
       amountIn,
       this.swapFee,
     );
-    return 1 - postPrice / currentPrice;
+    const priceImpactRatio = 1 - postPrice / currentPrice;
+    const amountOut = WeightedMath.calcOutGivenIn(
+      tokenIn.balance,
+      tokenIn.weight,
+      tokenOut.balance,
+      tokenOut.weight,
+      amountIn,
+      this.swapFee,
+    );
+    return {
+      currentPrice,
+      postPrice,
+      priceImpactRatio,
+      amountOut,
+    };
   }
 
   getEstAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {

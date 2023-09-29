@@ -6,3 +6,10 @@ export interface DataUpdatedEvent<T> {
   pubkey: PublicKey;
   data: T;
 }
+
+export interface PriceInfo {
+  currentPrice: number;
+  postPrice: number;
+  priceImpactRatio: number;
+  amountOut: number;
+}
