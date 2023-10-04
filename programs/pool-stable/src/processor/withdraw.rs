@@ -10,8 +10,83 @@ use vault::{
     state::{Vault, WithdrawAuthority},
 };
 
-pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64, min_amounts_out: Vec<u64>) -> Result<()> {
-    // todo
+pub fn process_withdraw<'a, 'b, 'c, 'info>(
+    ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
+    amount: u64,
+    min_amounts_out: Vec<u64>,
+) -> Result<()> {
+    let amplification = ctx.accounts.pool.get_amplification();
+    let balances = ctx.accounts.pool.get_balances();
+    let current_invariant = math::calc_invariant(amplification, balances.clone())?;
+
+    let amounts_out = if ctx.remaining_accounts.len() == 2 {
+        let mint = get_token_mint(&ctx.remaining_accounts[0])?;
+        let scaling_factor = ctx.accounts.pool.get_scaling_factor(mint);
+        let amount_out = math::calc_token_out_exact_in(
+            amplification,
+            balances,
+            ctx.accounts.pool.get_token_index(mint),
+            amount as u128,
+            ctx.accounts.mint.supply as u128,
+            current_invariant,
+            ctx.accounts.pool.get_swap_fee(),
+        )?;
+        let amount_out = u64::try_from((amount_out.checked_div(scaling_factor).unwrap()) as u128).unwrap();
+        assert!(amount_out >= min_amounts_out[0]); // slippage
+        vec![amount_out]
+    } else {
+        let amounts_out = math::calc_tokens_out_exact_in(balances, amount as u128, ctx.accounts.mint.supply as u128)?;
+        amounts_out
+            .iter()
+            .enumerate()
+            .map(|(token_index, &amount_out)| {
+                let amount_out = u64::try_from(
+                    amount_out
+                        .checked_div(ctx.accounts.pool.tokens[token_index].scaling_factor as u128)
+                        .unwrap(),
+                )
+                .unwrap();
+                assert!(amount_out >= min_amounts_out[token_index]); // slippage
+                amount_out
+            })
+            .collect()
+    };
+
+    for (token_index, user_account) in ctx.remaining_accounts[0..amounts_out.len()].iter().enumerate() {
+        let mint = get_token_mint(&user_account)?;
+        if ctx.remaining_accounts.len() > 2 {
+            // check token orders
+            assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
+        }
+        // remove token balances
+        ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
+            .balance
+            .checked_sub(
+                amounts_out[token_index]
+                    .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u64)
+                    .unwrap(),
+            )
+            .unwrap();
+
+        let vault_account = &ctx.remaining_accounts[token_index + amounts_out.len()];
+        ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
+            withdraw_vault(
+                CpiContext::new(
+                    ctx.accounts.vault_program.to_account_info(),
+                    WithdrawVault {
+                        withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
+                        vault: ctx.accounts.vault.to_account_info(),
+                        vault_authority: ctx.accounts.vault_authority.to_account_info(),
+                        vault_token: vault_account.clone(),
+                        dest_token: user_account.clone(),
+                        token_program: ctx.accounts.token_program.to_account_info(),
+                    },
+                )
+                .with_signer(&[signer_seed]),
+                amounts_out[token_index],
+            )
+        })?;
+    }
 
     ctx.accounts.pool.emit_updated_event();
     burn(

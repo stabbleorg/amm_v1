@@ -188,6 +188,55 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     return instructions;
   }
 
+  async withdrawInstructions(
+    vaultAddress: PublicKey,
+    vaultAuthorityAddress: PublicKey,
+    vaultProgramAddress: PublicKey,
+    poolAddress: PublicKey,
+    poolMintAddress: PublicKey,
+    amount: string,
+    mintAddresses: PublicKey[],
+  ): Promise<TransactionInstruction[]> {
+    const instructions: TransactionInstruction[] = [];
+    const userRemainingAccounts: AccountMeta[] = [];
+    const vaultRemainingAccounts: AccountMeta[] = [];
+
+    const userPoolTokenAddress = this.getAssociatedTokenAddress(poolMintAddress);
+
+    for (const mintAddress of mintAddresses) {
+      const { address: userTokenAddress, instruction } =
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress);
+      const vaultTokenAddress = this.getAssociatedTokenAddress(mintAddress, vaultAuthorityAddress);
+      if (instruction) instructions.push(instruction);
+      userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: userTokenAddress });
+      vaultRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: vaultTokenAddress });
+    }
+
+    instructions.push(
+      await this.program.methods
+        .withdraw(
+          TokenAmountUtil.toBigAmount(amount, StablePool.DECIMALS),
+          mintAddresses.map(() => new BN(0)),
+        )
+        .accounts({
+          user: this.walletAddress,
+          userPoolToken: userPoolTokenAddress,
+          mint: poolMintAddress,
+          pool: poolAddress,
+          poolAuthority: this.findPoolAuthorityAddress(poolAddress),
+          withdrawAuthority: this.findWithdrawAuthorityAddressAndBump(vaultAddress)[0],
+          vault: vaultAddress,
+          vaultAuthority: vaultAuthorityAddress,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          vaultProgram: vaultProgramAddress,
+        })
+        .remainingAccounts([...userRemainingAccounts, ...vaultRemainingAccounts])
+        .instruction(),
+    );
+
+    return instructions;
+  }
+
   async initializeInstructions(
     vaultAddress: PublicKey,
     poolAddress: PublicKey,

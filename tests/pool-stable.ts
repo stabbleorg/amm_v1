@@ -87,11 +87,7 @@ describe("Stable Pool", () => {
       );
       const tx = await adminStablePoolContext.newTX(ixs);
       tx.sign([stableN3PoolMintKP, stableN3PoolKP]);
-      try {
-        await adminStablePoolContext.provider.sendAndConfirm!(tx);
-      } catch (err) {
-        console.error(err);
-      }
+      await adminStablePoolContext.provider.sendAndConfirm!(tx);
     });
 
     it("should add initial liquidity", async () => {
@@ -111,6 +107,116 @@ describe("Stable Pool", () => {
         adminStablePoolContext.getAssociatedTokenAddress(poolMintAddress),
       );
       console.log("LP out:", balance.uiAmount!);
+    });
+
+    it("should remove liquidity in exact tokens given 1000 LP", async () => {
+      const { value: balanceUSDH } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDH),
+      );
+      const { value: balanceUSDT } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDT),
+      );
+      const { value: balanceUSDC } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDC),
+      );
+
+      const ixs = await adminStablePoolContext.withdrawInstructions(
+        vaultAddress,
+        vaultContext.findVaultAuthorityAddress(vaultAddress),
+        vaultContext.program.programId,
+        poolAddress,
+        poolMintAddress,
+        "1000",
+        [mintUSDH, mintUSDT, mintUSDC],
+      );
+      const tx = await adminStablePoolContext.newTX(ixs);
+      await adminStablePoolContext.provider.sendAndConfirm!(tx);
+
+      const { value: postBalanceUSDH } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDH),
+      );
+      const { value: postBalanceUSDT } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDT),
+      );
+      const { value: postBalanceUSDC } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDC),
+      );
+      console.log("USDH out:", postBalanceUSDH.uiAmount! - balanceUSDH.uiAmount!);
+      console.log("USDT out:", postBalanceUSDT.uiAmount! - balanceUSDT.uiAmount!);
+      console.log("USDC out:", postBalanceUSDC.uiAmount! - balanceUSDC.uiAmount!);
+    });
+
+    it("should remove liquidity in USDC given 1000 LP", async () => {
+      const { value: balanceUSDC } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDC),
+      );
+
+      const ixs = await adminStablePoolContext.withdrawInstructions(
+        vaultAddress,
+        vaultContext.findVaultAuthorityAddress(vaultAddress),
+        vaultContext.program.programId,
+        poolAddress,
+        poolMintAddress,
+        "1000",
+        [mintUSDC],
+      );
+      const tx = await adminStablePoolContext.newTX(ixs);
+      await adminStablePoolContext.provider.sendAndConfirm!(tx);
+
+      const { value: postBalanceUSDC } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(mintUSDC),
+      );
+      console.log("USDC out:", postBalanceUSDC.uiAmount! - balanceUSDC.uiAmount!);
+    });
+
+    it("should add liquidity in USDC given 1000 USDC", async () => {
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(poolMintAddress),
+      );
+
+      const ixs = await adminStablePoolContext.depositInstructions(
+        vaultAddress,
+        vaultContext.findVaultAuthorityAddress(vaultAddress),
+        poolAddress,
+        poolMintAddress,
+        ["1000"],
+        [6],
+        [mintUSDC],
+      );
+      const tx = await adminStablePoolContext.newTX(ixs);
+      try {
+        await adminStablePoolContext.provider.sendAndConfirm!(tx);
+      } catch (err) {
+        console.error(err);
+      }
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(poolMintAddress),
+      );
+      console.log("LP out:", postBalance.uiAmount! - balance.uiAmount!);
+    });
+
+    it("should add liquidity", async () => {
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(poolMintAddress),
+      );
+
+      const ixs = await adminStablePoolContext.depositInstructions(
+        vaultAddress,
+        vaultContext.findVaultAuthorityAddress(vaultAddress),
+        poolAddress,
+        poolMintAddress,
+        ["500", "250", "250"],
+        [6, 6, 6],
+        [mintUSDH, mintUSDT, mintUSDC],
+      );
+      const tx = await adminStablePoolContext.newTX(ixs);
+      await adminStablePoolContext.provider.sendAndConfirm!(tx);
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        adminStablePoolContext.getAssociatedTokenAddress(poolMintAddress),
+      );
+      console.log("LP out:", postBalance.uiAmount! - balance.uiAmount!);
     });
 
     it("should swap 100 USDH for USDC", async () => {
@@ -133,25 +239,21 @@ describe("Stable Pool", () => {
       // given slippage 0.1% (0.001)
       const minAmountOut = amountOut * (1 - 0.001);
 
-      try {
-        const ixs = await adminStablePoolContext.swapInstructions(
-          vaultAddress,
-          vaultContext.findVaultAuthorityAddress(vaultAddress),
-          beneficiaryAddress,
-          vaultContext.program.programId,
-          poolAddress,
-          mintUSDH,
-          mintUSDC,
-          6,
-          6,
-          "100",
-          minAmountOut,
-        );
-        const tx = await adminStablePoolContext.newTX(ixs);
-        await adminStablePoolContext.provider.sendAndConfirm!(tx);
-      } catch (err) {
-        console.error(err);
-      }
+      const ixs = await adminStablePoolContext.swapInstructions(
+        vaultAddress,
+        vaultContext.findVaultAuthorityAddress(vaultAddress),
+        beneficiaryAddress,
+        vaultContext.program.programId,
+        poolAddress,
+        mintUSDH,
+        mintUSDC,
+        6,
+        6,
+        "100",
+        minAmountOut,
+      );
+      const tx = await adminStablePoolContext.newTX(ixs);
+      await adminStablePoolContext.provider.sendAndConfirm!(tx);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         adminStablePoolContext.getAssociatedTokenAddress(mintUSDC),

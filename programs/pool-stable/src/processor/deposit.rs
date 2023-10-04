@@ -11,6 +11,77 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     amounts: Vec<u64>,
     min_amount_out: u64,
 ) -> Result<()> {
+    let amplification = ctx.accounts.pool.get_amplification();
+
+    let amount_out = if ctx.accounts.pool.invariant == 0 {
+        assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
+        assert_eq!(amounts.len(), ctx.accounts.pool.tokens.len());
+        // initial liquidity
+        math::calc_invariant(
+            amplification,
+            amounts
+                .iter()
+                .enumerate()
+                .map(|(token_index, &amount)| {
+                    (amount as u128)
+                        .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u128)
+                        .unwrap()
+                })
+                .collect(),
+        )?
+    } else {
+        let balances = ctx.accounts.pool.get_balances();
+        let current_invariant = math::calc_invariant(amplification, balances.clone())?;
+
+        // do_join
+        if amounts.len() == 1 {
+            let mint = get_token_mint(&ctx.remaining_accounts[0])?;
+            let token_index = ctx.accounts.pool.get_token_index(mint);
+            math::calc_out_exact_tokens_in(
+                amplification,
+                balances.clone(),
+                ctx.accounts
+                    .pool
+                    .tokens
+                    .iter()
+                    .enumerate()
+                    .map(|(index, token)| {
+                        if token_index == index {
+                            (amounts[0] as u128).checked_mul(token.scaling_factor as u128).unwrap()
+                        } else {
+                            0
+                        }
+                    })
+                    .collect(),
+                ctx.accounts.mint.supply as u128,
+                current_invariant,
+                ctx.accounts.pool.get_swap_fee(),
+            )?
+        } else {
+            math::calc_out_exact_tokens_in(
+                amplification,
+                balances.clone(),
+                amounts
+                    .iter()
+                    .enumerate()
+                    .map(|(token_index, &amount)| {
+                        (amount as u128)
+                            .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u128)
+                            .unwrap()
+                    })
+                    .collect(),
+                ctx.accounts.mint.supply as u128,
+                current_invariant,
+                ctx.accounts.pool.get_swap_fee(),
+            )?
+        }
+    };
+    let amount_out = u64::try_from(amount_out).unwrap();
+    assert!(amount_out >= min_amount_out); // slippage
+
+    // todo save post invariant
+    ctx.accounts.pool.invariant = amount_out;
+
     for (token_index, user_account) in ctx.remaining_accounts[0..amounts.len()].iter().enumerate() {
         let mint = get_token_mint(&user_account)?;
         if amounts.len() > 1 {
@@ -39,19 +110,6 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             amounts[token_index],
         )?;
     }
-
-    let amount_out = if ctx.accounts.pool.invariant == 0 {
-        assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
-        // initial liquidity
-        math::calc_invariant(ctx.accounts.pool.get_amplification(), ctx.accounts.pool.get_balances())?
-    } else {
-        // todo do_join
-        0
-    };
-    let amount_out = u64::try_from(amount_out).unwrap();
-    assert!(amount_out >= min_amount_out); // slippage
-
-    ctx.accounts.pool.invariant = amount_out;
 
     ctx.accounts.pool.emit_updated_event();
     ctx.accounts.pool.authority_seeds(|signer_seed| {

@@ -110,7 +110,7 @@ pub fn calc_out_given_in(
         .saturating_sub(1))
 }
 
-// StableMath._calcInGivenOut
+// StableMath._calcInGivenOut (Not used)
 // Computes how many tokens must be sent to a pool if `tokenAmountOut` are sent given the
 // current balances, using the Newton-Raphson approximation.
 // The amplification parameter equals: A n^(n-1)
@@ -152,7 +152,7 @@ pub fn calc_out_exact_tokens_in(
     amp: u128,
     balances: Vec<u128>,
     amounts_in: Vec<u128>,
-    total_supply: u128,
+    total_supply: u128, // LP total supply
     current_invariant: u128,
     swap_fee: u128,
 ) -> Result<u128> {
@@ -167,16 +167,24 @@ pub fn calc_out_exact_tokens_in(
     // The weighted sum of token balance ratios with fee
     let mut invariant_ratio_with_fees: u128 = 0;
     for j in 0..balances.len() {
-        let current_weight = balances[j].checked_div(sum_balances).unwrap();
+        let current_weight = balances[j]
+            .checked_mul(1_000_000_000)
+            .unwrap()
+            .checked_div(sum_balances)
+            .unwrap();
         balance_ratios_with_fee.push(
             balances[j]
                 .checked_add(amounts_in[j])
+                .unwrap()
+                .checked_mul(1_000_000_000)
                 .unwrap()
                 .checked_div(balances[j])
                 .unwrap(),
         );
         invariant_ratio_with_fees = balance_ratios_with_fee[j]
             .checked_mul(current_weight)
+            .unwrap()
+            .checked_div(1_000_000_000)
             .unwrap()
             .checked_add(invariant_ratio_with_fees)
             .unwrap();
@@ -191,11 +199,15 @@ pub fn calc_out_exact_tokens_in(
         if balance_ratios_with_fee[j] > invariant_ratio_with_fees {
             let non_taxable_amount = balances[j]
                 .checked_mul(invariant_ratio_with_fees.checked_sub(1_000_000_000).unwrap())
+                .unwrap()
+                .checked_div(1_000_000_000)
                 .unwrap();
             let taxable_amount = amounts_in[j].checked_sub(non_taxable_amount).unwrap();
             // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
             amount_in_without_fee = taxable_amount
-                .checked_mul(1_000_000_000_u128.saturating_sub(swap_fee))
+                .checked_mul(10_000_u128.saturating_sub(swap_fee))
+                .unwrap()
+                .checked_div(10_000)
                 .unwrap()
                 .checked_add(non_taxable_amount)
                 .unwrap();
@@ -207,19 +219,25 @@ pub fn calc_out_exact_tokens_in(
     }
 
     let new_invariant = calc_invariant(amp, new_balances)?;
-    let invariant_ratio = new_invariant.checked_div(current_invariant).unwrap();
+    let invariant_ratio = new_invariant
+        .checked_mul(1_000_000_000)
+        .unwrap()
+        .checked_div(current_invariant)
+        .unwrap();
 
     // If the invariant didn't increase for any reason, we simply don't mint BPT
     if invariant_ratio > 1_000_000_000 {
         Ok(total_supply
             .checked_mul(invariant_ratio.saturating_sub(1_000_000_000))
+            .unwrap()
+            .checked_div(1_000_000_000)
             .unwrap())
     } else {
         Ok(0)
     }
 }
 
-// StableMath._calcTokenInGivenExactBptOut
+// StableMath._calcTokenInGivenExactBptOut (Not used)
 pub fn calc_token_in_exact_out(
     amp: u128,
     balances: Vec<u128>,
@@ -234,9 +252,9 @@ pub fn calc_token_in_exact_out(
     let new_invariant = total_supply
         .checked_add(amount_out)
         .unwrap()
-        .checked_div(total_supply)
-        .unwrap()
         .checked_mul(current_invariant)
+        .unwrap()
+        .checked_div(total_supply)
         .unwrap();
 
     // Calculate amount in without fee.
@@ -250,20 +268,30 @@ pub fn calc_token_in_exact_out(
 
     // We can now compute how much extra balance is being deposited and used in virtual swaps, and charge swap fees
     // accordingly.
-    let current_weight = balances[token_index].checked_div(sum_balances).unwrap();
+    let current_weight = balances[token_index]
+        .checked_mul(1_000_000_000)
+        .unwrap()
+        .checked_div(sum_balances)
+        .unwrap();
     let taxable_percentage = complement(current_weight);
-    let taxable_amount = amount_in_without_fee.checked_mul(taxable_percentage).unwrap();
+    let taxable_amount = amount_in_without_fee
+        .checked_mul(taxable_percentage)
+        .unwrap()
+        .checked_div(1_000_000_000)
+        .unwrap();
     let non_taxable_amount = amount_in_without_fee.checked_sub(taxable_amount).unwrap();
 
     // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
     Ok(taxable_amount
-        .checked_div(1_000_000_000_u128.saturating_sub(swap_fee))
+        .checked_div(10_000_u128.saturating_sub(swap_fee))
+        .unwrap()
+        .checked_div(10_000)
         .unwrap()
         .checked_add(non_taxable_amount)
         .unwrap())
 }
 
-// StableMath._calcBptInGivenExactTokensOut
+// StableMath._calcBptInGivenExactTokensOut (Not used)
 pub fn calc_in_exact_tokens_out(
     amp: u128,
     balances: Vec<u128>,
@@ -282,14 +310,22 @@ pub fn calc_in_exact_tokens_out(
     let mut balance_ratios_without_fee = vec![];
     let mut balance_ratio_without_fees = 0;
     for i in 0..balances.len() {
-        let current_weight = balances[i].checked_div(sum_balances).unwrap();
+        let current_weight = balances[i]
+            .checked_mul(1_000_000_000)
+            .unwrap()
+            .checked_div(sum_balances)
+            .unwrap();
         balance_ratios_without_fee[i] = balances[i]
             .checked_sub(amounts_out[i])
+            .unwrap()
+            .checked_mul(1_000_000_000)
             .unwrap()
             .checked_div(balances[i])
             .unwrap();
         balance_ratio_without_fees = balance_ratios_without_fee[i]
             .checked_mul(current_weight)
+            .unwrap()
+            .checked_div(1_000_000_000)
             .unwrap()
             .checked_add(balance_ratio_without_fees)
             .unwrap();
@@ -302,11 +338,17 @@ pub fn calc_in_exact_tokens_out(
         // 'token out'. This results in slightly larger price impact.
 
         let amount_out_with_fee = if balance_ratio_without_fees > balance_ratios_without_fee[i] {
-            let non_taxable_amount = balances[i].checked_mul(complement(balance_ratio_without_fees)).unwrap();
+            let non_taxable_amount = balances[i]
+                .checked_mul(complement(balance_ratio_without_fees))
+                .unwrap()
+                .checked_div(1_000_000_000)
+                .unwrap();
             let taxable_amount = amounts_out[i].checked_sub(non_taxable_amount).unwrap();
             // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
             taxable_amount
-                .checked_div(1_000_000_000_u128.saturating_sub(swap_fee))
+                .checked_div(10_000_u128.saturating_sub(swap_fee))
+                .unwrap()
+                .checked_div(10_000)
                 .unwrap()
                 .checked_add(non_taxable_amount)
                 .unwrap()
@@ -318,19 +360,27 @@ pub fn calc_in_exact_tokens_out(
     }
 
     let new_invariant = calc_invariant(amp, new_balances)?;
-    let invariant_ratio = new_invariant.checked_div(current_invariant).unwrap();
+    let invariant_ratio = new_invariant
+        .checked_mul(1_000_000_000)
+        .unwrap()
+        .checked_div(current_invariant)
+        .unwrap();
 
     // return amountBPTIn
-    return Ok(total_supply.checked_mul(complement(invariant_ratio)).unwrap());
+    return Ok(total_supply
+        .checked_mul(complement(invariant_ratio))
+        .unwrap()
+        .checked_div(1_000_000_000)
+        .unwrap());
 }
 
 // StableMath._calcTokenOutGivenExactBptIn
 pub fn calc_token_out_exact_in(
     amp: u128,
-    balances: Vec<u128>,
+    balances: Vec<u128>, // starting balances
     token_index: usize,
-    amount_in: u128,
-    total_supply: u128,
+    amount_in: u128,    // burning LP amount
+    total_supply: u128, // LP total supply
     current_invariant: u128,
     swap_fee: u128,
 ) -> Result<u128> {
@@ -339,9 +389,9 @@ pub fn calc_token_out_exact_in(
     let new_invariant = total_supply
         .checked_sub(amount_in)
         .unwrap()
-        .checked_div(total_supply)
-        .unwrap()
         .checked_mul(current_invariant)
+        .unwrap()
+        .checked_div(total_supply)
         .unwrap();
 
     // Calculate amount out without fee
@@ -355,20 +405,68 @@ pub fn calc_token_out_exact_in(
 
     // We can now compute how much excess balance is being withdrawn as a result of the virtual swaps, which result
     // in swap fees.
-    let current_weight = balances[token_index].checked_div(sum_balances).unwrap();
+    let current_weight = balances[token_index]
+        .checked_mul(1_000_000_000)
+        .unwrap()
+        .checked_div(sum_balances)
+        .unwrap();
     let taxable_percentage = complement(current_weight);
 
     // Swap fees are typically charged on 'token in', but there is no 'token in' here, so we apply it
     // to 'token out'. This results in slightly larger price impact. Fees are rounded up.
-    let taxable_amount = amount_out_without_fee.checked_mul(taxable_percentage).unwrap();
+    let taxable_amount = amount_out_without_fee
+        .checked_mul(taxable_percentage)
+        .unwrap()
+        .checked_div(1_000_000_000)
+        .unwrap();
     let non_taxable_amount = amount_out_without_fee.checked_sub(taxable_amount).unwrap();
 
     // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
     return Ok(taxable_amount
-        .checked_mul(1_000_000_000_u128.saturating_sub(swap_fee))
+        .checked_mul(10_000_u128.saturating_sub(swap_fee))
+        .unwrap()
+        .checked_div(10_000)
         .unwrap()
         .checked_add(non_taxable_amount)
         .unwrap());
+}
+
+// BasePoolMath.computeProportionalAmountsOut
+pub fn calc_tokens_out_exact_in(
+    balances: Vec<u128>, // starting balances
+    amount_in: u128,     // burning LP amount
+    total_supply: u128,  // LP total supply
+) -> Result<Vec<u128>> {
+    /**********************************************************************************************
+    // computeProportionalAmountsOut                                                             //
+    // (per token)                                                                               //
+    // aO = tokenAmountOut             /        bptIn         \                                  //
+    // b = tokenBalance      a0 = b * | ---------------------  |                                 //
+    // bptIn = bptAmountIn             \     bptTotalSupply    /                                 //
+    // bpt = bptTotalSupply                                                                      //
+     **********************************************************************************************/
+
+    // Since we're computing an amount out, we round down overall. This means rounding down on both the
+    // multiplication and division.
+
+    let ratio = amount_in
+        .checked_mul(1_000_000_000)
+        .unwrap()
+        .checked_div(total_supply)
+        .unwrap();
+
+    let mut amounts_out: Vec<u128> = vec![];
+    for j in 0..balances.len() {
+        amounts_out.push(
+            balances[j]
+                .checked_mul(ratio)
+                .unwrap()
+                .checked_div(1_000_000_000)
+                .unwrap(),
+        );
+    }
+
+    Ok(amounts_out)
 }
 
 // StableMath._getTokenBalanceGivenInvariantAndAllOtherBalances

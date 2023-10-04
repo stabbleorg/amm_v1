@@ -75,7 +75,7 @@ pub fn calc_out_given_in(
     Ok(amount_out)
 }
 
-// WeightedMath._calcInGivenOut
+// WeightedMath._calcInGivenOut (Not used)
 // Computes how many tokens can be taken out of a pool if `amountIn` are sent, given the
 // current balances and weights.
 pub fn calc_in_given_out(
@@ -121,7 +121,7 @@ pub fn calc_out_exact_token_in(
     balance: f64, // ending balance
     normalized_weight: f64,
     amount_in: f64,
-    total_supply: f64,
+    total_supply: f64, // LP total supply
     swap_fee: f64,
 ) -> Result<f64> {
     // LP out, so we round down overall.
@@ -162,7 +162,7 @@ pub fn calc_out_exact_tokens_in(
     balances: Vec<f64>, // ending balances
     normalized_weights: Vec<f64>,
     amounts_in: Vec<f64>,
-    total_supply: f64,
+    total_supply: f64, // LP total supply
     swap_fee: f64,
 ) -> Result<f64> {
     let mut balance_ratios_with_fee = vec![];
@@ -213,12 +213,38 @@ pub fn calc_out_exact_tokens_in(
     }
 }
 
+/*
+// WeightedMath._calcTokenInGivenExactBptOut (Not used)
+pub fn calc_token_in_exact_out(
+    balance: f64, // starting balance
+    normalized_weight: f64,
+    amount_out: f64,
+    total_supply: f64,
+    swap_fee: f64,
+) -> Result<f64> {
+    /******************************************************************************************
+    // tokenInForExactBPTOut                                                                 //
+    // a = amountIn                                                                          //
+    // b = balance                      /  /    totalBPT + bptOut      \    (1 / w)       \  //
+    // bptOut = bptAmountOut   a = b * |  | --------------------------  | ^          - 1  |  //
+    // bpt = totalBPT                   \  \       totalBPT            /                  /  //
+    // w = weight                                                                            //
+     ******************************************************************************************/
+
+    // Token in, so we round up overall.
+
+    // Calculate the factor by which the invariant will increase after minting BPTAmountOut
+    let invariant_ratio = (total_supply + amount_out) / total_supply;
+    require!(invariant_ratio <= MAX_INVARIANT_RATIO, PoolWeightedError::MaxInvariantRatio);
+}
+*/
+
 // WeightedMath._calcTokenOutGivenExactBptIn
 pub fn calc_token_out_exact_in(
     balance: f64, // starting balance
     normalized_weight: f64,
-    amount_in: f64,
-    total_supply: f64,
+    amount_in: f64,    // burning LP amount
+    total_supply: f64, // LP total supply
     swap_fee: f64,
 ) -> Result<f64> {
     /*****************************************************************************************
@@ -259,36 +285,10 @@ pub fn calc_token_out_exact_in(
     Ok(non_taxable_amount + taxable_amount_minus_fees)
 }
 
-/*
-// WeightedMath._calcTokenInGivenExactBptOut
-pub fn calc_token_in_exact_out(
-    balance: f64, // starting balance
-    normalized_weight: f64,
-    amount_out: f64,
-    total_supply: f64,
-    swap_fee: f64,
-) -> Result<f64> {
-    /******************************************************************************************
-    // tokenInForExactBPTOut                                                                 //
-    // a = amountIn                                                                          //
-    // b = balance                      /  /    totalBPT + bptOut      \    (1 / w)       \  //
-    // bptOut = bptAmountOut   a = b * |  | --------------------------  | ^          - 1  |  //
-    // bpt = totalBPT                   \  \       totalBPT            /                  /  //
-    // w = weight                                                                            //
-     ******************************************************************************************/
-
-    // Token in, so we round up overall.
-
-    // Calculate the factor by which the invariant will increase after minting BPTAmountOut
-    let invariant_ratio = (total_supply + amount_out) / total_supply;
-    require!(invariant_ratio <= MAX_INVARIANT_RATIO, PoolWeightedError::MaxInvariantRatio);
-}
-*/
-
 // BasePoolMath.computeProportionalAmountsOut
 pub fn calc_tokens_out_exact_in(
     balances: Vec<f64>, // starting balances
-    amount_in: f64,
+    amount_in: f64,     // burning LP amount
     total_supply: f64,
 ) -> Result<Vec<f64>> {
     /**********************************************************************************************

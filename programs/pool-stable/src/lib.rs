@@ -31,7 +31,11 @@ pub mod pool_stable {
 
     /// remove liquidity
     #[access_control(Withdraw::validate(&ctx))]
-    pub fn withdraw(ctx: Context<Withdraw>, amount: u64, min_amounts_out: Vec<u64>) -> Result<()> {
+    pub fn withdraw<'a, 'b, 'c, 'info>(
+        ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
+        amount: u64,
+        min_amounts_out: Vec<u64>,
+    ) -> Result<()> {
         process_withdraw(ctx, amount, min_amounts_out)
     }
 

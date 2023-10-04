@@ -324,7 +324,7 @@ describe("Weighted Pool", () => {
       );
       console.log("STB out:", postBalanceSTB.uiAmount! - balanceSTB.uiAmount!);
       console.log("ETH out:", postBalanceETH.uiAmount! - balanceETH.uiAmount!);
-      console.log("UDSC out:", postBalanceUSDC.uiAmount! - balanceUSDC.uiAmount!);
+      console.log("USDC out:", postBalanceUSDC.uiAmount! - balanceUSDC.uiAmount!);
     });
 
     it("should add liquidity in USDC given 250 USDC", async () => {
