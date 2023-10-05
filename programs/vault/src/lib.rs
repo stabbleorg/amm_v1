@@ -30,8 +30,4 @@ pub mod vault {
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         process_withdraw(ctx, amount)
     }
-
-    pub fn assert_token_balance(ctx: Context<AssertTokenBalance>, min_balance: u64) -> Result<()> {
-        process_assert_token_balance(ctx, min_balance)
-    }
 }

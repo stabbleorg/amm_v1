@@ -84,6 +84,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
 
     ctx.accounts.pool.emit_updated_event();
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
+        // transfer to user
         withdraw_vault(
             CpiContext::new(
                 ctx.accounts.vault_program.to_account_info(),
@@ -100,6 +101,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
             amount_out,
         )?;
 
+        // transfer to beneficiary
         withdraw_vault(
             CpiContext::new(
                 ctx.accounts.vault_program.to_account_info(),

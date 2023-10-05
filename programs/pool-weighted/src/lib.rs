@@ -40,7 +40,6 @@ pub mod pool_weighted {
     }
 
     /// swap
-    /// min_amount_out can be 0 for batch swap
     #[access_control(Swap::validate(&ctx))]
     pub fn swap<'a, 'b, 'c, 'info>(
         ctx: Context<'_, '_, '_, 'info, Swap<'info>>,

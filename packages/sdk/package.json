@@ -1,6 +1,6 @@
 {
   "name": "@stabbleorg/solana-sdk",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "main": "src",
   "types": "src/index.d.ts",
   "license": "MIT",

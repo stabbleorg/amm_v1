@@ -1,7 +1,6 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { StableMath, TokenAmountUtil } from "../utils";
-import { PriceInfo } from "../consts";
 
 export type StablePoolTokenData = {
   mint: PublicKey;
@@ -85,6 +84,7 @@ export class StablePool {
       tokenInIndex,
       tokenOutIndex,
       amountIn,
+      this.swapFee,
     );
     return Math.max(amountOut, 0);
   }

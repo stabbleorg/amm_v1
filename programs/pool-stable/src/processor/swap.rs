@@ -20,6 +20,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
         amount_in,
     )?;
 
+    let amplification = ctx.accounts.pool.get_amplification();
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
     let token_out_index = ctx
         .accounts
@@ -28,16 +29,31 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
     let amount_in = (amount_in as u128)
         .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor as u128)
         .unwrap();
-    let invariant = math::calc_invariant(ctx.accounts.pool.get_amplification(), ctx.accounts.pool.get_balances())?;
-    let amount_out = u64::try_from(math::calc_out_given_in(
-        ctx.accounts.pool.get_amplification(),
+    let invariant = math::calc_invariant(amplification, ctx.accounts.pool.get_balances())?;
+    let amount_out_without_fee = math::calc_out_given_in(
+        amplification,
         &mut ctx.accounts.pool.get_balances(),
         token_in_index,
         token_out_index,
         amount_in,
         invariant,
-    )?)
-    .unwrap();
+    )?;
+
+    let amount_out = (Pool::UNIT_WEIGHT)
+        .saturating_sub(ctx.accounts.pool.get_swap_fee())
+        .checked_mul(amount_out_without_fee)
+        .unwrap()
+        .checked_div(Pool::UNIT_WEIGHT)
+        .unwrap();
+    let swap_fee_amount = amount_out_without_fee.checked_sub(amount_out).unwrap();
+    let beneficiary_fee_amount = swap_fee_amount
+        .checked_mul(ctx.accounts.vault.beneficiary_fee as u128)
+        .unwrap()
+        .checked_div(Pool::UNIT_WEIGHT)
+        .unwrap() as u64;
+
+    let amount_out = u64::try_from(amount_out).unwrap();
+    let beneficiary_fee_amount = u64::try_from(beneficiary_fee_amount).unwrap();
 
     // add in token balance
     ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index]
@@ -47,7 +63,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
     // remove out token balance
     ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index]
         .balance
-        .checked_sub(amount_out)
+        .checked_sub(amount_out.checked_add(beneficiary_fee_amount).unwrap())
         .unwrap();
 
     let amount_out = amount_out
@@ -55,8 +71,13 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
         .unwrap();
     assert!(amount_out >= min_amount_out); // slippage
 
+    let beneficiary_fee_amount = beneficiary_fee_amount
+        .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u64)
+        .unwrap();
+
     ctx.accounts.pool.emit_updated_event();
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
+        // transfer to user
         withdraw_vault(
             CpiContext::new(
                 ctx.accounts.vault_program.to_account_info(),
@@ -73,7 +94,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
             amount_out,
         )?;
 
-        // todo calculate fees
+        // transfer to beneficiary
         withdraw_vault(
             CpiContext::new(
                 ctx.accounts.vault_program.to_account_info(),
@@ -87,7 +108,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
                 },
             )
             .with_signer(&[signer_seed]),
-            0,
+            beneficiary_fee_amount,
         )
     })
 }

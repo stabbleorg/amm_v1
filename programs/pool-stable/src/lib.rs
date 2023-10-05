@@ -40,7 +40,6 @@ pub mod pool_stable {
     }
 
     /// swap
-    /// min_amount_out can be 0 for batch swap
     #[access_control(Swap::validate(&ctx))]
     pub fn swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> Result<()> {
         process_swap(ctx, amount_in, min_amount_out)

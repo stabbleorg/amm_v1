@@ -72,6 +72,7 @@ export class StableMath {
     tokenIndexIn: number,
     tokenIndexOut: number,
     amountIn: number,
+    swapFee: number = 0,
   ): number {
     const invariant = this.calcInvariant(balances, amplification);
 
@@ -86,7 +87,7 @@ export class StableMath {
 
     balances[tokenIndexIn] = balances[tokenIndexIn] - amountIn;
 
-    return balances[tokenIndexOut] - finalBalanceOut;
+    return (balances[tokenIndexOut] - finalBalanceOut) * (1 - swapFee);
   }
 
   static _getTokenBalanceGivenInvariantAndAllOtherBalances(
