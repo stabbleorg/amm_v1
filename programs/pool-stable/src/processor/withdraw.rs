@@ -17,7 +17,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
 ) -> Result<()> {
     let amplification = ctx.accounts.pool.get_amplification();
     let balances = ctx.accounts.pool.get_balances();
-    let current_invariant = math::calc_invariant(amplification, balances.clone())?;
+    let current_invariant = ctx.accounts.pool.get_invariant();
 
     let amounts_out = if ctx.remaining_accounts.len() == 2 {
         let mint = get_token_mint(&ctx.remaining_accounts[0])?;
@@ -88,6 +88,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         })?;
     }
 
+    ctx.accounts.pool.refresh_invariant();
     ctx.accounts.pool.emit_updated_event();
     burn(
         CpiContext::new(

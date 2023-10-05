@@ -21,6 +21,8 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
     )?;
 
     let amplification = ctx.accounts.pool.get_amplification();
+    let current_invariant = ctx.accounts.pool.get_invariant();
+
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
     let token_out_index = ctx
         .accounts
@@ -29,14 +31,13 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
     let amount_in = (amount_in as u128)
         .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor as u128)
         .unwrap();
-    let invariant = math::calc_invariant(amplification, ctx.accounts.pool.get_balances())?;
     let amount_out_without_fee = math::calc_out_given_in(
         amplification,
         &mut ctx.accounts.pool.get_balances(),
         token_in_index,
         token_out_index,
         amount_in,
-        invariant,
+        current_invariant,
     )?;
 
     let amount_out = (Pool::UNIT_WEIGHT)
@@ -75,6 +76,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
         .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u64)
         .unwrap();
 
+    ctx.accounts.pool.refresh_invariant();
     ctx.accounts.pool.emit_updated_event();
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
         // transfer to user

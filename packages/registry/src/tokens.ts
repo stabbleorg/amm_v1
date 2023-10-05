@@ -1,9 +1,7 @@
-import { Cluster } from "@solana/web3.js";
-
 export interface TokenMeta {
+  chainId: number;
   address: string;
   decimals: number;
-  cluster: Cluster;
   name: string;
   symbol: string;
   image: string;
@@ -13,54 +11,54 @@ export interface TokenMeta {
 
 export const tokens: TokenMeta[] = [
   {
+    chainId: 103,
     address: "So11111111111111111111111111111111111111112",
     decimals: 9,
-    cluster: "devnet",
     name: "SOL",
     symbol: "SOL",
     image: "https://assets.coingecko.com/coins/images/21629/large/solana.jpg?1639626543",
     coingeckoId: "solana",
   },
   {
+    chainId: 103,
     address: "AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX",
     decimals: 6,
-    cluster: "devnet",
     name: "USD Coin",
     symbol: "USDC",
     image: "https://assets.coingecko.com/coins/images/6319/large/usdc.png",
     coingeckoId: "usd-coin",
   },
   {
+    chainId: 103,
     address: "FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ",
     decimals: 6,
-    cluster: "devnet",
     name: "USDT",
     symbol: "USDT",
     image: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
     coingeckoId: "tether",
   },
   {
+    chainId: 103,
     address: "HhskQmZneTQem7QzaeZQ2q1baz9LCrngBMrWgM5jetPz",
     decimals: 6,
-    cluster: "devnet",
     name: "USDH",
     symbol: "USDH",
     image: "https://assets.coingecko.com/coins/images/22941/large/USDH_icon.png",
     coingeckoId: "usdh",
   },
   {
+    chainId: 103,
     address: "STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1",
     decimals: 9,
-    cluster: "devnet",
     name: "stabble",
     symbol: "STB",
     image:
       "https://raez4ibvox5vdzauhhqo2baxrrvl7rd542lwmfepwlddlqu5b3va.arweave.net/iAmeIDV1-1HkFDng7QQXjGq_xH3ml2YUj7LGNcKdDuo",
   },
   {
+    chainId: 103,
     address: "HK3Q8SJYiV1kLo3b6vfwLnL45nhunnt4kSBVQNa3Z28J",
     decimals: 7,
-    cluster: "devnet",
     name: "Parasol",
     symbol: "PSOL",
     image: "https://assets.coingecko.com/coins/images/21551/large/icon.png?1642584584",

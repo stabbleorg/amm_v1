@@ -48,8 +48,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             ctx.accounts.pool.get_normalized_weights(),
         )?;
         let invariant = u64::try_from((invariant * Pool::UNIT_BALANCE) as u128).unwrap();
-        ctx.accounts.pool.invariant = invariant;
-        invariant.checked_mul(amounts.len() as u64).unwrap()
+        ctx.accounts.pool.invariant = invariant.checked_mul(amounts.len() as u64).unwrap();
+        ctx.accounts.pool.invariant
     } else {
         // do_join
         if amounts.len() == 1 {

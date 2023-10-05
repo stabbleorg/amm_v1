@@ -31,7 +31,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         )?
     } else {
         let balances = ctx.accounts.pool.get_balances();
-        let current_invariant = math::calc_invariant(amplification, balances.clone())?;
+        let current_invariant = ctx.accounts.pool.get_invariant();
 
         // do_join
         if amounts.len() == 1 {
@@ -79,9 +79,6 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     let amount_out = u64::try_from(amount_out).unwrap();
     assert!(amount_out >= min_amount_out); // slippage
 
-    // todo save post invariant
-    ctx.accounts.pool.invariant = amount_out;
-
     for (token_index, user_account) in ctx.remaining_accounts[0..amounts.len()].iter().enumerate() {
         let mint = get_token_mint(&user_account)?;
         if amounts.len() > 1 {
@@ -111,6 +108,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         )?;
     }
 
+    ctx.accounts.pool.refresh_invariant();
     ctx.accounts.pool.emit_updated_event();
     ctx.accounts.pool.authority_seeds(|signer_seed| {
         mint_to(

@@ -1,4 +1,4 @@
-use crate::located::*;
+use crate::{located::*, math};
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy)]
@@ -56,6 +56,10 @@ impl Pool {
     pub const UNIT_BALANCE: u128 = 1_000_000_000;
     pub const UNIT_WEIGHT: u128 = 10_000;
 
+    pub fn get_invariant(&self) -> u128 {
+        self.invariant as u128
+    }
+
     pub fn get_amplification(&self) -> u128 {
         self.amp as u128
     }
@@ -91,6 +95,11 @@ impl Pool {
             .unwrap()
             .0
     }
+
+    pub fn refresh_invariant(&mut self) {
+        self.invariant =
+            u64::try_from(math::calc_invariant(self.get_amplification(), self.get_balances()).unwrap()).unwrap();
+    }
 }
 
 pub trait PoolAuthority {
@@ -113,6 +122,7 @@ where
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct PoolUpdatedData {
     pub owner: Pubkey,
+    pub invariant: u64,
     pub swap_fee: u16,
     pub amp: u16,
     pub amp_start_time: i64,
@@ -140,6 +150,7 @@ where
             pubkey: self.key(),
             data: PoolUpdatedData {
                 owner: self.as_ref().owner,
+                invariant: self.as_ref().invariant,
                 swap_fee: self.as_ref().swap_fee,
                 amp: self.as_ref().amp,
                 amp_start_time: self.as_ref().amp_start_time,
