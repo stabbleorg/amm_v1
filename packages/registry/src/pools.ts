@@ -34,6 +34,13 @@ export const pools: PoolMeta[] = [
   },
   {
     chainId: 103,
+    address: "BnYsLJsMY3M5Nw6EsG6WoDiHHZjnY7hC9DKW7BmL8fhm",
+    type: "stable",
+    name: "USH-USDC",
+    tags: ["usd", "ush"],
+  },
+  {
+    chainId: 103,
     address: "EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV",
     type: "stable",
     name: "USDT-USDC",

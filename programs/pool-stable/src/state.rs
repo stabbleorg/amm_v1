@@ -44,8 +44,8 @@ impl Pool {
     pub const MIN_AMP: u16 = 1;
     pub const MAX_AMP: u16 = 5000;
 
-    pub const MIN_SWAP_FEE: u16 = 10; // 0.1%
-    pub const MAX_SWAP_FEE: u16 = 250; // 2.5%
+    pub const MIN_SWAP_FEE: u16 = 1; // 0.01%
+    pub const MAX_SWAP_FEE: u16 = 100; // 1.00%
 
     pub const MIN_TOKENS: usize = 2;
     pub const MAX_TOKENS: usize = 5;

@@ -112,6 +112,22 @@ yarn cli pool-stable-deposit \
   --amounts 200000,200000,200000 \
   --mints HhskQmZneTQem7QzaeZQ2q1baz9LCrngBMrWgM5jetPz,FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ,AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX
 
+# USH-USDC
+# Pool: BnYsLJsMY3M5Nw6EsG6WoDiHHZjnY7hC9DKW7BmL8fhm
+# Mint: 2RvHCdmgUPsz7R8BTFQumu9hF1wbUiU7df6vwi3rcuwu
+yarn cli pool-stable-init \
+  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  --vault-k 8MVYa7EoyUMgsXVSoYDdpj94oFV5Vo7Er8JptJo9wmsB \
+  --swap-fee 0.0004 \
+  --amp 100 \
+  --mints 8anyQR9CrzDHap8gm9YRymvEoFUzy71yd5MygQVQ4hVB,AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX
+
+yarn cli pool-stable-deposit \
+  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  --pool-k BnYsLJsMY3M5Nw6EsG6WoDiHHZjnY7hC9DKW7BmL8fhm \
+  --amounts 63052.01,21875.76 \
+  --mints 8anyQR9CrzDHap8gm9YRymvEoFUzy71yd5MygQVQ4hVB,AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX
+
 # USDT-USDC
 # Pool: EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV
 # Mint: FAmYe4ENxG4VXmv68XsEu5UA4YzyoWz5huJXLdLk7BPW

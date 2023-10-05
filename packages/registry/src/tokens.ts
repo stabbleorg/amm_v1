@@ -7,6 +7,7 @@ export interface TokenMeta {
   image: string;
   // https://api.coingecko.com/api/v3/coins/[coingeckoId]?community_data=false&developer_data=false&localization=false&market_data=true&sparkline=false&tickers=false
   coingeckoId?: string;
+  tags?: string[];
 }
 
 export const tokens: TokenMeta[] = [
@@ -27,6 +28,7 @@ export const tokens: TokenMeta[] = [
     symbol: "USDC",
     image: "https://assets.coingecko.com/coins/images/6319/large/usdc.png",
     coingeckoId: "usd-coin",
+    tags: ["stablecoin", "usd"],
   },
   {
     chainId: 103,
@@ -36,6 +38,7 @@ export const tokens: TokenMeta[] = [
     symbol: "USDT",
     image: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
     coingeckoId: "tether",
+    tags: ["stablecoin", "usd"],
   },
   {
     chainId: 103,
@@ -45,6 +48,17 @@ export const tokens: TokenMeta[] = [
     symbol: "USDH",
     image: "https://assets.coingecko.com/coins/images/22941/large/USDH_icon.png",
     coingeckoId: "usdh",
+    tags: ["stablecoin", "usd"],
+  },
+  {
+    chainId: 103,
+    address: "8anyQR9CrzDHap8gm9YRymvEoFUzy71yd5MygQVQ4hVB",
+    decimals: 9,
+    name: "Hedge USD",
+    symbol: "USH",
+    image: "https://assets.coingecko.com/coins/images/25481/large/ush.png",
+    coingeckoId: "hedge-usd",
+    tags: ["stablecoin", "usd"],
   },
   {
     chainId: 103,
