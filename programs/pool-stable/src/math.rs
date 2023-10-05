@@ -377,7 +377,7 @@ pub fn calc_in_exact_tokens_out(
 // StableMath._calcTokenOutGivenExactBptIn
 pub fn calc_token_out_exact_in(
     amp: u128,
-    balances: Vec<u128>, // starting balances
+    balances: Vec<u128>,
     token_index: usize,
     amount_in: u128,    // burning LP amount
     total_supply: u128, // LP total supply
@@ -433,9 +433,9 @@ pub fn calc_token_out_exact_in(
 
 // BasePoolMath.computeProportionalAmountsOut
 pub fn calc_tokens_out_exact_in(
-    balances: Vec<u128>, // starting balances
-    amount_in: u128,     // burning LP amount
-    total_supply: u128,  // LP total supply
+    balances: Vec<u128>,
+    amount_in: u128,    // burning LP amount
+    total_supply: u128, // LP total supply
 ) -> Result<Vec<u128>> {
     /**********************************************************************************************
     // computeProportionalAmountsOut                                                             //
