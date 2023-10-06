@@ -1,6 +1,6 @@
 {
   "name": "@stabbleorg/solana-sdk",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "main": "src",
   "types": "src/index.d.ts",
   "license": "MIT",
@@ -9,7 +9,7 @@
     "@metaplex-foundation/js": "^0.19.5",
     "@metaplex-foundation/mpl-token-metadata": "^2.13.0",
     "@solana/spl-token": "^0.3.8",
-    "@solana/web3.js": "^1.78.5",
+    "@solana/web3.js": "^1.78.7",
     "bn.js": "^5.2.1"
   },
   "devDependencies": {
