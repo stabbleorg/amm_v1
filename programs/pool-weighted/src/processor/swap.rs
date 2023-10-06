@@ -44,11 +44,11 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     )
     .unwrap();
 
-    let amount_out = (Pool::UNIT_WEIGHT as u128)
+    let amount_out = (Pool::FEE_PRECISION as u128)
         .saturating_sub(ctx.accounts.pool.swap_fee as u128)
         .checked_mul(amount_out_without_fee as u128)
         .unwrap()
-        .checked_div(Pool::UNIT_WEIGHT as u128)
+        .checked_div(Pool::FEE_PRECISION as u128)
         .unwrap() as u64;
     assert!(amount_out >= min_amount_out); // slippage
 
@@ -56,7 +56,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     let beneficiary_fee_amount = (swap_fee_amount as u128)
         .checked_mul(ctx.accounts.vault.beneficiary_fee as u128)
         .unwrap()
-        .checked_div(Pool::UNIT_WEIGHT as u128)
+        .checked_div(Pool::FEE_PRECISION as u128)
         .unwrap() as u64;
 
     // add in token balance

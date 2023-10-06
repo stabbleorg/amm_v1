@@ -194,7 +194,7 @@ pub fn calc_out_exact_tokens_in(
             amount_in_without_fee = amounts_in[j];
 
             // If a token's amount in is not being charged a swap fee then it might be zero (e.g. when joining a
-            // Pool with only a subset of tokens). In this case, `balanceRatio` will equal `FixedPoint.ONE`, and
+            // Pool with only a subset of tokens). In this case, `balance_ratio` will equal `FixedPoint.ONE`, and
             // the `invariantRatio` will not change at all. We therefore skip to the next iteration, avoiding
             // the costly `powDown` call.
             if amount_in_without_fee == 0.0 {
@@ -213,13 +213,12 @@ pub fn calc_out_exact_tokens_in(
     }
 }
 
-/*
 // WeightedMath._calcTokenInGivenExactBptOut (Not used)
 pub fn calc_token_in_exact_out(
     balance: f64, // starting balance
     normalized_weight: f64,
-    amount_out: f64,
-    total_supply: f64,
+    amount_out: f64,   // minting LP amount
+    total_supply: f64, // LP total supply
     swap_fee: f64,
 ) -> Result<f64> {
     /******************************************************************************************
@@ -235,9 +234,25 @@ pub fn calc_token_in_exact_out(
 
     // Calculate the factor by which the invariant will increase after minting BPTAmountOut
     let invariant_ratio = (total_supply + amount_out) / total_supply;
-    require!(invariant_ratio <= MAX_INVARIANT_RATIO, PoolWeightedError::MaxInvariantRatio);
+    require!(
+        invariant_ratio <= MAX_INVARIANT_RATIO,
+        PoolWeightedError::MaxInvariantRatio
+    );
+
+    // Calculate by how much the token balance has to increase to match the invariantRatio
+    let balance_ratio = invariant_ratio.powf(1.0 / normalized_weight);
+
+    let amount_in_without_fee = balance * (balance_ratio - 1.0);
+
+    // We can now compute how much extra balance is being deposited and used in virtual swaps, and charge swap fees
+    // accordingly.
+    let taxable_amount = amount_in_without_fee * complement(normalized_weight);
+    let non_taxable_amount = amount_in_without_fee - taxable_amount;
+
+    let taxable_amount_with_fees = taxable_amount / complement(swap_fee);
+
+    return Ok(non_taxable_amount + taxable_amount_with_fees);
 }
-*/
 
 // WeightedMath._calcTokenOutGivenExactBptIn
 pub fn calc_token_out_exact_in(
@@ -270,7 +285,7 @@ pub fn calc_token_out_exact_in(
     // Calculate by how much the token balance has to decrease to match invariantRatio
     let balance_ratio = invariant_ratio.powf(1.0 / normalized_weight);
 
-    // Because of rounding up, balanceRatio can be greater than one. Using complement prevents reverts.
+    // Because of rounding up, balance_ratio can be greater than one. Using complement prevents reverts.
     let amount_out_without_fee = balance * complement(balance_ratio);
 
     // We can now compute how much excess balance is being withdrawn as a result of the virtual swaps, which result

@@ -4,7 +4,8 @@ use anchor_lang::prelude::*;
 pub const MIN_AMP: u128 = 1;
 pub const MAX_AMP: u128 = 5000;
 
-pub const MAX_STABLE_TOKENS: usize = 5;
+pub const BALANCE_PRECISION: u128 = 1_000_000_000;
+pub const FEE_PRECISION: u128 = 10_000;
 
 // StableMath._calculateInvariant
 // Computes the invariant given the current balances, using the Newton-Raphson approximation.
@@ -168,7 +169,7 @@ pub fn calc_out_exact_tokens_in(
     let mut invariant_ratio_with_fees: u128 = 0;
     for j in 0..balances.len() {
         let current_weight = balances[j]
-            .checked_mul(1_000_000_000)
+            .checked_mul(BALANCE_PRECISION)
             .unwrap()
             .checked_div(sum_balances)
             .unwrap();
@@ -176,7 +177,7 @@ pub fn calc_out_exact_tokens_in(
             balances[j]
                 .checked_add(amounts_in[j])
                 .unwrap()
-                .checked_mul(1_000_000_000)
+                .checked_mul(BALANCE_PRECISION)
                 .unwrap()
                 .checked_div(balances[j])
                 .unwrap(),
@@ -184,7 +185,7 @@ pub fn calc_out_exact_tokens_in(
         invariant_ratio_with_fees = balance_ratios_with_fee[j]
             .checked_mul(current_weight)
             .unwrap()
-            .checked_div(1_000_000_000)
+            .checked_div(BALANCE_PRECISION)
             .unwrap()
             .checked_add(invariant_ratio_with_fees)
             .unwrap();
@@ -198,16 +199,16 @@ pub fn calc_out_exact_tokens_in(
         // Check if the balance ratio is greater than the ideal ratio to charge fees or not
         if balance_ratios_with_fee[j] > invariant_ratio_with_fees {
             let non_taxable_amount = balances[j]
-                .checked_mul(invariant_ratio_with_fees.checked_sub(1_000_000_000).unwrap())
+                .checked_mul(invariant_ratio_with_fees.checked_sub(BALANCE_PRECISION).unwrap())
                 .unwrap()
-                .checked_div(1_000_000_000)
+                .checked_div(BALANCE_PRECISION)
                 .unwrap();
             let taxable_amount = amounts_in[j].checked_sub(non_taxable_amount).unwrap();
             // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
             amount_in_without_fee = taxable_amount
-                .checked_mul(10_000_u128.saturating_sub(swap_fee))
+                .checked_mul(FEE_PRECISION.saturating_sub(swap_fee))
                 .unwrap()
-                .checked_div(10_000)
+                .checked_div(FEE_PRECISION)
                 .unwrap()
                 .checked_add(non_taxable_amount)
                 .unwrap();
@@ -220,17 +221,17 @@ pub fn calc_out_exact_tokens_in(
 
     let new_invariant = calc_invariant(amp, new_balances)?;
     let invariant_ratio = new_invariant
-        .checked_mul(1_000_000_000)
+        .checked_mul(BALANCE_PRECISION)
         .unwrap()
         .checked_div(current_invariant)
         .unwrap();
 
     // If the invariant didn't increase for any reason, we simply don't mint BPT
-    if invariant_ratio > 1_000_000_000 {
+    if invariant_ratio > BALANCE_PRECISION {
         Ok(total_supply
-            .checked_mul(invariant_ratio.saturating_sub(1_000_000_000))
+            .checked_mul(invariant_ratio.saturating_sub(BALANCE_PRECISION))
             .unwrap()
-            .checked_div(1_000_000_000)
+            .checked_div(BALANCE_PRECISION)
             .unwrap())
     } else {
         Ok(0)
@@ -269,7 +270,7 @@ pub fn calc_token_in_exact_out(
     // We can now compute how much extra balance is being deposited and used in virtual swaps, and charge swap fees
     // accordingly.
     let current_weight = balances[token_index]
-        .checked_mul(1_000_000_000)
+        .checked_mul(BALANCE_PRECISION)
         .unwrap()
         .checked_div(sum_balances)
         .unwrap();
@@ -277,15 +278,15 @@ pub fn calc_token_in_exact_out(
     let taxable_amount = amount_in_without_fee
         .checked_mul(taxable_percentage)
         .unwrap()
-        .checked_div(1_000_000_000)
+        .checked_div(BALANCE_PRECISION)
         .unwrap();
     let non_taxable_amount = amount_in_without_fee.checked_sub(taxable_amount).unwrap();
 
     // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
     Ok(taxable_amount
-        .checked_div(10_000_u128.saturating_sub(swap_fee))
+        .checked_div(FEE_PRECISION.saturating_sub(swap_fee))
         .unwrap()
-        .checked_div(10_000)
+        .checked_div(FEE_PRECISION)
         .unwrap()
         .checked_add(non_taxable_amount)
         .unwrap())
@@ -311,21 +312,21 @@ pub fn calc_in_exact_tokens_out(
     let mut balance_ratio_without_fees = 0;
     for i in 0..balances.len() {
         let current_weight = balances[i]
-            .checked_mul(1_000_000_000)
+            .checked_mul(BALANCE_PRECISION)
             .unwrap()
             .checked_div(sum_balances)
             .unwrap();
         balance_ratios_without_fee[i] = balances[i]
             .checked_sub(amounts_out[i])
             .unwrap()
-            .checked_mul(1_000_000_000)
+            .checked_mul(BALANCE_PRECISION)
             .unwrap()
             .checked_div(balances[i])
             .unwrap();
         balance_ratio_without_fees = balance_ratios_without_fee[i]
             .checked_mul(current_weight)
             .unwrap()
-            .checked_div(1_000_000_000)
+            .checked_div(BALANCE_PRECISION)
             .unwrap()
             .checked_add(balance_ratio_without_fees)
             .unwrap();
@@ -341,14 +342,14 @@ pub fn calc_in_exact_tokens_out(
             let non_taxable_amount = balances[i]
                 .checked_mul(complement(balance_ratio_without_fees))
                 .unwrap()
-                .checked_div(1_000_000_000)
+                .checked_div(BALANCE_PRECISION)
                 .unwrap();
             let taxable_amount = amounts_out[i].checked_sub(non_taxable_amount).unwrap();
             // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
             taxable_amount
-                .checked_div(10_000_u128.saturating_sub(swap_fee))
+                .checked_div(FEE_PRECISION.saturating_sub(swap_fee))
                 .unwrap()
-                .checked_div(10_000)
+                .checked_div(FEE_PRECISION)
                 .unwrap()
                 .checked_add(non_taxable_amount)
                 .unwrap()
@@ -361,7 +362,7 @@ pub fn calc_in_exact_tokens_out(
 
     let new_invariant = calc_invariant(amp, new_balances)?;
     let invariant_ratio = new_invariant
-        .checked_mul(1_000_000_000)
+        .checked_mul(BALANCE_PRECISION)
         .unwrap()
         .checked_div(current_invariant)
         .unwrap();
@@ -370,7 +371,7 @@ pub fn calc_in_exact_tokens_out(
     return Ok(total_supply
         .checked_mul(complement(invariant_ratio))
         .unwrap()
-        .checked_div(1_000_000_000)
+        .checked_div(BALANCE_PRECISION)
         .unwrap());
 }
 
@@ -406,7 +407,7 @@ pub fn calc_token_out_exact_in(
     // We can now compute how much excess balance is being withdrawn as a result of the virtual swaps, which result
     // in swap fees.
     let current_weight = balances[token_index]
-        .checked_mul(1_000_000_000)
+        .checked_mul(BALANCE_PRECISION)
         .unwrap()
         .checked_div(sum_balances)
         .unwrap();
@@ -417,15 +418,15 @@ pub fn calc_token_out_exact_in(
     let taxable_amount = amount_out_without_fee
         .checked_mul(taxable_percentage)
         .unwrap()
-        .checked_div(1_000_000_000)
+        .checked_div(BALANCE_PRECISION)
         .unwrap();
     let non_taxable_amount = amount_out_without_fee.checked_sub(taxable_amount).unwrap();
 
     // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
     return Ok(taxable_amount
-        .checked_mul(10_000_u128.saturating_sub(swap_fee))
+        .checked_mul(FEE_PRECISION.saturating_sub(swap_fee))
         .unwrap()
-        .checked_div(10_000)
+        .checked_div(FEE_PRECISION)
         .unwrap()
         .checked_add(non_taxable_amount)
         .unwrap());
@@ -450,7 +451,7 @@ pub fn calc_tokens_out_exact_in(
     // multiplication and division.
 
     let ratio = amount_in
-        .checked_mul(1_000_000_000)
+        .checked_mul(BALANCE_PRECISION)
         .unwrap()
         .checked_div(total_supply)
         .unwrap();
@@ -461,7 +462,7 @@ pub fn calc_tokens_out_exact_in(
             balances[j]
                 .checked_mul(ratio)
                 .unwrap()
-                .checked_div(1_000_000_000)
+                .checked_div(BALANCE_PRECISION)
                 .unwrap(),
         );
     }
@@ -553,8 +554,8 @@ fn get_token_balance_given_invariant_and_all_other_balances(
 }
 
 fn complement(weight: u128) -> u128 {
-    if weight < 1_000_000_000 {
-        1_000_000_000_u128.saturating_sub(weight)
+    if weight < BALANCE_PRECISION {
+        BALANCE_PRECISION.saturating_sub(weight)
     } else {
         0
     }

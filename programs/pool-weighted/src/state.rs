@@ -48,35 +48,36 @@ impl Pool {
     pub const POOL_TOKEN_DECIMALS: u8 = 9;
     pub const MAX_TOKEN_DECIMALS: u32 = 9;
 
-    pub const UNIT_BALANCE: f64 = 1e9;
-    pub const UNIT_WEIGHT: f64 = 1e4;
+    pub const BALANCE_PRECISION: f64 = 1e9;
+    pub const FEE_PRECISION: f64 = 1e4;
+    pub const WEIGHT_PRECISION: f64 = 1e4;
 
     pub fn get_swap_fee(&self) -> f64 {
-        self.swap_fee as f64 / Pool::UNIT_WEIGHT
+        self.swap_fee as f64 / Pool::FEE_PRECISION
     }
 
     pub fn get_balances(&self) -> Vec<f64> {
         self.tokens
             .iter()
-            .map(|token| token.balance as f64 / Pool::UNIT_BALANCE)
+            .map(|token| token.balance as f64 / Pool::BALANCE_PRECISION)
             .collect()
     }
 
     pub fn get_normalized_weights(&self) -> Vec<f64> {
         self.tokens
             .iter()
-            .map(|token| token.weight as f64 / Pool::UNIT_WEIGHT)
+            .map(|token| token.weight as f64 / Pool::WEIGHT_PRECISION)
             .collect()
     }
 
     pub fn get_balance(&self, mint: Pubkey) -> f64 {
         let token = self.tokens.iter().find(|token| token.mint == mint).unwrap();
-        token.balance as f64 / Pool::UNIT_BALANCE
+        token.balance as f64 / Pool::BALANCE_PRECISION
     }
 
     pub fn get_normalized_weight(&self, mint: Pubkey) -> f64 {
         let token = self.tokens.iter().find(|token| token.mint == mint).unwrap();
-        token.weight as f64 / Pool::UNIT_WEIGHT
+        token.weight as f64 / Pool::WEIGHT_PRECISION
     }
 
     pub fn get_multiplier(&self, mint: Pubkey) -> f64 {

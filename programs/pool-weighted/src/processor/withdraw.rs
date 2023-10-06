@@ -20,8 +20,8 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         let amount_out = math::calc_token_out_exact_in(
             ctx.accounts.pool.get_balance(mint),
             ctx.accounts.pool.get_normalized_weight(mint),
-            amount as f64 / Pool::UNIT_BALANCE,
-            ctx.accounts.mint.supply as f64 / Pool::UNIT_BALANCE,
+            amount as f64 / Pool::BALANCE_PRECISION,
+            ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
             ctx.accounts.pool.get_swap_fee(),
         )?;
         let amount_out = u64::try_from((amount_out * ctx.accounts.pool.get_multiplier(mint)) as u128).unwrap();
@@ -30,8 +30,8 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     } else {
         let amounts_out = math::calc_tokens_out_exact_in(
             ctx.accounts.pool.get_balances(),
-            amount as f64 / Pool::UNIT_BALANCE,
-            ctx.accounts.mint.supply as f64 / Pool::UNIT_BALANCE,
+            amount as f64 / Pool::BALANCE_PRECISION,
+            ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
         )?;
         amounts_out
             .iter()

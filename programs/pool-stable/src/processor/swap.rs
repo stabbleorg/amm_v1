@@ -40,17 +40,17 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
         current_invariant,
     )?;
 
-    let amount_out = (Pool::UNIT_WEIGHT)
+    let amount_out = (math::FEE_PRECISION)
         .saturating_sub(ctx.accounts.pool.get_swap_fee())
         .checked_mul(amount_out_without_fee)
         .unwrap()
-        .checked_div(Pool::UNIT_WEIGHT)
+        .checked_div(math::FEE_PRECISION)
         .unwrap();
     let swap_fee_amount = amount_out_without_fee.checked_sub(amount_out).unwrap();
     let beneficiary_fee_amount = swap_fee_amount
         .checked_mul(ctx.accounts.vault.beneficiary_fee as u128)
         .unwrap()
-        .checked_div(Pool::UNIT_WEIGHT)
+        .checked_div(math::FEE_PRECISION)
         .unwrap() as u64;
 
     let amount_out = u64::try_from(amount_out).unwrap();

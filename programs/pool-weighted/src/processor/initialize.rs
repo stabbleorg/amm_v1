@@ -42,7 +42,7 @@ impl<'info> Initialize<'info> {
         );
         assert!(ctx.accounts.mint.freeze_authority.is_none());
         let sum_weights: u16 = weights.iter().sum();
-        assert_eq!(sum_weights, Pool::UNIT_WEIGHT as u16);
+        assert_eq!(sum_weights, Pool::WEIGHT_PRECISION as u16);
         assert_eq!(ctx.remaining_accounts.len(), weights.len());
         assert!(weights.len() >= Pool::MIN_TOKENS);
         assert!(weights.len() <= Pool::MAX_TOKENS);

@@ -47,7 +47,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             ctx.accounts.pool.get_balances(),
             ctx.accounts.pool.get_normalized_weights(),
         )?;
-        let invariant = u64::try_from((invariant * Pool::UNIT_BALANCE) as u128).unwrap();
+        let invariant = u64::try_from((invariant * Pool::BALANCE_PRECISION) as u128).unwrap();
         ctx.accounts.pool.invariant = invariant.checked_mul(amounts.len() as u64).unwrap();
         ctx.accounts.pool.invariant
     } else {
@@ -58,10 +58,10 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                 ctx.accounts.pool.get_balance(mint),
                 ctx.accounts.pool.get_normalized_weight(mint),
                 amounts[0] as f64 / ctx.accounts.pool.get_multiplier(mint),
-                ctx.accounts.mint.supply as f64 / Pool::UNIT_BALANCE,
+                ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
                 ctx.accounts.pool.get_swap_fee(),
             )?;
-            u64::try_from((amount_out * Pool::UNIT_BALANCE) as u128).unwrap()
+            u64::try_from((amount_out * Pool::BALANCE_PRECISION) as u128).unwrap()
         } else {
             let amount_out = math::calc_out_exact_tokens_in(
                 ctx.accounts.pool.get_balances(),
@@ -73,10 +73,10 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                         amount as f64 / ctx.accounts.pool.tokens[token_index].multiplier as f64
                     })
                     .collect(),
-                ctx.accounts.mint.supply as f64 / Pool::UNIT_BALANCE,
+                ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
                 ctx.accounts.pool.get_swap_fee(),
             )?;
-            u64::try_from((amount_out * Pool::UNIT_BALANCE) as u128).unwrap()
+            u64::try_from((amount_out * Pool::BALANCE_PRECISION) as u128).unwrap()
         }
     };
     assert!(amount_out >= min_amount_out); // slippage

@@ -53,9 +53,6 @@ impl Pool {
     pub const POOL_TOKEN_DECIMALS: u8 = 9;
     pub const MAX_TOKEN_DECIMALS: u32 = 9;
 
-    pub const UNIT_BALANCE: u128 = 1_000_000_000;
-    pub const UNIT_WEIGHT: u128 = 10_000;
-
     pub fn get_invariant(&self) -> u128 {
         self.invariant as u128
     }
