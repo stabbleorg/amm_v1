@@ -1,9 +1,6 @@
 use crate::error::*;
 use anchor_lang::prelude::*;
 
-pub const MIN_AMP: u128 = 1;
-pub const MAX_AMP: u128 = 5000;
-
 pub const BALANCE_PRECISION: u128 = 1_000_000_000;
 pub const FEE_PRECISION: u128 = 10_000;
 
