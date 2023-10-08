@@ -10,7 +10,7 @@ solana program deploy -u devnet --skip-fee-check \
   --max-len 265000 \
   ./target/deploy/vault.so
 
-anchor idl init -f target/idl/vault.json \
+anchor idl upgrade -f target/idl/vault.json \
   --provider.cluster devnet \
   --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   7oh6tTdSfoWdKgqFXotGtPfS3Gqk6Jwc2yDZ7NCErYLW
@@ -23,7 +23,7 @@ solana program deploy -u devnet --skip-fee-check \
   --max-len 512000 \
   ./target/deploy/pool_weighted.so
 
-anchor idl init -f target/idl/pool_weighted.json \
+anchor idl upgrade -f target/idl/pool_weighted.json \
   --provider.cluster devnet \
   --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4
@@ -36,7 +36,7 @@ solana program deploy -u devnet --skip-fee-check \
   --max-len 512000 \
   ./target/deploy/pool_stable.so
 
-anchor idl init -f target/idl/pool_stable.json \
+anchor idl upgrade -f target/idl/pool_stable.json \
   --provider.cluster devnet \
   --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f
