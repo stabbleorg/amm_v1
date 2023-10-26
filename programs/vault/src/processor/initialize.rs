@@ -14,7 +14,7 @@ pub fn process_initialize(
         withdraw_authority_bump,
         beneficiary,
         beneficiary_fee,
-        authority_bump: *ctx.bumps.get("vault_authority").unwrap(),
+        authority_bump: ctx.bumps.vault_authority,
         is_active: true,
     });
     Ok(())

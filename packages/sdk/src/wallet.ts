@@ -60,7 +60,7 @@ export class WalletContext<T extends Provider> {
 
   async newTX(
     instructions: TransactionInstruction[],
-    lut: AddressLookupTableAccount[] = [],
+    luts: AddressLookupTableAccount[] = [],
     payerAddress?: PublicKey,
   ): Promise<VersionedTransaction> {
     const { blockhash } = await this.provider.connection.getLatestBlockhash();
@@ -69,7 +69,7 @@ export class WalletContext<T extends Provider> {
         payerKey: payerAddress || this.walletAddress,
         recentBlockhash: blockhash,
         instructions,
-      }).compileToV0Message(lut),
+      }).compileToV0Message(luts),
     );
   }
 

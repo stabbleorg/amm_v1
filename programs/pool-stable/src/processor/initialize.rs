@@ -16,7 +16,7 @@ pub fn process_initialize(ctx: Context<Initialize>, amp: u16, swap_fee: u16) -> 
         amp_duration: 0,
         swap_fee,
         is_active: true,
-        authority_bump: *ctx.bumps.get("pool_authority").unwrap(),
+        authority_bump: ctx.bumps.pool_authority,
         tokens: vec![],
     });
     for account in ctx.remaining_accounts.iter() {

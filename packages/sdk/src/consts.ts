@@ -7,9 +7,4 @@ export interface DataUpdatedEvent<T> {
   data: T;
 }
 
-export interface PriceInfo {
-  currentPrice: number;
-  postPrice: number;
-  priceImpactRatio: number;
-  amountOut: number;
-}
+export type PoolKind = "weighted" | "stable";

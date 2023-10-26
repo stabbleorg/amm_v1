@@ -12,14 +12,12 @@ import {
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { type PoolStable as IDLType, IDL } from "../generated/pool_stable";
 import { WalletContext } from "../wallet";
-import { StablePool, StablePoolData } from "../models";
+import { StablePool, StablePoolData } from "../accounts";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE } from "../consts";
-import { TokenAmountUtil } from "../utils";
 
 export type StablePoolProgram = Program<IDLType>;
 
 export class StablePoolContext<T extends Provider> extends WalletContext<T> {
-  private _listener?: number;
   readonly program: StablePoolProgram;
 
   constructor(provider: T, programId?: PublicKey) {
@@ -49,37 +47,18 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     );
   }
 
-  setEventListener(callback: (event: DataUpdatedEvent<Partial<StablePoolData>>) => void) {
-    this.removeEventListener();
-    this._listener = this.program.addEventListener(
-      "PoolUpdatedEvent",
-      (event: DataUpdatedEvent<Partial<StablePoolData>>, slot: number, signature: TransactionSignature) => {
-        if (signature !== SIMULATED_SIGNATURE) {
-          callback(event);
-        }
-      },
-    );
-  }
-
-  removeEventListener() {
-    if (this._listener !== undefined) {
-      this.program.removeEventListener(this._listener);
-      this._listener = undefined;
-    }
-  }
-
-  async loadPool(poolAddress: PublicKey): Promise<StablePool> {
+  async findOne(poolAddress: PublicKey): Promise<StablePool> {
     const data = await this.program.account.pool.fetch(poolAddress);
     return new StablePool(poolAddress, data);
   }
 
-  async loadPools(poolAddresses: PublicKey[]): Promise<StablePool[]> {
+  async findMany(poolAddresses: PublicKey[]): Promise<StablePool[]> {
     return (await this.program.account.pool.fetchMultiple(poolAddresses)).map(
       (data, index) => new StablePool(poolAddresses[index], data!),
     );
   }
 
-  async loadPoolsByVault(vaultAddress: PublicKey): Promise<StablePool[]> {
+  async findManyByVault(vaultAddress: PublicKey): Promise<StablePool[]> {
     const accounts = await this.program.account.pool.all([
       {
         memcmp: {
@@ -92,17 +71,15 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
   }
 
   async swapInstructions(
+    beneficiaryAddress: PublicKey,
     vaultAddress: PublicKey,
     vaultAuthorityAddress: PublicKey,
-    beneficiaryAddress: PublicKey,
     vaultProgramAddress: PublicKey,
     poolAddress: PublicKey,
     mintInAddress: PublicKey,
     mintOutAddress: PublicKey,
-    decimalsIn: number,
-    decimalsOut: number,
-    amountIn: string,
-    minAmountOut: number = 0,
+    amountIn: BN,
+    minAmountOut: BN = new BN(0),
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
 
@@ -116,7 +93,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
 
     instructions.push(
       await this.program.methods
-        .swap(TokenAmountUtil.toBigAmount(amountIn, decimalsIn), TokenAmountUtil.toBigAmount(minAmountOut, decimalsOut))
+        .swap(amountIn, minAmountOut)
         .accounts({
           user: this.walletAddress,
           userTokenIn: this.getAssociatedTokenAddress(mintInAddress),
@@ -142,9 +119,9 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     vaultAuthorityAddress: PublicKey,
     poolAddress: PublicKey,
     poolMintAddress: PublicKey,
-    amounts: string[],
-    decimals: number[],
     mintAddresses: PublicKey[],
+    amounts: BN[],
+    minAmountOut: BN = new BN(0),
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
@@ -167,10 +144,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
 
     instructions.push(
       await this.program.methods
-        .deposit(
-          amounts.map((amount, index) => TokenAmountUtil.toBigAmount(amount, decimals[index])),
-          new BN(0),
-        )
+        .deposit(amounts, minAmountOut)
         .accounts({
           user: this.walletAddress,
           userPoolToken: userPoolTokenAddress,
@@ -194,8 +168,9 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     vaultProgramAddress: PublicKey,
     poolAddress: PublicKey,
     poolMintAddress: PublicKey,
-    amount: string,
     mintAddresses: PublicKey[],
+    amount: BN,
+    minAmountsOut: BN[] = [],
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
@@ -215,8 +190,8 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     instructions.push(
       await this.program.methods
         .withdraw(
-          TokenAmountUtil.toBigAmount(amount, StablePool.DECIMALS),
-          mintAddresses.map(() => new BN(0)),
+          amount,
+          minAmountsOut.length === mintAddresses.length ? minAmountsOut : mintAddresses.map(() => new BN(0)),
         )
         .accounts({
           user: this.walletAddress,
@@ -224,7 +199,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
           mint: poolMintAddress,
           pool: poolAddress,
           poolAuthority: this.findPoolAuthorityAddress(poolAddress),
-          withdrawAuthority: this.findWithdrawAuthorityAddressAndBump(vaultAddress)[0],
+          withdrawAuthority: this.findWithdrawAuthorityAddress(vaultAddress),
           vault: vaultAddress,
           vaultAuthority: vaultAuthorityAddress,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -241,9 +216,9 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     vaultAddress: PublicKey,
     poolAddress: PublicKey,
     poolMintAddress: PublicKey,
-    swapFee: string,
-    amp: number,
     mintAddresses: PublicKey[],
+    amp: number,
+    swapFee: number,
   ): Promise<TransactionInstruction[]> {
     const poolAccountSize = this.program.account.pool.size + StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
@@ -257,7 +232,12 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
         lamports: await this.provider.connection.getMinimumBalanceForRentExemption(MintLayout.span),
         programId: TOKEN_PROGRAM_ID,
       }),
-      createInitializeMint2Instruction(poolMintAddress, StablePool.DECIMALS, this.walletAddress, this.walletAddress),
+      createInitializeMint2Instruction(
+        poolMintAddress,
+        StablePool.POOL_TOKEN_DECIMALS,
+        this.walletAddress,
+        this.walletAddress,
+      ),
       createCreateMetadataAccountV3Instruction(
         {
           metadata: metadataAddress,
@@ -297,17 +277,42 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
         programId: this.program.programId,
       }),
       await this.program.methods
-        .initialize(amp, TokenAmountUtil.toBigAmount(swapFee, 4).toNumber())
+        .initialize(amp, swapFee)
         .accounts({
           owner: this.walletAddress,
           mint: poolMintAddress,
           pool: poolAddress,
           poolAuthority: poolAuthorityAddress,
-          withdrawAuthority: this.findWithdrawAuthorityAddressAndBump(vaultAddress)[0],
+          withdrawAuthority: this.findWithdrawAuthorityAddress(vaultAddress),
           vault: vaultAddress,
         })
         .remainingAccounts(mintAddresses.map((pubkey) => ({ isSigner: false, isWritable: false, pubkey })))
         .instruction(),
     ];
+  }
+}
+
+export class StablePoolListener {
+  private _listener?: number;
+
+  constructor(readonly program: StablePoolProgram) {}
+
+  addPoolListener(callback: (event: DataUpdatedEvent<Partial<StablePoolData>>) => void) {
+    this.removePoolListener();
+    this._listener = this.program.addEventListener(
+      "PoolUpdatedEvent",
+      (event: DataUpdatedEvent<Partial<StablePoolData>>, slot: number, signature: TransactionSignature) => {
+        if (signature !== SIMULATED_SIGNATURE) {
+          callback(event);
+        }
+      },
+    );
+  }
+
+  removePoolListener() {
+    if (this._listener !== undefined) {
+      this.program.removeEventListener(this._listener);
+      delete this._listener;
+    }
   }
 }

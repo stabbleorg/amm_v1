@@ -1,10 +1,8 @@
-import BN from "bn.js";
 import { Program, Provider } from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
 import { type Vault as IDLType, IDL } from "../generated/vault";
 import { WalletContext } from "../wallet";
-import { Vault } from "../models";
-import { TokenAmountUtil } from "../utils";
+import { Vault } from "../accounts";
 
 export type VaultProgram = Program<IDLType>;
 
@@ -27,12 +25,12 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     )[0];
   }
 
-  async loadVault(vaultAddress: PublicKey): Promise<Vault> {
+  async findOne(vaultAddress: PublicKey): Promise<Vault> {
     const data = await this.program.account.vault.fetch(vaultAddress);
     return new Vault(vaultAddress, data);
   }
 
-  async loadVaults(vaultAddresses: PublicKey[]): Promise<Vault[]> {
+  async findMany(vaultAddresses: PublicKey[]): Promise<Vault[]> {
     return (await this.program.account.vault.fetchMultiple(vaultAddresses)).map(
       (data, index) => new Vault(vaultAddresses[index], data!),
     );
@@ -43,7 +41,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     withdrawAuthorityAddress: PublicKey,
     withdrawAuthorityBump: number,
     beneficiaryAddress: PublicKey,
-    beneficiaryFee: string,
+    beneficiaryFee: number,
   ): Promise<TransactionInstruction[]> {
     return [
       SystemProgram.createAccount({
@@ -54,12 +52,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         programId: this.program.programId,
       }),
       await this.program.methods
-        .initialize(
-          withdrawAuthorityAddress,
-          withdrawAuthorityBump,
-          beneficiaryAddress,
-          TokenAmountUtil.toBigAmount(beneficiaryFee, 4).toNumber(),
-        )
+        .initialize(withdrawAuthorityAddress, withdrawAuthorityBump, beneficiaryAddress, beneficiaryFee)
         .accounts({
           admin: this.walletAddress,
           vault: vaultAddress,
@@ -68,8 +61,8 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
   }
+}
 
-  async assertTokenBalanceInstructions(tokenAddress: PublicKey, minBalance: BN): Promise<TransactionInstruction[]> {
-    return [await this.program.methods.assertTokenBalance(minBalance).accounts({ token: tokenAddress }).instruction()];
-  }
+export class VaultListener {
+  constructor(readonly program: VaultProgram) {}
 }
