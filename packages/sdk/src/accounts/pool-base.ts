@@ -1,13 +1,13 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 
-export type PoolToken = {
+export interface PoolToken {
   mintAddress: PublicKey;
   decimals: number;
   balance: number;
 };
 
-export type PoolTokenData = {
+export interface PoolTokenData {
   mint: PublicKey;
   decimals: number; // u8
   multiplier: number; // u32
@@ -15,7 +15,7 @@ export type PoolTokenData = {
   balance: BN; // u64
 };
 
-export type BasePoolData = {
+export interface BasePoolData {
   owner: PublicKey;
   vault: PublicKey;
   mint: PublicKey;
@@ -25,7 +25,10 @@ export type BasePoolData = {
   authorityBump: number;
 };
 
-export interface BasePool<T extends PoolToken> {
+export interface BasePool<T extends PoolToken, D extends BasePoolData> {
+  readonly address: PublicKey;
+  readonly data: D;
+
   get vaultAddress(): PublicKey;
 
   get ownerAddress(): PublicKey;

@@ -7,7 +7,6 @@ import {
   stableVaultKP,
   adminKP,
   beneficiaryKP,
-  beneficiaryFee,
   usdcMintKP,
   usdtMintKP,
   daiMintKP,
@@ -83,7 +82,7 @@ describe("Vault", () => {
   it("should create vault for weighted pool", async () => {
     const { tx } = await sdk.createVaultAndAddress({
       beneficiaryAddress: beneficiaryKP.publicKey,
-      beneficiaryFee,
+      beneficiaryFee: 0.22,
       poolKind: "weighted",
       vaultKP: weightedVaultKP,
     });
@@ -93,7 +92,7 @@ describe("Vault", () => {
   it("should create vault for stable pool", async () => {
     const { tx } = await sdk.createVaultAndAddress({
       beneficiaryAddress: beneficiaryKP.publicKey,
-      beneficiaryFee,
+      beneficiaryFee: "0.22",
       poolKind: "stable",
       vaultKP: stableVaultKP,
     });

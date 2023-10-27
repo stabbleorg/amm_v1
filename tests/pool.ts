@@ -10,8 +10,9 @@ import {
 } from "@stabbleorg/solana-sdk";
 import {
   weightedVaultKP,
-  weightedN3PoolKP,
   stableVaultKP,
+  weightedN3PoolKP,
+  weightedN2PoolKP,
   stableN3PoolKP,
   adminKP,
   stbMintKP,
@@ -40,7 +41,7 @@ describe("Pool", () => {
       // console.log("STB50/USDC20:", bRatio_STB_USDC);
       // console.log("SBR30/USDC20:", bRatio_SBR_USDC);
 
-      // Given 50,000 USDC
+      // given 50,000 USDC
       const usdcAmount = 50000;
       const stbAmount = usdcAmount * bRatio_STB_USDC;
       const sbrAmount = usdcAmount * bRatio_SBR_USDC;
@@ -76,7 +77,7 @@ describe("Pool", () => {
       // console.log("STB50/USDC20:", bRatio_STB_USDC);
       // console.log("SBR30/USDC20:", bRatio_SBR_USDC);
 
-      // Given 500 USDC
+      // given 500 USDC
       const usdcAmount = 500;
       const stbAmount = usdcAmount * bRatio_STB_USDC;
       const sbrAmount = usdcAmount * bRatio_SBR_USDC;
@@ -154,6 +155,125 @@ describe("Pool", () => {
     });
   });
 
+  describe("STB60-USDC40", () => {
+    it("should create weighted pool", async () => {
+      // select tokens
+      const mintAddresses = [stbMintKP.publicKey, usdcMintKP.publicKey];
+
+      // STB: $0.0175, USDC: $1
+      const bRatio_STB_USDC = WeightedMath.calcBalanceRatio(0.6, 0.0175, 0.4, 1);
+      // console.log("STB60/USDC40:", bRatio_STB_USDC);
+
+      // given 50,000 USDC
+      const usdcAmount = 50000;
+      const stbAmount = usdcAmount * bRatio_STB_USDC;
+
+      const { tx: createTX, address: poolAddress } = await sdk.createWeightedPoolAndAddress({
+        vaultAddress: weightedVaultKP.publicKey,
+        mintAddresses,
+        weights: ["0.6", "0.4"], // either in string or in number
+        swapFee: 0.01, // 1%
+        poolKP: weightedN2PoolKP, // can be omit in dapp
+      });
+      await ctxWeighted.provider.sendAndConfirm(createTX);
+
+      // add initial liquidity
+      const pool = await ctxWeighted.findOne(poolAddress);
+      const tx = await sdk.addLiquidity({
+        pool,
+        mintAddresses,
+        amounts: [stbAmount, usdcAmount],
+      });
+      await ctxWeighted.provider.sendAndConfirm(tx);
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      console.log("LP out:", balance.uiAmountString);
+    });
+
+    it("should add liquidity in balance", async () => {
+      const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
+      const bRatio_STB_USDC = pool.tokens[0].balance / pool.tokens[1].balance;
+      // console.log("STB60/USDC40:", bRatio_STB_USDC);
+
+      // given 500 USDC
+      const usdcAmount = 500;
+      const stbAmount = usdcAmount * bRatio_STB_USDC;
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      const tx = await sdk.addLiquidity({
+        pool,
+        mintAddresses: pool.tokens.map((token) => token.mintAddress),
+        amounts: [stbAmount, usdcAmount],
+      });
+      await ctxWeighted.provider.sendAndConfirm(tx);
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      console.log(
+        "LP out:",
+        TokenAmountUtil.toUiAmountString(
+          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
+          postBalance.decimals,
+        ),
+      );
+    });
+
+    it("should add liquidity in single token", async () => {
+      const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      const tx = await sdk.addLiquidity({
+        pool,
+        mintAddresses: [usdcMintKP.publicKey],
+        amounts: ["1250"],
+      });
+      await ctxWeighted.provider.sendAndConfirm(tx);
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      console.log(
+        "LP out:",
+        TokenAmountUtil.toUiAmountString(
+          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
+          postBalance.decimals,
+        ),
+      );
+    });
+
+    it("should remove liquidity in single token", async () => {
+      const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
+      );
+      const tx = await sdk.removeLiquidity({
+        pool,
+        mintAddresses: [usdcMintKP.publicKey],
+        amount: "14616.649271449",
+      });
+      await ctxWeighted.provider.sendAndConfirm(tx);
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
+      );
+      console.log(
+        "USDC out:",
+        TokenAmountUtil.toUiAmountString(
+          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
+          postBalance.decimals,
+        ),
+      );
+    });
+  });
+
   describe("DAI-USDT-USDC", () => {
     it("should create stable pool", async () => {
       const { tx: createTX, address: poolAddress } = await sdk.createStablePoolAndAddress({
@@ -187,7 +307,7 @@ describe("Pool", () => {
       // console.log("DAI/USDC:", bRatio_DAI_USDC);
       // console.log("USDT/USDC:", bRatio_USDT_USDC);
 
-      // Given 200 USDC
+      // given 200 USDC
       const usdcAmount = 200;
       const daiAmount = usdcAmount * bRatio_DAI_USDC;
       const usdtAmount = usdcAmount * bRatio_USDT_USDC;

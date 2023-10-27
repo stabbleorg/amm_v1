@@ -1,7 +1,16 @@
 import { Provider } from "@coral-xyz/anchor";
 import { PublicKey, Keypair, TransactionInstruction, VersionedTransaction } from "@solana/web3.js";
 import { StablePoolContext, VaultContext, WeightedPoolContext } from "./programs";
-import { BasePool, StablePool, StablePoolToken, Vault, WeightedPool, WeightedPoolToken } from "./accounts";
+import {
+  BasePool,
+  StablePool,
+  StablePoolData,
+  StablePoolToken,
+  Vault,
+  WeightedPool,
+  WeightedPoolData,
+  WeightedPoolToken,
+} from "./accounts";
 import { PoolKind } from "./consts";
 import { TokenAmountUtil } from "./utils";
 
@@ -36,7 +45,7 @@ export class SDKWrapper<T extends Provider> {
     amountIn,
     minAmountOut = 0,
   }: {
-    pool: BasePool<WeightedPoolToken | StablePoolToken>;
+    pool: BasePool<WeightedPoolToken | StablePoolToken, WeightedPoolData | StablePoolData>;
     mintInAddress: PublicKey;
     mintOutAddress: PublicKey;
     amountIn: number | string;
@@ -91,7 +100,7 @@ export class SDKWrapper<T extends Provider> {
     mintAddresses,
     amounts,
   }: {
-    pool: BasePool<WeightedPoolToken | StablePoolToken>;
+    pool: BasePool<WeightedPoolToken | StablePoolToken, WeightedPoolData | StablePoolData>;
     mintAddresses: PublicKey[];
     amounts: (string | number)[];
   }): Promise<VersionedTransaction> {
@@ -141,7 +150,7 @@ export class SDKWrapper<T extends Provider> {
     mintAddresses,
     amount,
   }: {
-    pool: BasePool<WeightedPoolToken | StablePoolToken>;
+    pool: BasePool<WeightedPoolToken | StablePoolToken, WeightedPoolData | StablePoolData>;
     mintAddresses: PublicKey[];
     amount: string | number;
   }): Promise<VersionedTransaction> {

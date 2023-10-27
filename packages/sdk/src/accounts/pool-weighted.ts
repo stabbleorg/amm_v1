@@ -2,19 +2,19 @@ import { PublicKey } from "@solana/web3.js";
 import { BasePool, PoolToken, PoolTokenData, BasePoolData } from "./pool-base";
 import { TokenAmountUtil, WeightedMath } from "../utils";
 
-export type WeightedPoolToken = PoolToken & {
+export interface WeightedPoolToken extends PoolToken {
   weight: number;
-};
+}
 
-export type WeightedPoolTokenData = PoolTokenData & {
+export interface WeightedPoolTokenData extends PoolTokenData {
   weight: number; // u16
-};
+}
 
-export type WeightedPoolData = BasePoolData & {
+export interface WeightedPoolData extends BasePoolData {
   tokens: WeightedPoolTokenData[];
-};
+}
 
-export class WeightedPool implements BasePool<WeightedPoolToken> {
+export class WeightedPool implements BasePool<WeightedPoolToken, WeightedPoolData> {
   static POOL_TOKEN_DECIMALS = 9;
   static POOL_TOKEN_SIZE = 32 + 1 + 4 + 4 + 8 + 2;
 

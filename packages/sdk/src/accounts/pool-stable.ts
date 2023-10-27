@@ -3,20 +3,20 @@ import { PublicKey } from "@solana/web3.js";
 import { BasePool, PoolToken, PoolTokenData, BasePoolData } from "./pool-base";
 import { StableMath, TokenAmountUtil } from "../utils";
 
-export type StablePoolToken = PoolToken;
+export interface StablePoolToken extends PoolToken {}
 
-export type StablePoolTokenData = PoolTokenData;
+export interface StablePoolTokenData extends PoolTokenData {}
 
-export type StablePoolData = BasePoolData & {
+export interface StablePoolData extends BasePoolData {
   amp: number;
   ampStart: number;
   ampStartTime: BN;
   ampEndTime: BN;
   ampDuration: number;
   tokens: StablePoolTokenData[];
-};
+}
 
-export class StablePool implements BasePool<StablePoolToken> {
+export class StablePool implements BasePool<StablePoolToken, StablePoolData> {
   static POOL_TOKEN_DECIMALS = 9;
   static POOL_TOKEN_SIZE = 32 + 1 + 4 + 4 + 8;
 
