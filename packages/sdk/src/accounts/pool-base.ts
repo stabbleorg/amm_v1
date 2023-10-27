@@ -5,7 +5,7 @@ export interface PoolToken {
   mintAddress: PublicKey;
   decimals: number;
   balance: number;
-};
+}
 
 export interface PoolTokenData {
   mint: PublicKey;
@@ -13,7 +13,7 @@ export interface PoolTokenData {
   multiplier: number; // u32
   scalingFactor: number; // u32
   balance: BN; // u64
-};
+}
 
 export interface BasePoolData {
   owner: PublicKey;
@@ -23,7 +23,7 @@ export interface BasePoolData {
   swapFee: number;
   isActive: boolean;
   authorityBump: number;
-};
+}
 
 export interface BasePool<T extends PoolToken, D extends BasePoolData> {
   readonly address: PublicKey;
