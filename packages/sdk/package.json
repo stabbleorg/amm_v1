@@ -1,15 +1,15 @@
 {
   "name": "@stabbleorg/solana-sdk",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "main": "src",
   "types": "src/index.d.ts",
   "license": "MIT",
   "dependencies": {
-    "@coral-xyz/anchor": "^0.28.1-beta.2",
+    "@coral-xyz/anchor": "^0.29.0",
     "@metaplex-foundation/js": "^0.19.5",
     "@metaplex-foundation/mpl-token-metadata": "^2.13.0",
     "@solana/spl-token": "^0.3.8",
-    "@solana/web3.js": "^1.78.7",
+    "@solana/web3.js": "^1.87.2",
     "bn.js": "^5.2.1"
   },
   "devDependencies": {

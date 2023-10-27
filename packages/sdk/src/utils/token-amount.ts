@@ -9,12 +9,16 @@ export class TokenAmountUtil {
     );
   }
 
-  static toUiAmount(amount: BN | string, decimals: number): string {
+  static toUiAmountString(amount: BN | string, decimals: number): string {
     let amountString = amount.toString();
     if (!decimals) return amountString;
     if (amountString.length < decimals) amountString = amountString.padStart(decimals, "0");
     const l = amountString.substring(0, amountString.length - decimals) || "0";
     const r = amountString.substring(amountString.length - decimals, amountString.length);
     return l + "." + r;
+  }
+
+  static toUiAmount(amount: BN | string, decimals: number): number {
+    return Number(this.toUiAmountString(amount, decimals));
   }
 }

@@ -1,4 +1,6 @@
 export * from "./programs";
-export * from "./models";
+export * from "./accounts";
+export * from "./wallet";
+export * from "./sdk";
 export * from "./consts";
 export * from "./utils";

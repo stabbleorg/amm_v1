@@ -1,11 +1,9 @@
 import type { VersionedTransaction } from "@solana/web3.js";
 import { AnchorProvider } from "@coral-xyz/anchor";
-import { VaultContext, WeightedPoolContext, StablePoolContext } from "@stabbleorg/solana-sdk";
+import { VaultContext, WeightedPoolContext, StablePoolContext, SDKWrapper } from "@stabbleorg/solana-sdk";
 
 export interface Context {
-  vaultContext: VaultContext<AnchorProvider>;
-  weightedPoolContext: WeightedPoolContext<AnchorProvider>;
-  stablePoolContext: StablePoolContext<AnchorProvider>;
+  sdk: SDKWrapper<AnchorProvider>;
   provider: AnchorProvider;
   simulate: boolean;
   tx?: VersionedTransaction;
@@ -17,15 +15,15 @@ export const setContext = (ctx: Context) => {
   context = ctx;
 };
 
-export const submitTX = (tx: VersionedTransaction) => {
-  context.tx = tx;
-};
-
 export const useContext = () => {
   return context;
 };
 
-export const handleTX = async (tx: VersionedTransaction) => {
+export const submitTX = (tx: VersionedTransaction) => {
+  context.tx = tx;
+};
+
+export const processTX = async (tx: VersionedTransaction) => {
   const { provider, simulate } = useContext();
 
   if (simulate) {

@@ -1,49 +1,101 @@
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
+import { createAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { VaultContext, WeightedPoolContext, StablePoolContext } from "@stabbleorg/solana-sdk";
-import { weightedVaultKP, stableVaultKP, adminKP, beneficiaryKP, beneficiaryFee } from "./consts";
+import { VaultContext, WeightedPoolContext, StablePoolContext, SDKWrapper } from "@stabbleorg/solana-sdk";
+import {
+  weightedVaultKP,
+  stableVaultKP,
+  adminKP,
+  beneficiaryKP,
+  usdcMintKP,
+  usdtMintKP,
+  daiMintKP,
+  stbMintKP,
+  sbrMintKP,
+} from "./consts";
 
 describe("Vault", () => {
   const provider = AnchorProvider.env();
-  const adminVaultContext = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const weightedPoolContext = new WeightedPoolContext({ connection: provider.connection });
-  const stablePoolContext = new StablePoolContext({ connection: provider.connection });
+  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const sdk = new SDKWrapper({
+    vault: ctxVault,
+    weighted: ctxWeighted,
+    stable: ctxStable,
+  });
 
   before(async () => {
-    await adminVaultContext.confirmTX(
-      await provider.connection.requestAirdrop(adminVaultContext.walletAddress, LAMPORTS_PER_SOL),
+    await ctxVault.confirmTX(await provider.connection.requestAirdrop(ctxVault.walletAddress, LAMPORTS_PER_SOL));
+
+    await createMint(provider.connection, adminKP, adminKP.publicKey, null, 6, usdcMintKP);
+    await mintTo(
+      provider.connection,
+      adminKP,
+      usdcMintKP.publicKey,
+      await createAssociatedTokenAccount(provider.connection, adminKP, usdcMintKP.publicKey, adminKP.publicKey),
+      adminKP,
+      BigInt("5000000000000"), // 5M
+    );
+
+    await createMint(provider.connection, adminKP, adminKP.publicKey, null, 6, usdtMintKP);
+    await mintTo(
+      provider.connection,
+      adminKP,
+      usdtMintKP.publicKey,
+      await createAssociatedTokenAccount(provider.connection, adminKP, usdtMintKP.publicKey, adminKP.publicKey),
+      adminKP,
+      BigInt("5000000000000"), // 5M
+    );
+
+    await createMint(provider.connection, adminKP, adminKP.publicKey, null, 8, daiMintKP);
+    await mintTo(
+      provider.connection,
+      adminKP,
+      daiMintKP.publicKey,
+      await createAssociatedTokenAccount(provider.connection, adminKP, daiMintKP.publicKey, adminKP.publicKey),
+      adminKP,
+      BigInt("500000000000000"), // 5M
+    );
+
+    await createMint(provider.connection, adminKP, adminKP.publicKey, null, 9, stbMintKP);
+    await mintTo(
+      provider.connection,
+      adminKP,
+      stbMintKP.publicKey,
+      await createAssociatedTokenAccount(provider.connection, adminKP, stbMintKP.publicKey, adminKP.publicKey),
+      adminKP,
+      BigInt("500000000000000000"), // 500M
+    );
+
+    await createMint(provider.connection, adminKP, adminKP.publicKey, null, 6, sbrMintKP);
+    await mintTo(
+      provider.connection,
+      adminKP,
+      sbrMintKP.publicKey,
+      await createAssociatedTokenAccount(provider.connection, adminKP, sbrMintKP.publicKey, adminKP.publicKey),
+      adminKP,
+      BigInt("2000000000000000"), // 2bn
     );
   });
 
-  it("should initialize vault for pool-weighted program", async () => {
-    const vaultAddress = weightedVaultKP.publicKey;
-    const [withdrawAuthorityAddress, withdrawAuthorityBump] =
-      weightedPoolContext.findWithdrawAuthorityAddressAndBump(vaultAddress);
-    const ixs = await adminVaultContext.initializeInstructions(
-      vaultAddress,
-      withdrawAuthorityAddress,
-      withdrawAuthorityBump,
-      beneficiaryKP.publicKey,
-      beneficiaryFee,
-    );
-    const tx = await adminVaultContext.newTX(ixs);
-    tx.sign([weightedVaultKP]);
-    await adminVaultContext.provider.sendAndConfirm!(tx);
+  it("should create vault for weighted pool", async () => {
+    const { tx } = await sdk.createVaultAndAddress({
+      beneficiaryAddress: beneficiaryKP.publicKey,
+      beneficiaryFee: 0.22,
+      poolKind: "weighted",
+      vaultKP: weightedVaultKP,
+    });
+    await sdk.ctxVault.provider.sendAndConfirm!(tx);
   });
 
-  it("should initialize vault for pool-stable program", async () => {
-    const vaultAddress = stableVaultKP.publicKey;
-    const [withdrawAuthorityAddress, withdrawAuthorityBump] =
-      stablePoolContext.findWithdrawAuthorityAddressAndBump(vaultAddress);
-    const ixs = await adminVaultContext.initializeInstructions(
-      vaultAddress,
-      withdrawAuthorityAddress,
-      withdrawAuthorityBump,
-      beneficiaryKP.publicKey,
-      beneficiaryFee,
-    );
-    const tx = await adminVaultContext.newTX(ixs);
-    tx.sign([stableVaultKP]);
-    await adminVaultContext.provider.sendAndConfirm!(tx);
+  it("should create vault for stable pool", async () => {
+    const { tx } = await sdk.createVaultAndAddress({
+      beneficiaryAddress: beneficiaryKP.publicKey,
+      beneficiaryFee: "0.22",
+      poolKind: "stable",
+      vaultKP: stableVaultKP,
+    });
+    await sdk.ctxVault.provider.sendAndConfirm!(tx);
   });
 });

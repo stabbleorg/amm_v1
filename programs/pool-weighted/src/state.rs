@@ -49,8 +49,8 @@ impl Pool {
     pub const MAX_TOKEN_DECIMALS: u32 = 9;
 
     pub const BALANCE_PRECISION: f64 = 1e9;
-    pub const FEE_PRECISION: f64 = 1e4;
     pub const WEIGHT_PRECISION: f64 = 1e4;
+    pub const FEE_PRECISION: f64 = 1e4;
 
     pub fn get_swap_fee(&self) -> f64 {
         self.swap_fee as f64 / Pool::FEE_PRECISION

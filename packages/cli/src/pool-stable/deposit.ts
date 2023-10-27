@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { PublicKey } from "@solana/web3.js";
-import { submitTX, useContext } from "../context";
+import { useContext, submitTX } from "../context";
 import { parseKey } from "../utils";
 
 export function deposit(program: Command) {
@@ -8,23 +8,19 @@ export function deposit(program: Command) {
     .command("pool-stable-deposit")
     .description("add liquidity to stable pool")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
-    .requiredOption("--amounts <number[]>", "amounts")
-    .requiredOption("--mints <string[]>", "mint keys")
-    .action(async ({ poolK, amounts, mints }: { poolK: PublicKey; amounts: string; mints: string }) => {
-      const { vaultContext, stablePoolContext } = useContext();
+    .requiredOption("--amounts <numbers...>", "amounts")
+    .requiredOption("--mints <strings...>", "mint keys")
+    .action(async ({ poolK, amounts, mints }: { poolK: PublicKey; amounts: number[]; mints: string[] }) => {
+      const { sdk } = useContext();
 
-      const pool = await stablePoolContext.loadPool(poolK);
+      const pool = await sdk.ctxStable.findOne(poolK);
 
-      const ixs = await stablePoolContext.depositInstructions(
-        pool.vaultAddress,
-        vaultContext.findVaultAuthorityAddress(pool.vaultAddress),
-        pool.address,
-        pool.mintAddress,
-        amounts.split(","),
-        mints.split(",").map((mint) => pool.tokens.find((token) => token.mintAddress.toBase58() === mint)!.decimals),
-        mints.split(",").map((mint) => new PublicKey(mint)),
-      );
-      const tx = await stablePoolContext.newTX(ixs);
+      const tx = await sdk.addLiquidity({
+        pool,
+        amounts,
+        mintAddresses: mints.map((pubkey) => new PublicKey(pubkey)),
+      });
+
       submitTX(tx);
     });
 }

@@ -1,53 +1,29 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
+import { BasePool, PoolToken, PoolTokenData, BasePoolData } from "./pool-base";
 import { StableMath, TokenAmountUtil } from "../utils";
 
-export type StablePoolTokenData = {
-  mint: PublicKey;
-  decimals: number; // u8
-  multiplier: number; // u32
-  scalingFactor: number; // u32
-  balance: BN; // u64
-};
+export interface StablePoolToken extends PoolToken {}
 
-export type StablePoolData = {
-  owner: PublicKey;
-  vault: PublicKey;
-  mint: PublicKey;
-  invariant: BN;
-  swapFee: number;
+export interface StablePoolTokenData extends PoolTokenData {}
+
+export interface StablePoolData extends BasePoolData {
   amp: number;
   ampStart: number;
   ampStartTime: BN;
   ampEndTime: BN;
   ampDuration: number;
-  isActive: boolean;
-  authorityBump: number;
   tokens: StablePoolTokenData[];
-};
+}
 
-export type StablePoolToken = {
-  mintAddress: PublicKey;
-  decimals: number;
-  balance: number;
-};
-
-export class StablePool {
-  static DECIMALS = 9;
+export class StablePool implements BasePool<StablePoolToken, StablePoolData> {
+  static POOL_TOKEN_DECIMALS = 9;
   static POOL_TOKEN_SIZE = 32 + 1 + 4 + 4 + 8;
 
   constructor(
     readonly address: PublicKey,
     readonly data: StablePoolData,
   ) {}
-
-  get tokens(): StablePoolToken[] {
-    return this.data.tokens.map((token) => ({
-      mintAddress: token.mint,
-      decimals: token.decimals,
-      balance: Number(TokenAmountUtil.toUiAmount(token.balance, StablePool.DECIMALS)),
-    }));
-  }
 
   get vaultAddress(): PublicKey {
     return this.data.vault;
@@ -71,6 +47,22 @@ export class StablePool {
 
   get isActive(): boolean {
     return this.data.isActive;
+  }
+
+  get tokens(): PoolToken[] {
+    return this.data.tokens.map((token) => ({
+      mintAddress: token.mint,
+      decimals: token.decimals,
+      balance: TokenAmountUtil.toUiAmount(token.balance, StablePool.POOL_TOKEN_DECIMALS),
+    }));
+  }
+
+  getSpotPrice(tokenInAddress: PublicKey, tokenOutAddress: PublicKey): number {
+    throw Error("Not Implemented");
+  }
+
+  getPostPrice(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {
+    throw Error("Not Implemented");
   }
 
   getEstAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {

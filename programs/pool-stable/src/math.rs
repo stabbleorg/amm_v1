@@ -2,6 +2,7 @@ use crate::error::*;
 use anchor_lang::prelude::*;
 
 pub const BALANCE_PRECISION: u128 = 1_000_000_000;
+pub const AMP_PRECISION: u128 = 1_000;
 pub const FEE_PRECISION: u128 = 10_000;
 
 // StableMath._calculateInvariant
@@ -253,7 +254,9 @@ pub fn calc_token_in_exact_out(
         .checked_mul(current_invariant)
         .unwrap()
         .checked_div(total_supply)
-        .unwrap();
+        .unwrap()
+        // divUp
+        .saturating_add(1);
 
     // Calculate amount in without fee.
     let new_balance =
@@ -281,10 +284,12 @@ pub fn calc_token_in_exact_out(
 
     // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
     Ok(taxable_amount
-        .checked_div(FEE_PRECISION.saturating_sub(swap_fee))
+        .checked_mul(FEE_PRECISION.saturating_sub(swap_fee))
         .unwrap()
         .checked_div(FEE_PRECISION)
         .unwrap()
+        // divUp
+        .saturating_add(1)
         .checked_add(non_taxable_amount)
         .unwrap())
 }
@@ -312,14 +317,18 @@ pub fn calc_in_exact_tokens_out(
             .checked_mul(BALANCE_PRECISION)
             .unwrap()
             .checked_div(sum_balances)
-            .unwrap();
+            .unwrap()
+            // divUp
+            .saturating_add(1);
         balance_ratios_without_fee[i] = balances[i]
             .checked_sub(amounts_out[i])
             .unwrap()
             .checked_mul(BALANCE_PRECISION)
             .unwrap()
             .checked_div(balances[i])
-            .unwrap();
+            .unwrap()
+            // divUp
+            .saturating_add(1);
         balance_ratio_without_fees = balance_ratios_without_fee[i]
             .checked_mul(current_weight)
             .unwrap()
@@ -344,10 +353,12 @@ pub fn calc_in_exact_tokens_out(
             let taxable_amount = amounts_out[i].checked_sub(non_taxable_amount).unwrap();
             // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
             taxable_amount
-                .checked_div(FEE_PRECISION.saturating_sub(swap_fee))
+                .checked_mul(FEE_PRECISION.saturating_sub(swap_fee))
                 .unwrap()
                 .checked_div(FEE_PRECISION)
                 .unwrap()
+                // divUp
+                .saturating_add(1)
                 .checked_add(non_taxable_amount)
                 .unwrap()
         } else {
@@ -390,7 +401,9 @@ pub fn calc_token_out_exact_in(
         .checked_mul(current_invariant)
         .unwrap()
         .checked_div(total_supply)
-        .unwrap();
+        .unwrap()
+        // divUp
+        .saturating_add(1);
 
     // Calculate amount out without fee
     let new_balance =
@@ -501,6 +514,8 @@ fn get_token_balance_given_invariant_and_all_other_balances(
     let c = inv_2
         .checked_div(amp_times_total.checked_mul(p).unwrap())
         .unwrap()
+        // divUp
+        .saturating_add(1)
         .checked_mul(balances[token_index])
         .unwrap();
     let b = invariant
@@ -517,7 +532,9 @@ fn get_token_balance_given_invariant_and_all_other_balances(
         .checked_add(c)
         .unwrap()
         .checked_div(invariant.checked_add(b).unwrap())
-        .unwrap();
+        .unwrap()
+        // divUp
+        .saturating_add(1);
 
     for _ in 0..255 {
         prev_token_balance = token_balance;

@@ -1,6 +1,6 @@
 [package]
 name = "pool-stable"
-version = "0.1.0"
+version = "0.2.0"
 description = "Created with Anchor"
 edition = "2021"
 
@@ -16,6 +16,6 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = "0.28.0"
-anchor-spl = "0.28.0"
+anchor-lang = "0.29.0"
+anchor-spl = "0.29.0"
 vault = { path = "../vault", features = ["cpi"] }
