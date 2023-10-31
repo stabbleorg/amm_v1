@@ -2,6 +2,7 @@ import { BN } from "bn.js";
 import { AnchorProvider } from "@coral-xyz/anchor";
 import { createAssociatedTokenAccount, getAssociatedTokenAddressSync, mintTo } from "@solana/spl-token";
 import {
+  SlrContext,
   VaultContext,
   WeightedPoolContext,
   StablePoolContext,
@@ -21,6 +22,7 @@ import { stableVaultKP, weightedVaultKP, adminKP, daiMintKP, usdcMintKP, stbMint
 
 describe("Swap", () => {
   const provider = AnchorProvider.env();
+  const ctxSlr = new SlrContext(provider);
   const ctxVault = new VaultContext(provider);
   const ctxWeighted = new WeightedPoolContext(provider);
   const listenerWeighted = new WeightedPoolListener(ctxWeighted.program);
@@ -42,6 +44,7 @@ describe("Swap", () => {
 
     sdk = new SDKWrapper(
       {
+        slr: ctxSlr,
         vault: ctxVault,
         weighted: ctxWeighted,
         stable: ctxStable,

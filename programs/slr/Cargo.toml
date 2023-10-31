@@ -1,12 +1,12 @@
 [package]
-name = "pool-slr"
-version = "0.1.0"
+name = "slr"
+version = "0.3.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "pool_slr"
+name = "slr"
 
 [features]
 no-entrypoint = []

@@ -1,6 +1,7 @@
 import { BN } from "bn.js";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import {
+  SlrContext,
   VaultContext,
   WeightedPoolContext,
   StablePoolContext,
@@ -24,10 +25,12 @@ import {
 
 describe("Pool", () => {
   const provider = AnchorProvider.env();
+  const ctxSlr = new SlrContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const sdk = new SDKWrapper({
+    slr: ctxSlr,
     vault: ctxVault,
     weighted: ctxWeighted,
     stable: ctxStable,

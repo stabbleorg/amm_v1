@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum PoolWeightedError {
+pub enum CustomError {
     #[msg("Zero invariant")]
     ZeroInvariant,
     #[msg("Max in ratio")]

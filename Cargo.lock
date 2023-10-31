@@ -1405,18 +1405,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "pool-slr"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "anchor-spl",
- "pool-stable",
- "pool-weighted",
-]
-
-[[package]]
 name = "pool-stable"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
@@ -1425,7 +1415,7 @@ dependencies = [
 
 [[package]]
 name = "pool-weighted"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
@@ -1794,6 +1784,16 @@ checksum = "16d69225bde7a69b235da73377861095455d298f2b970996eec25ddbb42b3d1e"
 dependencies = [
  "bitmaps",
  "typenum",
+]
+
+[[package]]
+name = "slr"
+version = "0.3.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "pool-stable",
+ "pool-weighted",
 ]
 
 [[package]]
@@ -2369,7 +2369,7 @@ dependencies = [
 
 [[package]]
 name = "vault"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",

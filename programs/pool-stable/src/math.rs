@@ -71,7 +71,7 @@ pub fn calc_invariant(amp: u128, balances: Vec<u128>) -> Result<u128> {
         }
     }
 
-    err!(PoolStableError::GetInvariantDidntConverge)
+    err!(CustomError::GetInvariantDidntConverge)
 }
 
 // StableMath._calcOutGivenIn
@@ -564,7 +564,7 @@ fn get_token_balance_given_invariant_and_all_other_balances(
         }
     }
 
-    err!(PoolStableError::GetBalanceDidntConverge)
+    err!(CustomError::GetBalanceDidntConverge)
 }
 
 fn complement(weight: u128) -> u128 {

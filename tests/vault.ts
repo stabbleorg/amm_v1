@@ -1,7 +1,7 @@
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { createAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { VaultContext, WeightedPoolContext, StablePoolContext, SDKWrapper } from "@stabbleorg/solana-sdk";
+import { SlrContext, VaultContext, WeightedPoolContext, StablePoolContext, SDKWrapper } from "@stabbleorg/solana-sdk";
 import {
   weightedVaultKP,
   stableVaultKP,
@@ -16,10 +16,12 @@ import {
 
 describe("Vault", () => {
   const provider = AnchorProvider.env();
+  const ctxSlr = new SlrContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const sdk = new SDKWrapper({
+    slr: ctxSlr,
     vault: ctxVault,
     weighted: ctxWeighted,
     stable: ctxStable,

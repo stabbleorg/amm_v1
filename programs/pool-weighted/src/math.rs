@@ -33,7 +33,7 @@ pub fn calc_invariant(balances: Vec<f64>, normalized_weights: Vec<f64>) -> Resul
         invariant = invariant * balances[j].powf(normalized_weights[j]);
     }
 
-    require!(invariant > 0.0, PoolWeightedError::ZeroInvariant);
+    require!(invariant > 0.0, CustomError::ZeroInvariant);
     Ok(invariant)
 }
 
@@ -63,7 +63,7 @@ pub fn calc_out_given_in(
     // Because bI / (bI + aI) <= 1, the exponent rounds down.
 
     // Cannot exceed maximum in ratio
-    require!(amount_in <= balance_in * MAX_IN_RATIO, PoolWeightedError::MaxInRatio);
+    require!(amount_in <= balance_in * MAX_IN_RATIO, CustomError::MaxInRatio);
 
     let denominator = balance_in + amount_in;
     let base = balance_in / denominator;
@@ -103,7 +103,7 @@ pub fn calc_in_given_out(
     // Cannot exceed maximum out ratio
     require!(
         amount_out <= balance_out * MAX_OUT_RATIO,
-        PoolWeightedError::MaxOutRatio
+        CustomError::MaxOutRatio
     );
 
     let denominator = balance_out - amount_out;
@@ -236,7 +236,7 @@ pub fn calc_token_in_exact_out(
     let invariant_ratio = (total_supply + amount_out) / total_supply;
     require!(
         invariant_ratio <= MAX_INVARIANT_RATIO,
-        PoolWeightedError::MaxInvariantRatio
+        CustomError::MaxInvariantRatio
     );
 
     // Calculate by how much the token balance has to increase to match the invariantRatio
@@ -279,7 +279,7 @@ pub fn calc_token_out_exact_in(
     let invariant_ratio = (total_supply - amount_in) / total_supply;
     require!(
         invariant_ratio >= MIN_INVARIANT_RATIO,
-        PoolWeightedError::MinInvariantRatio
+        CustomError::MinInvariantRatio
     );
 
     // Calculate by how much the token balance has to decrease to match invariantRatio

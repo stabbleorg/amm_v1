@@ -704,7 +704,7 @@
     "@wallet-standard/base" "^1.0.1"
     "@wallet-standard/features" "^1.0.3"
 
-"@solana/web3.js@^1.21.0", "@solana/web3.js@^1.32.0", "@solana/web3.js@^1.36.0", "@solana/web3.js@^1.50.1", "@solana/web3.js@^1.56.2", "@solana/web3.js@^1.63.1", "@solana/web3.js@^1.66.2", "@solana/web3.js@^1.68.0", "@solana/web3.js@^1.87.2":
+"@solana/web3.js@^1.21.0", "@solana/web3.js@^1.32.0", "@solana/web3.js@^1.36.0", "@solana/web3.js@^1.50.1", "@solana/web3.js@^1.56.2", "@solana/web3.js@^1.63.1", "@solana/web3.js@^1.66.2", "@solana/web3.js@^1.68.0", "@solana/web3.js@^1.87.3":
   version "1.87.3"
   resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.87.3.tgz#36871af8d41221d34bfefcf897f158e1793b3356"
   integrity sha512-WGLzTZpi00vP443qGK3gL+LZXQJwaWkh6bzNXYpMTCAH2Z102y3YbPWOoQzJUeRSZWSXKh7MFkA3vDMFlMvGZQ==

@@ -7,7 +7,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-pool-slr = "8XCueEVRNzMPybq6zAgKLiC8WJ1SRXLqP33Mru6nvrAz"
+slr = "88eN7xkpWwyCrtVAuhuKtVLkmuSEFv6MgTkpAodvpd31"
 pool_stable = "CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f"
 pool_weighted = "GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4"
 vault = "7oh6tTdSfoWdKgqFXotGtPfS3Gqk6Jwc2yDZ7NCErYLW"
@@ -30,6 +30,8 @@ startup_wait = 5000
 shutdown_wait = 2000
 upgradeable = false
 
-[[test.genesis]]
+[test.validator]
+url = "https://api.mainnet-beta.solana.com"
+
+[[test.validator.clone]]
 address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-program = "token_metadata.so"

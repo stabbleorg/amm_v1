@@ -17,3 +17,5 @@ export const weightedN3PoolKP = Keypair.generate();
 export const stableVaultKP = Keypair.generate();
 export const stableN2PoolKP = Keypair.generate();
 export const stableN3PoolKP = Keypair.generate();
+
+export const usdcPoolKP = Keypair.generate();
