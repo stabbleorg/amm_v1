@@ -1,7 +1,7 @@
 export interface PoolMeta {
   chainId: number;
   address: string;
-  type: "weighted" | "stable";
+  type: "weighted" | "stable" | "slr";
   name: string;
   tags?: string[];
 }
@@ -44,6 +44,20 @@ export const pools: PoolMeta[] = [
     address: "EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV",
     type: "stable",
     name: "USDT-USDC",
+    tags: ["usd"],
+  },
+  {
+    chainId: 103,
+    address: "DuyBdvKBfyzTk43rPiBme8PckHU8RnW1oDPmD6rz93Zp",
+    type: "slr",
+    name: "USDC",
+    tags: ["usd"],
+  },
+  {
+    chainId: 103,
+    address: "xjvxKg5Q5d9sqRdsyUxA2QFjMDG1HpneqDnMvomSGFW",
+    type: "slr",
+    name: "USDT",
     tags: ["usd"],
   },
 ];

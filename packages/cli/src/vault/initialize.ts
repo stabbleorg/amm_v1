@@ -6,7 +6,7 @@ import { parseKey, parseKeypair } from "../utils";
 export function initialize(program: Command) {
   program
     .command("vault-init")
-    .description("initialize vaults")
+    .description("initialize vault")
     .option("--vault-k-p <string>", "vault keypair", parseKeypair)
     .requiredOption("--pool-kind <string>", "pool kind")
     .requiredOption("--beneficiary-k <string>", "beneficiary key", parseKey)

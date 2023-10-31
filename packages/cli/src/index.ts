@@ -4,6 +4,7 @@ import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
 import { SlrContext, VaultContext, WeightedPoolContext, StablePoolContext, SDKWrapper } from "@stabbleorg/solana-sdk";
 import { setContext, useContext, processTX } from "./context";
+import { setupSlrProgram } from "./slr";
 import { setupVaultProgram } from "./vault";
 import { setupWeightedPoolProgram } from "./pool-weighted";
 import { setupStablePoolProgram } from "./pool-stable";
@@ -43,6 +44,7 @@ program
     });
   });
 
+setupSlrProgram(program);
 setupVaultProgram(program);
 setupWeightedPoolProgram(program);
 setupStablePoolProgram(program);

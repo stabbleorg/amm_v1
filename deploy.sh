@@ -2,7 +2,20 @@
 
 anchor build --arch sbf
 
-# 7oh6tTdSfoWdKgqFXotGtPfS3Gqk6Jwc2yDZ7NCErYLW
+# SLR
+solana program deploy -u devnet --skip-fee-check \
+  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  --program-id ./keypairs/slr.json \
+  --max-len 512000 \
+  ./target/deploy/slr.so
+
+anchor idl upgrade -f target/idl/slr.json \
+  --provider.cluster devnet \
+  --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  88eN7xkpWwyCrtVAuhuKtVLkmuSEFv6MgTkpAodvpd31
+
+# Vault
 solana program deploy -u devnet --skip-fee-check \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
@@ -15,7 +28,7 @@ anchor idl upgrade -f target/idl/vault.json \
   --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   7oh6tTdSfoWdKgqFXotGtPfS3Gqk6Jwc2yDZ7NCErYLW
 
-# GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4
+# Pool Weighted
 solana program deploy -u devnet --skip-fee-check \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
@@ -28,7 +41,7 @@ anchor idl upgrade -f target/idl/pool_weighted.json \
   --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4
 
-# CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f
+# Pool Stable
 solana program deploy -u devnet --skip-fee-check \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
@@ -144,3 +157,21 @@ yarn cli pool-stable-deposit \
   --pool-k EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV \
   --mints FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
   --amounts 821588.3 386525.6
+
+# USDC (SLR)
+# Pool: DuyBdvKBfyzTk43rPiBme8PckHU8RnW1oDPmD6rz93Zp
+# Mint: HEGgkKLQhjfmZe3GyHup9W7vS7PPg3v7LyejTZsv3644
+yarn cli slr-init \
+  -u https://twilight-necessary-liquid.solana-devnet.quiknode.pro/2bfc6e7fb487a78fb5ef6811fd89954567629035/ \
+  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  --underlying-mint-k AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
+  --max-liquidity 200000
+
+# USDT (SLR)
+# Pool: xjvxKg5Q5d9sqRdsyUxA2QFjMDG1HpneqDnMvomSGFW
+# Mint: 9qpciUarFEJfGW3ocABvfBUpeqAcCUGz4Wg6SZHLzyZ1
+yarn cli slr-init \
+  -u https://twilight-necessary-liquid.solana-devnet.quiknode.pro/2bfc6e7fb487a78fb5ef6811fd89954567629035/ \
+  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  --underlying-mint-k FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ \
+  --max-liquidity 200000
