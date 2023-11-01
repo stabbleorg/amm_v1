@@ -4,7 +4,6 @@ use anchor_spl::token::{burn, transfer, Burn, Mint, Token, TokenAccount, Transfe
 
 pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     let amount_out = ctx.accounts.pool.calc_amount_out(ctx.accounts.mint.supply, amount);
-    ctx.accounts.pool.liquidity = ctx.accounts.pool.liquidity.checked_sub(amount_out).unwrap();
 
     burn(
         CpiContext::new(
@@ -20,6 +19,7 @@ pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 
     ctx.accounts.mint.reload()?;
     ctx.accounts.pool.supply = ctx.accounts.mint.supply;
+    ctx.accounts.pool.liquidity = ctx.accounts.pool.liquidity.checked_sub(amount_out).unwrap();
 
     vault::authority_seeds(|signer_seed| {
         transfer(
