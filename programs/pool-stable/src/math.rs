@@ -567,9 +567,9 @@ fn get_token_balance_given_invariant_and_all_other_balances(
     err!(CustomError::GetBalanceDidntConverge)
 }
 
-fn complement(weight: u128) -> u128 {
-    if weight < BALANCE_PRECISION {
-        BALANCE_PRECISION.saturating_sub(weight)
+fn complement(balance_ratio: u128) -> u128 {
+    if balance_ratio < BALANCE_PRECISION {
+        BALANCE_PRECISION.saturating_sub(balance_ratio)
     } else {
         0
     }

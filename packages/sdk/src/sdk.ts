@@ -1,4 +1,5 @@
 import { Provider } from "@coral-xyz/anchor";
+import { Metaplex } from "@metaplex-foundation/js";
 import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
 import { MintLayout, TOKEN_PROGRAM_ID, createInitializeMint2Instruction, getMint } from "@solana/spl-token";
 import { PublicKey, Keypair, TransactionInstruction, VersionedTransaction, SystemProgram } from "@solana/web3.js";
@@ -16,7 +17,6 @@ import {
 } from "./accounts";
 import { PoolKind } from "./consts";
 import { TokenAmountUtil } from "./utils";
-import { Metaplex } from "@metaplex-foundation/js";
 
 export interface ProgramContexts<T extends Provider> {
   slr: SlrContext<T>;
