@@ -6,8 +6,7 @@ anchor build --arch sbf
 solana program deploy -u devnet --skip-fee-check \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --program-id ./keypairs/slr.json \
-  --max-len 512000 \
+  --program-id 88eN7xkpWwyCrtVAuhuKtVLkmuSEFv6MgTkpAodvpd31 \
   ./target/deploy/slr.so
 
 anchor idl upgrade -f target/idl/slr.json \
@@ -19,8 +18,7 @@ anchor idl upgrade -f target/idl/slr.json \
 solana program deploy -u devnet --skip-fee-check \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --program-id ./keypairs/vault.json \
-  --max-len 265000 \
+  --program-id 7oh6tTdSfoWdKgqFXotGtPfS3Gqk6Jwc2yDZ7NCErYLW \
   ./target/deploy/vault.so
 
 anchor idl upgrade -f target/idl/vault.json \
@@ -32,8 +30,7 @@ anchor idl upgrade -f target/idl/vault.json \
 solana program deploy -u devnet --skip-fee-check \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --program-id ./keypairs/pool-weighted.json \
-  --max-len 512000 \
+  --program-id GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4 \
   ./target/deploy/pool_weighted.so
 
 anchor idl upgrade -f target/idl/pool_weighted.json \
@@ -45,8 +42,7 @@ anchor idl upgrade -f target/idl/pool_weighted.json \
 solana program deploy -u devnet --skip-fee-check \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --program-id ./keypairs/pool-stable.json \
-  --max-len 512000 \
+  --program-id CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f \
   ./target/deploy/pool_stable.so
 
 anchor idl upgrade -f target/idl/pool_stable.json \
