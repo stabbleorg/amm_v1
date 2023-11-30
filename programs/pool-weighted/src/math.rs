@@ -101,10 +101,7 @@ pub fn calc_in_given_out(
     // Because b0 / (b0 - a0) >= 1, the exponent rounds up.
 
     // Cannot exceed maximum out ratio
-    require!(
-        amount_out <= balance_out * MAX_OUT_RATIO,
-        CustomError::MaxOutRatio
-    );
+    require!(amount_out <= balance_out * MAX_OUT_RATIO, CustomError::MaxOutRatio);
 
     let denominator = balance_out - amount_out;
     let base = balance_out / denominator;
@@ -234,10 +231,7 @@ pub fn calc_token_in_exact_out(
 
     // Calculate the factor by which the invariant will increase after minting BPTAmountOut
     let invariant_ratio = (total_supply + amount_out) / total_supply;
-    require!(
-        invariant_ratio <= MAX_INVARIANT_RATIO,
-        CustomError::MaxInvariantRatio
-    );
+    require!(invariant_ratio <= MAX_INVARIANT_RATIO, CustomError::MaxInvariantRatio);
 
     // Calculate by how much the token balance has to increase to match the invariantRatio
     let balance_ratio = invariant_ratio.powf(1.0 / normalized_weight);
@@ -277,10 +271,7 @@ pub fn calc_token_out_exact_in(
     // Calculate the factor by which the invariant will decrease after burning BPTAmountIn
 
     let invariant_ratio = (total_supply - amount_in) / total_supply;
-    require!(
-        invariant_ratio >= MIN_INVARIANT_RATIO,
-        CustomError::MinInvariantRatio
-    );
+    require!(invariant_ratio >= MIN_INVARIANT_RATIO, CustomError::MinInvariantRatio);
 
     // Calculate by how much the token balance has to decrease to match invariantRatio
     let balance_ratio = invariant_ratio.powf(1.0 / normalized_weight);

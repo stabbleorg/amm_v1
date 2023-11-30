@@ -5,9 +5,12 @@ import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/m
 import {
   AuthorityType,
   MintLayout,
+  NATIVE_MINT,
   TOKEN_PROGRAM_ID,
+  createCloseAccountInstruction,
   createInitializeMint2Instruction,
   createSetAuthorityInstruction,
+  createSyncNativeInstruction,
 } from "@solana/spl-token";
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { type PoolWeighted as IDLType, IDL } from "../generated/pool_weighted";
@@ -82,10 +85,33 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     minAmountOut: BN = new BN(0),
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
+    let closeWSOLAccountIX: TransactionInstruction | null = null;
+
+    const { address: userTokenInAddress, instruction: userTokenInInstruction } =
+      await this.getOrCreateAssociatedTokenAddressInstruction(mintInAddress);
+    if (userTokenInInstruction) {
+      instructions.push(userTokenInInstruction);
+      if (mintInAddress.equals(NATIVE_MINT)) {
+        closeWSOLAccountIX = createCloseAccountInstruction(userTokenInAddress, this.walletAddress, this.walletAddress);
+        instructions.push(
+          SystemProgram.transfer({
+            fromPubkey: this.walletAddress,
+            toPubkey: userTokenInAddress,
+            lamports: BigInt(amountIn.toString()),
+          }),
+          createSyncNativeInstruction(userTokenInAddress),
+        );
+      }
+    }
 
     const { address: userTokenOutAddress, instruction: userTokenOutInstruction } =
       await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress);
-    if (userTokenOutInstruction) instructions.push(userTokenOutInstruction);
+    if (userTokenOutInstruction) {
+      instructions.push(userTokenOutInstruction);
+      if (mintOutAddress.equals(NATIVE_MINT)) {
+        closeWSOLAccountIX = createCloseAccountInstruction(userTokenOutAddress, this.walletAddress, this.walletAddress);
+      }
+    }
 
     const { address: beneficiaryTokenOutAddress, instruction: beneficiaryTokenOutInstruction } =
       await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress, beneficiaryAddress);
@@ -96,7 +122,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
         .swap(amountIn, minAmountOut)
         .accounts({
           user: this.walletAddress,
-          userTokenIn: this.getAssociatedTokenAddress(mintInAddress),
+          userTokenIn: userTokenInAddress,
           userTokenOut: userTokenOutAddress,
           vaultTokenIn: this.getAssociatedTokenAddress(mintInAddress, vaultAuthorityAddress),
           vaultTokenOut: this.getAssociatedTokenAddress(mintOutAddress, vaultAuthorityAddress),
@@ -110,6 +136,8 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
         })
         .instruction(),
     );
+
+    if (closeWSOLAccountIX) instructions.push(closeWSOLAccountIX);
 
     return instructions;
   }
@@ -126,6 +154,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
+    let closeWSOLAccountIX: TransactionInstruction | null = null;
 
     const { address: userPoolTokenAddress, instruction: createUserPoolTokenInstruction } =
       await this.getOrCreateAssociatedTokenAddressInstruction(poolMintAddress);
@@ -140,6 +169,23 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
       if (instruction) instructions.push(instruction);
       userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: userTokenAddress });
       vaultRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: vaultTokenAddress });
+
+      if (mintAddress.equals(NATIVE_MINT)) {
+        const { instruction } = await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress);
+        if (instruction) {
+          instructions.push(instruction); // create WSOL token account
+          closeWSOLAccountIX = createCloseAccountInstruction(userTokenAddress, this.walletAddress, this.walletAddress);
+        }
+        const index = mintAddresses.indexOf(mintAddress);
+        instructions.push(
+          SystemProgram.transfer({
+            fromPubkey: this.walletAddress,
+            toPubkey: userTokenAddress,
+            lamports: BigInt(amounts[index].toString()),
+          }),
+          createSyncNativeInstruction(userTokenAddress),
+        );
+      }
     }
 
     instructions.push(
@@ -159,6 +205,8 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     );
 
+    if (closeWSOLAccountIX) instructions.push(closeWSOLAccountIX);
+
     return instructions;
   }
 
@@ -175,6 +223,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
+    let closeWSOLAccountIX: TransactionInstruction | null = null;
 
     const userPoolTokenAddress = this.getAssociatedTokenAddress(poolMintAddress);
 
@@ -182,7 +231,12 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
       const { address: userTokenAddress, instruction } =
         await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress);
       const vaultTokenAddress = this.getAssociatedTokenAddress(mintAddress, vaultAuthorityAddress);
-      if (instruction) instructions.push(instruction);
+      if (instruction) {
+        instructions.push(instruction);
+        if (mintAddress.equals(NATIVE_MINT)) {
+          closeWSOLAccountIX = createCloseAccountInstruction(userTokenAddress, this.walletAddress, this.walletAddress);
+        }
+      }
       userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: userTokenAddress });
       vaultRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: vaultTokenAddress });
     }
@@ -208,6 +262,8 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
         .remainingAccounts([...userRemainingAccounts, ...vaultRemainingAccounts])
         .instruction(),
     );
+
+    if (closeWSOLAccountIX) instructions.push(closeWSOLAccountIX);
 
     return instructions;
   }
