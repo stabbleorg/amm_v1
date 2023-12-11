@@ -13,34 +13,43 @@ use vault::{
 pub fn process_withdraw<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
     amount: u64,
-    min_amounts_out: Vec<u64>,
+    minimum_amounts_out: Vec<u64>,
 ) -> Result<()> {
     let amounts_out = if ctx.remaining_accounts.len() == 2 {
         let mint = get_token_mint(&ctx.remaining_accounts[0])?;
-        let amount_out = math::calc_token_out_exact_in(
+        let token_index = ctx.accounts.pool.get_token_index(mint);
+
+        let balance_out = math::calc_token_out_exact_in(
             ctx.accounts.pool.get_balance(mint),
             ctx.accounts.pool.get_normalized_weight(mint),
             amount as f64 / Pool::BALANCE_PRECISION,
             ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
             ctx.accounts.pool.get_swap_fee(),
         )?;
-        let amount_out = u64::try_from((amount_out * ctx.accounts.pool.get_multiplier(mint)) as u128).unwrap();
-        assert!(amount_out >= min_amounts_out[0]); // slippage
+        let ticks_out =
+            u64::try_from((balance_out * ctx.accounts.pool.tokens[token_index].multiplier as f64) as u128).unwrap();
+        let amount_out = ticks_out
+            .checked_mul(ctx.accounts.pool.tokens[token_index].tick)
+            .unwrap();
+        assert!(amount_out >= minimum_amounts_out[0]); // slippage
         vec![amount_out]
     } else {
-        let amounts_out = math::calc_tokens_out_exact_in(
+        let balances_out = math::calc_tokens_out_exact_in(
             ctx.accounts.pool.get_balances(),
             amount as f64 / Pool::BALANCE_PRECISION,
             ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
         )?;
-        amounts_out
+        balances_out
             .iter()
             .enumerate()
-            .map(|(token_index, &amount_out)| {
-                let amount_out =
-                    u64::try_from((amount_out * ctx.accounts.pool.tokens[token_index].multiplier as f64) as u128)
+            .map(|(token_index, &balance_out)| {
+                let ticks_out =
+                    u64::try_from((balance_out * ctx.accounts.pool.tokens[token_index].multiplier as f64) as u128)
                         .unwrap();
-                assert!(amount_out >= min_amounts_out[token_index]); // slippage
+                let amount_out = ticks_out
+                    .checked_mul(ctx.accounts.pool.tokens[token_index].tick)
+                    .unwrap();
+                assert!(amount_out >= minimum_amounts_out[token_index]); // slippage
                 amount_out
             })
             .collect()
@@ -53,13 +62,14 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
         }
         // remove token balances
+        let balance_out = amounts_out[token_index]
+            .checked_div(ctx.accounts.pool.tokens[token_index].tick as u64)
+            .unwrap()
+            .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u64)
+            .unwrap();
         ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
             .balance
-            .checked_sub(
-                amounts_out[token_index]
-                    .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u64)
-                    .unwrap(),
-            )
+            .checked_sub(balance_out)
             .unwrap();
 
         let vault_account = &ctx.remaining_accounts[token_index + amounts_out.len()];

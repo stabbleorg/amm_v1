@@ -14,7 +14,9 @@ pub struct PoolToken {
     // immutable
     // 10**(9-decimals)
     pub scaling_factor: u32,
-    // balances scaled up to 9 decimals
+    // immutable
+    pub tick: u64,
+    // balance scaled up to 9 decimals
     pub balance: u64,
 }
 
@@ -118,10 +120,10 @@ where
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct PoolUpdatedData {
-    pub owner: Pubkey,
     pub invariant: u64,
     pub swap_fee: u16,
     pub amp: u16,
+    pub amp_start: u16,
     pub amp_start_time: i64,
     pub amp_end_time: i64,
     pub is_active: bool,
@@ -146,10 +148,10 @@ where
         emit!(PoolUpdatedEvent {
             pubkey: self.key(),
             data: PoolUpdatedData {
-                owner: self.as_ref().owner,
                 invariant: self.as_ref().invariant,
                 swap_fee: self.as_ref().swap_fee,
                 amp: self.as_ref().amp,
+                amp_start: self.as_ref().amp_start,
                 amp_start_time: self.as_ref().amp_start_time,
                 amp_end_time: self.as_ref().amp_end_time,
                 is_active: self.as_ref().is_active,

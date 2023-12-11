@@ -24,7 +24,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     super(provider);
     this.program = new Program(
       IDL,
-      programId || new PublicKey("CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f"),
+      programId || new PublicKey("BGJ7Ra51bCSLfJTzXXQsx6Mc8KYuzBnvG2JuUgkp454a"),
       provider,
     );
   }
@@ -79,7 +79,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     mintInAddress: PublicKey,
     mintOutAddress: PublicKey,
     amountIn: BN,
-    minAmountOut: BN = new BN(0),
+    minimumAmountOut: BN = new BN(0),
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
 
@@ -93,7 +93,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
 
     instructions.push(
       await this.program.methods
-        .swap(amountIn, minAmountOut)
+        .swap(amountIn, minimumAmountOut)
         .accounts({
           user: this.walletAddress,
           userTokenIn: this.getAssociatedTokenAddress(mintInAddress),
@@ -121,7 +121,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     poolMintAddress: PublicKey,
     mintAddresses: PublicKey[],
     amounts: BN[],
-    minAmountOut: BN = new BN(0),
+    minimumAmountOut: BN = new BN(0),
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
@@ -144,7 +144,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
 
     instructions.push(
       await this.program.methods
-        .deposit(amounts, minAmountOut)
+        .deposit(amounts, minimumAmountOut)
         .accounts({
           user: this.walletAddress,
           userPoolToken: userPoolTokenAddress,
@@ -170,7 +170,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     poolMintAddress: PublicKey,
     mintAddresses: PublicKey[],
     amount: BN,
-    minAmountsOut: BN[] = [],
+    minimumAmountsOut: BN[] = [],
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
@@ -191,7 +191,9 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
       await this.program.methods
         .withdraw(
           amount,
-          minAmountsOut.length === mintAddresses.length ? minAmountsOut : mintAddresses.map(() => new BN(0)),
+          minimumAmountsOut.length === mintAddresses.length
+            ? minimumAmountsOut
+            : Array(mintAddresses.length).fill(new BN(0)),
         )
         .accounts({
           user: this.walletAddress,

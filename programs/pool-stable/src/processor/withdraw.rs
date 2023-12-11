@@ -13,7 +13,7 @@ use vault::{
 pub fn process_withdraw<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
     amount: u64,
-    min_amounts_out: Vec<u64>,
+    minimum_amounts_out: Vec<u64>,
 ) -> Result<()> {
     let amplification = ctx.accounts.pool.get_amplification();
     let balances = ctx.accounts.pool.get_balances();
@@ -32,7 +32,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             ctx.accounts.pool.get_swap_fee(),
         )?;
         let amount_out = u64::try_from((amount_out.checked_div(scaling_factor).unwrap()) as u128).unwrap();
-        assert!(amount_out >= min_amounts_out[0]); // slippage
+        assert!(amount_out >= minimum_amounts_out[0]); // slippage
         vec![amount_out]
     } else {
         let amounts_out = math::calc_tokens_out_exact_in(balances, amount as u128, ctx.accounts.mint.supply as u128)?;
@@ -46,7 +46,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
                         .unwrap(),
                 )
                 .unwrap();
-                assert!(amount_out >= min_amounts_out[token_index]); // slippage
+                assert!(amount_out >= minimum_amounts_out[token_index]); // slippage
                 amount_out
             })
             .collect()
@@ -59,13 +59,12 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
         }
         // remove token balances
+        let balance_out = amounts_out[token_index]
+            .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u64)
+            .unwrap();
         ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
             .balance
-            .checked_sub(
-                amounts_out[token_index]
-                    .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u64)
-                    .unwrap(),
-            )
+            .checked_sub(balance_out)
             .unwrap();
 
         let vault_account = &ctx.remaining_accounts[token_index + amounts_out.len()];

@@ -30,103 +30,125 @@ anchor idl upgrade -f target/idl/vault.json \
 solana program deploy -u devnet --skip-fee-check \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --program-id GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4 \
+  --program-id keypairs/programs/pool-weighted.json \
   ./target/deploy/pool_weighted.so
 
-anchor idl upgrade -f target/idl/pool_weighted.json \
+anchor idl init -f target/idl/pool_weighted.json \
   --provider.cluster devnet \
   --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4
+  BQnZgt5MrNEnMyB2LhBbmJUuF2hoRu5Cf1yXcLTRaJEZ
 
 # Pool Stable
 solana program deploy -u devnet --skip-fee-check \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --upgrade-authority ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --program-id CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f \
+  --program-id keypairs/programs/pool-stable.json \
   ./target/deploy/pool_stable.so
 
-anchor idl upgrade -f target/idl/pool_stable.json \
+anchor idl init -f target/idl/pool_stable.json \
   --provider.cluster devnet \
   --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f
+  BGJ7Ra51bCSLfJTzXXQsx6Mc8KYuzBnvG2JuUgkp454a
 
-# Weighted: TxMkrJ8Nn9qLxM4FHmCbm957nf6264VL6bov1F2daxq
-# Stable: 8MVYa7EoyUMgsXVSoYDdpj94oFV5Vo7Er8JptJo9wmsB
+# Weighted: 9XjzkNWouCZsdwQ3uQ9LLyfVKq3yNmWC12bmApSoywbF
 yarn cli vault-init \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --beneficiary-k 7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma \
+  --vault-k-p keypairs/vault-weighted.json \
+  --pool-kind weighted \
+  --beneficiary-k 77a8316JgKH9b5Y69uhGJDysD4wya3hxLmcgjugPpN1p \
+  --beneficiary-fee 0.22
+
+# Stable: 5eCVujqt76MtEaz9oCknwPqj8atA8XwtE1V22eprVrbz
+yarn cli vault-init \
+  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  --vault-k-p keypairs/vault-stable.json \
+  --pool-kind stable \
+  --beneficiary-k 77a8316JgKH9b5Y69uhGJDysD4wya3hxLmcgjugPpN1p \
   --beneficiary-fee 0.22
 
 # STB70-USDC30
-# Pool: 5waHmrTZoNZBysSXfvgzYkXmkGkpbRBtHCQzFiSDnrh7
-# Mint: E91biZKsBsw4difabKp9PGUEwMfEDghZMftsVQo6qqBx
+# Pool: 5CVwLg7FoDSpYqdRdTNc98YTpdz8godWv5f6FGCryarL
 yarn cli pool-weighted-init \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --vault-k TxMkrJ8Nn9qLxM4FHmCbm957nf6264VL6bov1F2daxq \
+  --vault-k 9XjzkNWouCZsdwQ3uQ9LLyfVKq3yNmWC12bmApSoywbF \
   --mints STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1 AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
   --weights 0.7 0.3 \
-  --swap-fee 0.005
+  --swap-fee 0.001
 
 yarn cli pool-weighted-deposit \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --pool-k 5waHmrTZoNZBysSXfvgzYkXmkGkpbRBtHCQzFiSDnrh7 \
+  --pool-k 5CVwLg7FoDSpYqdRdTNc98YTpdz8godWv5f6FGCryarL \
   --mints STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1 AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
-  --amounts 26666666.666666662 200000
+  --amounts 39999999.999999993 300000
 
 # STB80-USDT20
-# Pool: HqYNu4hXRJuFBmiXD4pm6HuTdukUT3gqNKraD1huCJhS
-# Mint: Hk7QqKJQmJhVnYw6q1deQS6LDw6KLms8HBqor9bpBMRq
+# Pool: BULJBb32S2ai5Yps2q3kgx4RGzpDQsskxQ2s9jEz18NS
 yarn cli pool-weighted-init \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --vault-k TxMkrJ8Nn9qLxM4FHmCbm957nf6264VL6bov1F2daxq \
+  --vault-k 9XjzkNWouCZsdwQ3uQ9LLyfVKq3yNmWC12bmApSoywbF \
   --mints STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1 FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ \
   --weights 0.8 0.2 \
-  --swap-fee 0.005
+  --swap-fee 0.001
 
 yarn cli pool-weighted-deposit \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --pool-k HqYNu4hXRJuFBmiXD4pm6HuTdukUT3gqNKraD1huCJhS \
+  --pool-k BULJBb32S2ai5Yps2q3kgx4RGzpDQsskxQ2s9jEz18NS \
   --mints STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1 FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ \
-  --amounts 26666666.666666662 116666.666667
+  --amounts 39999999.999999993 175000
 
-# STB40-PSOL35-USDC25
-# Pool: E19KQr8pBnZn5C2oefC3JMCqvyn2QqdCHuroxew1R1Zr
-# Mint: 6RX8gWNHpauYTAHftLbXKwef8erUFGwE29e1bZW3Pqtv
+# Bonk50-STB20-USDC30
+# Pool: CHqnje9EfjzhBupPerzJYuNsRvNTy8GG17WKtThCy4wS
 yarn cli pool-weighted-init \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --vault-k TxMkrJ8Nn9qLxM4FHmCbm957nf6264VL6bov1F2daxq \
-  --mints STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1 HK3Q8SJYiV1kLo3b6vfwLnL45nhunnt4kSBVQNa3Z28J AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
-  --weights 0.4 0.35 0.25 \
-  --swap-fee 0.005
+  --vault-k 9XjzkNWouCZsdwQ3uQ9LLyfVKq3yNmWC12bmApSoywbF \
+  --mints C6nokjAzpaEWa3zor751WnM6gqJvrhBngxxBSFWWVqGs STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1 AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
+  --weights 0.5 0.2 0.3 \
+  --swap-fee 0.002 \
+  --ticks 1 0.000000001 0.000001
 
 yarn cli pool-weighted-deposit \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --pool-k E19KQr8pBnZn5C2oefC3JMCqvyn2QqdCHuroxew1R1Zr \
-  --mints STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1 HK3Q8SJYiV1kLo3b6vfwLnL45nhunnt4kSBVQNa3Z28J AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
-  --amounts 1828571.428571429 280000 20000
+  --pool-k CHqnje9EfjzhBupPerzJYuNsRvNTy8GG17WKtThCy4wS \
+  --mints C6nokjAzpaEWa3zor751WnM6gqJvrhBngxxBSFWWVqGs STBuyENwJ1GP4yNZCjwavn92wYLEY3t5S1kVS5kwyS1 AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
+  --amounts 71215940976.22812 11428571.42857143 300000
 
-# USDH-USDT-USDC
-# Pool: 4bJ6m57f6ugoy5ANqtdPz1QPFoVNQTENa4k4BQhQ6K2K
-# Mint: BZujQEGsSuK3JddRDEyCAGNvm3RmTsPeBhJPZE8qk1EA
+# USDT-USDC
+# Pool: EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV
 yarn cli pool-stable-init \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --vault-k 8MVYa7EoyUMgsXVSoYDdpj94oFV5Vo7Er8JptJo9wmsB \
-  --mints HhskQmZneTQem7QzaeZQ2q1baz9LCrngBMrWgM5jetPz FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
-  --amp 500 \
-  --swap-fee 0.005
+  --vault-k 5eCVujqt76MtEaz9oCknwPqj8atA8XwtE1V22eprVrbz \
+  --mints FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
+  --amp 5000 \
+  --swap-fee 0.0001
 
 yarn cli pool-stable-deposit \
+  -u https://twilight-necessary-liquid.solana-devnet.quiknode.pro/2bfc6e7fb487a78fb5ef6811fd89954567629035/ \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --pool-k 4bJ6m57f6ugoy5ANqtdPz1QPFoVNQTENa4k4BQhQ6K2K \
-  --mints HhskQmZneTQem7QzaeZQ2q1baz9LCrngBMrWgM5jetPz FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
-  --amounts 200000 200000 200000
+  --pool-k EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV \
+  --mints FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
+  --amounts 821588.3 386525.6
+
+# UXD-USDC
+# Pool: B3jTNQaeUyrtdGDhNEx5qcHn2acDcA5eMVetChha2Zvf
+yarn cli pool-stable-init \
+  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  --vault-k 5eCVujqt76MtEaz9oCknwPqj8atA8XwtE1V22eprVrbz \
+  --mints 94w5e3aQfc2DR3CuvAgr9XZXGpyMghznPqPWo2UFUuDU AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
+  --amp 400 \
+  --swap-fee 0.0002
+
+yarn cli pool-stable-deposit \
+  -u https://twilight-necessary-liquid.solana-devnet.quiknode.pro/2bfc6e7fb487a78fb5ef6811fd89954567629035/ \
+  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
+  --pool-k B3jTNQaeUyrtdGDhNEx5qcHn2acDcA5eMVetChha2Zvf \
+  --mints 94w5e3aQfc2DR3CuvAgr9XZXGpyMghznPqPWo2UFUuDU AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
+  --amounts 4236919 4081940
 
 # USH-USDC
 # Pool: BnYsLJsMY3M5Nw6EsG6WoDiHHZjnY7hC9DKW7BmL8fhm
-# Mint: 2RvHCdmgUPsz7R8BTFQumu9hF1wbUiU7df6vwi3rcuwu
 yarn cli pool-stable-init \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --vault-k 8MVYa7EoyUMgsXVSoYDdpj94oFV5Vo7Er8JptJo9wmsB \
+  --vault-k 5eCVujqt76MtEaz9oCknwPqj8atA8XwtE1V22eprVrbz \
   --mints 8anyQR9CrzDHap8gm9YRymvEoFUzy71yd5MygQVQ4hVB AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
   --amp 100 \
   --swap-fee 0.0004
@@ -136,23 +158,6 @@ yarn cli pool-stable-deposit \
   --pool-k BnYsLJsMY3M5Nw6EsG6WoDiHHZjnY7hC9DKW7BmL8fhm \
   --mints 8anyQR9CrzDHap8gm9YRymvEoFUzy71yd5MygQVQ4hVB AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
   --amounts 63052.01 21875.76
-
-# USDT-USDC
-# Pool: EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV
-# Mint: FAmYe4ENxG4VXmv68XsEu5UA4YzyoWz5huJXLdLk7BPW
-yarn cli pool-stable-init \
-  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --vault-k 8MVYa7EoyUMgsXVSoYDdpj94oFV5Vo7Er8JptJo9wmsB \
-  --mints FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
-  --amp 5000 \
-  --swap-fee 0.005
-
-yarn cli pool-stable-deposit \
-  -u https://twilight-necessary-liquid.solana-devnet.quiknode.pro/2bfc6e7fb487a78fb5ef6811fd89954567629035/ \
-  -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --pool-k EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV \
-  --mints FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
-  --amounts 821588.3 386525.6
 
 # USDC (SLR)
 # Pool: DuyBdvKBfyzTk43rPiBme8PckHU8RnW1oDPmD6rz93Zp

@@ -1,7 +1,7 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { BasePool, PoolToken, PoolTokenData, BasePoolData } from "./pool-base";
-import { StableMath, TokenAmountUtil } from "../utils";
+import { StableMath, SafeNumber } from "../utils";
 
 export interface StablePoolToken extends PoolToken {}
 
@@ -18,7 +18,7 @@ export interface StablePoolData extends BasePoolData {
 
 export class StablePool implements BasePool<StablePoolToken, StablePoolData> {
   static POOL_TOKEN_DECIMALS = 9;
-  static POOL_TOKEN_SIZE = 32 + 1 + 4 + 4 + 8;
+  static POOL_TOKEN_SIZE = 32 + 1 + 4 + 4 + 8 + 8;
 
   constructor(
     readonly address: PublicKey,
@@ -42,7 +42,7 @@ export class StablePool implements BasePool<StablePoolToken, StablePoolData> {
   }
 
   get swapFee(): number {
-    return this.data.swapFee / 1e4;
+    return SafeNumber.toUiBps(this.data.swapFee);
   }
 
   get isActive(): boolean {
@@ -53,7 +53,7 @@ export class StablePool implements BasePool<StablePoolToken, StablePoolData> {
     return this.data.tokens.map((token) => ({
       mintAddress: token.mint,
       decimals: token.decimals,
-      balance: TokenAmountUtil.toUiAmount(token.balance, StablePool.POOL_TOKEN_DECIMALS),
+      balance: SafeNumber.toUiAmount(token.balance, StablePool.POOL_TOKEN_DECIMALS),
     }));
   }
 

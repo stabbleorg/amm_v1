@@ -6,7 +6,7 @@ import {
   WeightedPoolContext,
   StablePoolContext,
   SDKWrapper,
-  TokenAmountUtil,
+  SafeNumber,
 } from "@stabbleorg/solana-sdk";
 import { adminKP, usdcMintKP, usdcPoolKP } from "./consts";
 
@@ -65,7 +65,7 @@ describe("SLR", () => {
     );
     console.log(
       "USDC out:",
-      TokenAmountUtil.toUiAmountString(new BN(postBalance.amount).sub(new BN(balance.amount)), postBalance.decimals),
+      SafeNumber.toUiAmountString(new BN(postBalance.amount).sub(new BN(balance.amount)), postBalance.decimals),
     );
   });
 });

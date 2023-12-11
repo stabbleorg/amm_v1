@@ -1,4 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
+import { SafeNumber } from "../utils";
 
 export type VaultData = {
   admin: PublicKey;
@@ -29,7 +30,7 @@ export class Vault {
   }
 
   get beneficiaryFee(): number {
-    return this.data.beneficiaryFee / 1e4;
+    return SafeNumber.toUiBps(this.data.beneficiaryFee);
   }
 
   get isActive(): boolean {

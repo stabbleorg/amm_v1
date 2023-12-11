@@ -9,35 +9,21 @@ export interface PoolMeta {
 export const pools: PoolMeta[] = [
   {
     chainId: 103,
-    address: "5waHmrTZoNZBysSXfvgzYkXmkGkpbRBtHCQzFiSDnrh7",
+    address: "5CVwLg7FoDSpYqdRdTNc98YTpdz8godWv5f6FGCryarL",
     type: "weighted",
     name: "STB70-USDC30",
   },
   {
     chainId: 103,
-    address: "HqYNu4hXRJuFBmiXD4pm6HuTdukUT3gqNKraD1huCJhS",
+    address: "BULJBb32S2ai5Yps2q3kgx4RGzpDQsskxQ2s9jEz18NS",
     type: "weighted",
     name: "STB80-USDT20",
   },
   {
     chainId: 103,
-    address: "E19KQr8pBnZn5C2oefC3JMCqvyn2QqdCHuroxew1R1Zr",
+    address: "CHqnje9EfjzhBupPerzJYuNsRvNTy8GG17WKtThCy4wS",
     type: "weighted",
-    name: "STB40-PSOL35-USDC25",
-  },
-  {
-    chainId: 103,
-    address: "4bJ6m57f6ugoy5ANqtdPz1QPFoVNQTENa4k4BQhQ6K2K",
-    type: "stable",
-    name: "USDH-USDT-USDC",
-    tags: ["usd", "usdh"],
-  },
-  {
-    chainId: 103,
-    address: "BnYsLJsMY3M5Nw6EsG6WoDiHHZjnY7hC9DKW7BmL8fhm",
-    type: "stable",
-    name: "USH-USDC",
-    tags: ["usd", "ush"],
+    name: "Bonk50-STB20-USDC30",
   },
   {
     chainId: 103,
@@ -45,6 +31,20 @@ export const pools: PoolMeta[] = [
     type: "stable",
     name: "USDT-USDC",
     tags: ["usd"],
+  },
+  {
+    chainId: 103,
+    address: "B3jTNQaeUyrtdGDhNEx5qcHn2acDcA5eMVetChha2Zvf",
+    type: "stable",
+    name: "UXD-USDC",
+    tags: ["usd", "uxd"],
+  },
+  {
+    chainId: 103,
+    address: "BnYsLJsMY3M5Nw6EsG6WoDiHHZjnY7hC9DKW7BmL8fhm",
+    type: "stable",
+    name: "USH-USDC",
+    tags: ["usd", "ush"],
   },
   {
     chainId: 103,

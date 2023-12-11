@@ -1,4 +1,4 @@
-import { Provider } from "@coral-xyz/anchor";
+import { BN, Provider } from "@coral-xyz/anchor";
 import { Metaplex } from "@metaplex-foundation/js";
 import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
 import { MintLayout, TOKEN_PROGRAM_ID, createInitializeMint2Instruction, getMint } from "@solana/spl-token";
@@ -16,7 +16,7 @@ import {
   SlrPool,
 } from "./accounts";
 import { PoolKind } from "./consts";
-import { TokenAmountUtil } from "./utils";
+import { SafeNumber } from "./utils";
 
 export interface ProgramContexts<T extends Provider> {
   slr: SlrContext<T>;
@@ -52,13 +52,13 @@ export class SDKWrapper<T extends Provider> {
     mintInAddress,
     mintOutAddress,
     amountIn,
-    minAmountOut = 0,
+    minimumAmountOut = 0,
   }: {
     pool: BasePool<WeightedPoolToken | StablePoolToken, WeightedPoolData | StablePoolData>;
     mintInAddress: PublicKey;
     mintOutAddress: PublicKey;
     amountIn: number | string;
-    minAmountOut?: number | string;
+    minimumAmountOut?: number | string;
   }): Promise<VersionedTransaction> {
     const vault = this.vaults.find((v) => v.address.equals(pool.vaultAddress));
     if (!vault) throw Error("Unkown vault");
@@ -79,8 +79,8 @@ export class SDKWrapper<T extends Provider> {
           pool.address,
           mintInAddress,
           mintOutAddress,
-          TokenAmountUtil.toBigAmount(amountIn, tokenIn.decimals),
-          TokenAmountUtil.toBigAmount(minAmountOut, tokenOut.decimals),
+          SafeNumber.toBigAmount(amountIn, tokenIn.decimals),
+          SafeNumber.toBigAmount(minimumAmountOut, tokenOut.decimals),
         )),
       );
     } else if (pool instanceof StablePool) {
@@ -93,8 +93,8 @@ export class SDKWrapper<T extends Provider> {
           pool.address,
           mintInAddress,
           mintOutAddress,
-          TokenAmountUtil.toBigAmount(amountIn, tokenIn.decimals),
-          TokenAmountUtil.toBigAmount(minAmountOut, tokenOut.decimals),
+          SafeNumber.toBigAmount(amountIn, tokenIn.decimals),
+          SafeNumber.toBigAmount(minimumAmountOut, tokenOut.decimals),
         )),
       );
     } else {
@@ -124,7 +124,7 @@ export class SDKWrapper<T extends Provider> {
           pool.mintAddress,
           mintAddresses,
           amounts.map((amount, index) =>
-            TokenAmountUtil.toBigAmount(
+            SafeNumber.toBigAmount(
               amount,
               pool.tokens.find((token) => token.mintAddress.equals(mintAddresses[index]))!.decimals,
             ),
@@ -140,7 +140,7 @@ export class SDKWrapper<T extends Provider> {
           pool.mintAddress,
           mintAddresses,
           amounts.map((amount, index) =>
-            TokenAmountUtil.toBigAmount(
+            SafeNumber.toBigAmount(
               amount,
               pool.tokens.find((token) => token.mintAddress.equals(mintAddresses[index]))!.decimals,
             ),
@@ -174,7 +174,7 @@ export class SDKWrapper<T extends Provider> {
           pool.address,
           pool.mintAddress,
           mintAddresses,
-          TokenAmountUtil.toBigAmount(amount, WeightedPool.POOL_TOKEN_DECIMALS),
+          SafeNumber.toBigAmount(amount, WeightedPool.POOL_TOKEN_DECIMALS),
         )),
       );
     } else if (pool instanceof StablePool) {
@@ -186,7 +186,7 @@ export class SDKWrapper<T extends Provider> {
           pool.address,
           pool.mintAddress,
           mintAddresses,
-          TokenAmountUtil.toBigAmount(amount, StablePool.POOL_TOKEN_DECIMALS),
+          SafeNumber.toBigAmount(amount, StablePool.POOL_TOKEN_DECIMALS),
         )),
       );
     } else {
@@ -199,25 +199,33 @@ export class SDKWrapper<T extends Provider> {
   async createWeightedPoolAndAddress({
     vaultAddress,
     mintAddresses,
-    weights,
     swapFee,
+    weights,
+    ticks,
     poolKP = Keypair.generate(),
     poolMintKP = Keypair.generate(),
   }: {
     vaultAddress: PublicKey;
     mintAddresses: PublicKey[];
-    weights: (number | string)[];
     swapFee: number | string;
+    weights: (number | string)[];
+    ticks?: (number | string)[];
     poolKP?: Keypair;
     poolMintKP?: Keypair;
   }): Promise<{ tx: VersionedTransaction; address: PublicKey }> {
+    const mints = await Promise.all(
+      mintAddresses.map((address) => getMint(this.ctxWeighted.provider.connection, address)),
+    );
     const ixs = await this.ctxWeighted.initializeInstructions(
       vaultAddress,
       poolKP.publicKey,
       poolMintKP.publicKey,
       mintAddresses,
-      weights.map((weight) => Math.trunc(Number(weight) * 1e4)),
-      Math.trunc(Number(swapFee) * 1e4),
+      SafeNumber.toBps(swapFee),
+      weights.map((weight) => SafeNumber.toBps(weight)),
+      ticks
+        ? ticks.map((tickSize, index) => SafeNumber.toBigAmount(tickSize, mints[index].decimals))
+        : Array(mintAddresses.length).fill(new BN(1)),
     );
 
     const tx = await this.ctxWeighted.newTX(ixs);
@@ -245,8 +253,8 @@ export class SDKWrapper<T extends Provider> {
       poolKP.publicKey,
       poolMintKP.publicKey,
       mintAddresses,
-      Math.trunc(Number(amp)),
-      Math.trunc(Number(swapFee) * 1e4),
+      Math.floor(Number(amp)),
+      SafeNumber.toBps(swapFee),
     );
 
     const tx = await this.ctxStable.newTX(ixs);
@@ -284,7 +292,7 @@ export class SDKWrapper<T extends Provider> {
       withdrawAuthorityAddress,
       withdrawAuthorityBump,
       beneficiaryAddress,
-      Math.trunc(Number(beneficiaryFee) * 1e4),
+      SafeNumber.toBps(beneficiaryFee),
     );
 
     const tx = await this.ctxVault.newTX(ixs);
@@ -297,7 +305,7 @@ export class SDKWrapper<T extends Provider> {
       pool.address,
       pool.mintAddress,
       pool.underlyingMintAddress,
-      TokenAmountUtil.toBigAmount(amount, pool.data.decimals),
+      SafeNumber.toBigAmount(amount, pool.data.decimals),
     );
     return this.ctxSlr.newTX(ixs);
   }
@@ -307,7 +315,7 @@ export class SDKWrapper<T extends Provider> {
       pool.address,
       pool.mintAddress,
       pool.underlyingMintAddress,
-      TokenAmountUtil.toBigAmount(amount, pool.data.decimals),
+      SafeNumber.toBigAmount(amount, pool.data.decimals),
     );
     return this.ctxSlr.newTX(ixs);
   }
@@ -377,7 +385,7 @@ export class SDKWrapper<T extends Provider> {
         poolKP.publicKey,
         poolMintKP.publicKey,
         underlyingMintAddress,
-        TokenAmountUtil.toBigAmount(maxLiquidity, underlyingMint.decimals),
+        SafeNumber.toBigAmount(maxLiquidity, underlyingMint.decimals),
       )),
     ];
 

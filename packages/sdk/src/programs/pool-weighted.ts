@@ -27,7 +27,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     super(provider);
     this.program = new Program(
       IDL,
-      programId || new PublicKey("GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4"),
+      programId || new PublicKey("BQnZgt5MrNEnMyB2LhBbmJUuF2hoRu5Cf1yXcLTRaJEZ"),
       provider,
     );
   }
@@ -82,7 +82,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     mintInAddress: PublicKey,
     mintOutAddress: PublicKey,
     amountIn: BN,
-    minAmountOut: BN = new BN(0),
+    minimumAmountOut: BN = new BN(0),
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     let closeWSOLAccountIX: TransactionInstruction | null = null;
@@ -119,7 +119,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
 
     instructions.push(
       await this.program.methods
-        .swap(amountIn, minAmountOut)
+        .swap(amountIn, minimumAmountOut)
         .accounts({
           user: this.walletAddress,
           userTokenIn: userTokenInAddress,
@@ -149,7 +149,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     poolMintAddress: PublicKey,
     mintAddresses: PublicKey[],
     amounts: BN[],
-    minAmountOut: BN = new BN(0),
+    minimumAmountOut: BN = new BN(0),
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
@@ -190,7 +190,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
 
     instructions.push(
       await this.program.methods
-        .deposit(amounts, minAmountOut)
+        .deposit(amounts, minimumAmountOut)
         .accounts({
           user: this.walletAddress,
           userPoolToken: userPoolTokenAddress,
@@ -218,7 +218,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     poolMintAddress: PublicKey,
     mintAddresses: PublicKey[],
     amount: BN,
-    minAmountsOut: BN[] = [],
+    minimumAmountsOut: BN[] = [],
   ): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
@@ -245,7 +245,9 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
       await this.program.methods
         .withdraw(
           amount,
-          minAmountsOut.length === mintAddresses.length ? minAmountsOut : mintAddresses.map(() => new BN(0)),
+          minimumAmountsOut.length === mintAddresses.length
+            ? minimumAmountsOut
+            : Array(mintAddresses.length).fill(new BN(0)),
         )
         .accounts({
           user: this.walletAddress,
@@ -273,8 +275,9 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     poolAddress: PublicKey,
     poolMintAddress: PublicKey,
     mintAddresses: PublicKey[],
-    weights: number[],
     swapFee: number,
+    weights: number[],
+    ticks: BN[],
   ): Promise<TransactionInstruction[]> {
     const poolAccountSize = this.program.account.pool.size + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
@@ -333,7 +336,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
         programId: this.program.programId,
       }),
       await this.program.methods
-        .initialize(swapFee, weights)
+        .initialize(swapFee, weights, ticks)
         .accounts({
           owner: this.walletAddress,
           mint: poolMintAddress,

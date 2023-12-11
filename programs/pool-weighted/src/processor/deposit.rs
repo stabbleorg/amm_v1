@@ -9,7 +9,7 @@ use vault::{state::Vault, ID as VAULT_PROGRAM_ID};
 pub fn process_deposit<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
     amounts: Vec<u64>,
-    min_amount_out: u64,
+    minimum_amount_out: u64,
 ) -> Result<()> {
     for (token_index, user_account) in ctx.remaining_accounts[0..amounts.len()].iter().enumerate() {
         let mint = get_token_mint(&user_account)?;
@@ -17,11 +17,19 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             // check token orders
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
         }
-        // add token balances
-        ctx.accounts.pool.tokens[token_index].balance = amounts[token_index]
+        let ticks_in = amounts[token_index]
+            .checked_div(ctx.accounts.pool.tokens[token_index].tick)
+            .unwrap();
+        let amount_in = ticks_in
+            .checked_mul(ctx.accounts.pool.tokens[token_index].tick)
+            .unwrap();
+        let balance_in = ticks_in
             .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u64)
-            .unwrap()
-            .checked_add(ctx.accounts.pool.tokens[token_index].balance)
+            .unwrap();
+        // add token balances
+        ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
+            .balance
+            .checked_add(balance_in)
             .unwrap();
 
         let vault_account = &ctx.remaining_accounts[token_index + amounts.len()];
@@ -36,10 +44,11 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
-            amounts[token_index],
+            amount_in,
         )?;
     }
 
+    // LP amount
     let amount_out = if ctx.accounts.pool.invariant == 0 {
         assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
         // initial liquidity
@@ -54,10 +63,14 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         // do_join
         if amounts.len() == 1 {
             let mint = get_token_mint(&ctx.remaining_accounts[0])?;
+            let token_index = ctx.accounts.pool.get_token_index(mint);
             let amount_out = math::calc_out_exact_token_in(
                 ctx.accounts.pool.get_balance(mint),
                 ctx.accounts.pool.get_normalized_weight(mint),
-                amounts[0] as f64 / ctx.accounts.pool.get_multiplier(mint),
+                amounts[0]
+                    .checked_div(ctx.accounts.pool.tokens[token_index].tick)
+                    .unwrap() as f64
+                    / ctx.accounts.pool.tokens[token_index].multiplier as f64,
                 ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
                 ctx.accounts.pool.get_swap_fee(),
             )?;
@@ -70,7 +83,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     .iter()
                     .enumerate()
                     .map(|(token_index, &amount)| {
-                        amount as f64 / ctx.accounts.pool.tokens[token_index].multiplier as f64
+                        amount.checked_div(ctx.accounts.pool.tokens[token_index].tick).unwrap() as f64
+                            / ctx.accounts.pool.tokens[token_index].multiplier as f64
                     })
                     .collect(),
                 ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
@@ -79,7 +93,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             u64::try_from((amount_out * Pool::BALANCE_PRECISION) as u128).unwrap()
         }
     };
-    assert!(amount_out >= min_amount_out); // slippage
+    assert!(amount_out >= minimum_amount_out); // slippage
 
     ctx.accounts.pool.emit_updated_event();
     ctx.accounts.pool.authority_seeds(|signer_seed| {
