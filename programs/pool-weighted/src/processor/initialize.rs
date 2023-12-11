@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 use vault::state::Vault;
 
-pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<u16>) -> Result<()> {
+pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<u16>, ticks: Vec<u64>) -> Result<()> {
     ctx.accounts.pool.set_inner(Pool {
         owner: ctx.accounts.owner.key(),
         vault: ctx.accounts.vault.key(),
@@ -23,10 +23,11 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<
         ctx.accounts.pool.tokens.push(PoolToken {
             mint: account.key(),
             decimals: data.decimals,
+            weight: weights[token_index],
             multiplier: 10u32.saturating_pow(decimals),
             scaling_factor: 10u32.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(decimals)),
+            tick: ticks[token_index],
             balance: 0,
-            weight: weights[token_index],
         });
     }
     Ok(())

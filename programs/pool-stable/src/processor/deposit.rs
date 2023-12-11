@@ -9,7 +9,7 @@ use vault::{state::Vault, ID as VAULT_PROGRAM_ID};
 pub fn process_deposit<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
     amounts: Vec<u64>,
-    min_amount_out: u64,
+    minimum_amount_out: u64,
 ) -> Result<()> {
     let amplification = ctx.accounts.pool.get_amplification();
 
@@ -77,7 +77,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         }
     };
     let amount_out = u64::try_from(amount_out).unwrap();
-    assert!(amount_out >= min_amount_out); // slippage
+    assert!(amount_out >= minimum_amount_out); // slippage
 
     for (token_index, user_account) in ctx.remaining_accounts[0..amounts.len()].iter().enumerate() {
         let mint = get_token_mint(&user_account)?;
@@ -85,11 +85,13 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             // check token orders
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
         }
-        // add token balances
-        ctx.accounts.pool.tokens[token_index].balance = amounts[token_index]
+        let balance_in = amounts[token_index]
             .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u64)
-            .unwrap()
-            .checked_add(ctx.accounts.pool.tokens[token_index].balance)
+            .unwrap();
+        // add token balances
+        ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
+            .balance
+            .checked_add(balance_in)
             .unwrap();
 
         let vault_account = &ctx.remaining_accounts[token_index + amounts.len()];

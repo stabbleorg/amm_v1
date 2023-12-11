@@ -12,6 +12,7 @@ export interface PoolTokenData {
   decimals: number; // u8
   multiplier: number; // u32
   scalingFactor: number; // u32
+  tick: BN; // u64
   balance: BN; // u64
 }
 

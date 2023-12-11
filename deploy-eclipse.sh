@@ -36,7 +36,7 @@ solana program deploy -u https://staging-rpc.dev.eclipsenetwork.xyz \
 anchor idl init -f target/idl/pool_weighted.json \
   --provider.cluster https://staging-rpc.dev.eclipsenetwork.xyz \
   --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4
+  BQnZgt5MrNEnMyB2LhBbmJUuF2hoRu5Cf1yXcLTRaJEZ
 
 solana program deploy -u https://staging-rpc.dev.eclipsenetwork.xyz \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
@@ -48,7 +48,7 @@ solana program deploy -u https://staging-rpc.dev.eclipsenetwork.xyz \
 anchor idl init -f target/idl/pool_stable.json \
   --provider.cluster https://staging-rpc.dev.eclipsenetwork.xyz \
   --provider.wallet ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f
+  BGJ7Ra51bCSLfJTzXXQsx6Mc8KYuzBnvG2JuUgkp454a
 
 # Stable: BHizB77Ay58GCLqbDjm86Cm9eM2ueDZUGvakHdvaqp5X
 yarn cli vault-init -u https://staging-rpc.dev.eclipsenetwork.xyz \

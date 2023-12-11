@@ -7,7 +7,7 @@ pub mod state;
 use crate::processor::*;
 use anchor_lang::prelude::*;
 
-declare_id!("GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4");
+declare_id!("BQnZgt5MrNEnMyB2LhBbmJUuF2hoRu5Cf1yXcLTRaJEZ");
 
 #[program]
 pub mod pool_weighted {
@@ -15,8 +15,8 @@ pub mod pool_weighted {
 
     /// initialize a pool
     #[access_control(Initialize::validate(&ctx, swap_fee, &weights))]
-    pub fn initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<u16>) -> Result<()> {
-        process_initialize(ctx, swap_fee, weights)
+    pub fn initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<u16>, ticks: Vec<u64>) -> Result<()> {
+        process_initialize(ctx, swap_fee, weights, ticks)
     }
 
     /// add liquidity
@@ -24,9 +24,9 @@ pub mod pool_weighted {
     pub fn deposit<'a, 'b, 'c, 'info>(
         ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
         amounts: Vec<u64>,
-        min_amount_out: u64,
+        minimum_amount_out: u64,
     ) -> Result<()> {
-        process_deposit(ctx, amounts, min_amount_out)
+        process_deposit(ctx, amounts, minimum_amount_out)
     }
 
     /// remove liquidity
@@ -34,9 +34,9 @@ pub mod pool_weighted {
     pub fn withdraw<'a, 'b, 'c, 'info>(
         ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
         amount: u64,
-        min_amounts_out: Vec<u64>,
+        minimum_amounts_out: Vec<u64>,
     ) -> Result<()> {
-        process_withdraw(ctx, amount, min_amounts_out)
+        process_withdraw(ctx, amount, minimum_amounts_out)
     }
 
     /// swap
@@ -44,8 +44,8 @@ pub mod pool_weighted {
     pub fn swap<'a, 'b, 'c, 'info>(
         ctx: Context<'_, '_, '_, 'info, Swap<'info>>,
         amount_in: u64,
-        min_amount_out: u64,
+        minimum_amount_out: u64,
     ) -> Result<()> {
-        process_swap(ctx, amount_in, min_amount_out)
+        process_swap(ctx, amount_in, minimum_amount_out)
     }
 }

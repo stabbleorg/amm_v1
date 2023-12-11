@@ -1,6 +1,6 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import { TokenAmountUtil } from "../utils";
+import { SafeNumber } from "../utils";
 
 export type SlrPoolData = {
   authorityBump: number;
@@ -25,7 +25,7 @@ export class SlrPool {
   }
 
   get supply(): number {
-    return TokenAmountUtil.toUiAmount(this.data.supply, this.data.decimals);
+    return SafeNumber.toUiAmount(this.data.supply, this.data.decimals);
   }
 
   get underlyingMintAddress(): PublicKey {
@@ -33,18 +33,18 @@ export class SlrPool {
   }
 
   get liquidity(): number {
-    return TokenAmountUtil.toUiAmount(this.data.liquidity, this.data.decimals);
+    return SafeNumber.toUiAmount(this.data.liquidity, this.data.decimals);
   }
 
   get reservedLiquidity(): number {
-    return TokenAmountUtil.toUiAmount(this.data.reservedLiquidity, this.data.decimals);
+    return SafeNumber.toUiAmount(this.data.reservedLiquidity, this.data.decimals);
   }
 
   get lockedLiquidity(): number {
-    return TokenAmountUtil.toUiAmount(this.data.lockedLiquidity, this.data.decimals);
+    return SafeNumber.toUiAmount(this.data.lockedLiquidity, this.data.decimals);
   }
 
   get maxLiquidity(): number {
-    return TokenAmountUtil.toUiAmount(this.data.maxLiquidity, this.data.decimals);
+    return SafeNumber.toUiAmount(this.data.maxLiquidity, this.data.decimals);
   }
 }

@@ -7,7 +7,7 @@ use vault::{
     state::{Vault, WithdrawAuthority},
 };
 
-pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> Result<()> {
+pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Result<()> {
     transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -28,52 +28,53 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> 
         .accounts
         .pool
         .get_token_index(ctx.accounts.beneficiary_token_out.mint);
-    let amount_in = (amount_in as u128)
-        .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor as u128)
+    let balance_in = amount_in
+        .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor as u64)
         .unwrap();
-    let amount_out_without_fee = math::calc_out_given_in(
+    let balance_out_without_fee = math::calc_out_given_in(
         amplification,
         &mut ctx.accounts.pool.get_balances(),
         token_in_index,
         token_out_index,
-        amount_in,
+        balance_in as u128,
         current_invariant,
     )?;
 
+    let amount_out_without_fee = u64::try_from(
+        balance_out_without_fee
+            .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
+            .unwrap(),
+    )
+    .unwrap();
     let amount_out = (math::FEE_PRECISION)
         .saturating_sub(ctx.accounts.pool.get_swap_fee())
-        .checked_mul(amount_out_without_fee)
+        .checked_mul(amount_out_without_fee as u128)
         .unwrap()
         .checked_div(math::FEE_PRECISION)
-        .unwrap();
+        .unwrap() as u64;
+    assert!(amount_out >= minimum_amount_out); // slippage
+
     let swap_fee_amount = amount_out_without_fee.checked_sub(amount_out).unwrap();
-    let beneficiary_fee_amount = swap_fee_amount
+    let beneficiary_fee_amount = (swap_fee_amount as u128)
         .checked_mul(ctx.accounts.vault.beneficiary_fee as u128)
         .unwrap()
         .checked_div(math::FEE_PRECISION)
         .unwrap() as u64;
 
-    let amount_out = u64::try_from(amount_out).unwrap();
-    let beneficiary_fee_amount = u64::try_from(beneficiary_fee_amount).unwrap();
-
     // add in token balance
     ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index]
         .balance
-        .checked_add(u64::try_from(amount_in).unwrap())
+        .checked_add(balance_in)
         .unwrap();
     // remove out token balance
+    let balance_out = amount_out
+        .checked_add(beneficiary_fee_amount as u64)
+        .unwrap()
+        .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u64)
+        .unwrap();
     ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index]
         .balance
-        .checked_sub(amount_out.checked_add(beneficiary_fee_amount).unwrap())
-        .unwrap();
-
-    let amount_out = amount_out
-        .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u64)
-        .unwrap();
-    assert!(amount_out >= min_amount_out); // slippage
-
-    let beneficiary_fee_amount = beneficiary_fee_amount
-        .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u64)
+        .checked_sub(balance_out)
         .unwrap();
 
     ctx.accounts.pool.refresh_invariant();

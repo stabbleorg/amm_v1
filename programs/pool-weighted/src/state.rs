@@ -9,16 +9,18 @@ pub struct PoolToken {
     // support max 9 decimals
     pub decimals: u8,
     // immutable
+    // normalized weight basis points scaled up to 4 decimals
+    pub weight: u16,
+    // immutable
     // 10**decimals
     pub multiplier: u32,
     // immutable
     // 10**(9-decimals)
     pub scaling_factor: u32,
-    // balances scaled up to 9 decimals
-    pub balance: u64,
     // immutable
-    // normalized weight basis points scaled up to 4 decimals
-    pub weight: u16,
+    pub tick: u64,
+    // balance scaled up to 9 decimals
+    pub balance: u64,
 }
 
 #[account]
@@ -80,16 +82,6 @@ impl Pool {
         token.weight as f64 / Pool::WEIGHT_PRECISION
     }
 
-    pub fn get_multiplier(&self, mint: Pubkey) -> f64 {
-        let token = self.tokens.iter().find(|token| token.mint == mint).unwrap();
-        token.multiplier as f64
-    }
-
-    pub fn get_scaling_factor(&self, mint: Pubkey) -> f64 {
-        let token = self.tokens.iter().find(|token| token.mint == mint).unwrap();
-        token.scaling_factor as f64
-    }
-
     pub fn get_token_index(&self, mint: Pubkey) -> usize {
         self.tokens
             .iter()
@@ -119,7 +111,6 @@ where
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct PoolUpdatedData {
-    pub owner: Pubkey,
     pub swap_fee: u16,
     pub is_active: bool,
     pub tokens: Vec<PoolToken>,
@@ -143,7 +134,6 @@ where
         emit!(PoolUpdatedEvent {
             pubkey: self.key(),
             data: PoolUpdatedData {
-                owner: self.as_ref().owner,
                 swap_fee: self.as_ref().swap_fee,
                 is_active: self.as_ref().is_active,
                 tokens: self.as_ref().tokens.clone(),

@@ -29,6 +29,7 @@ pub fn process_initialize(ctx: Context<Initialize>, amp: u16, swap_fee: u16) -> 
             decimals: data.decimals,
             multiplier: 10u32.saturating_pow(decimals),
             scaling_factor: 10u32.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(decimals)),
+            tick: 1,
             balance: 0,
         });
     }

@@ -16,7 +16,7 @@ import {
   StablePool,
   WeightedPoolData,
   StablePoolData,
-  TokenAmountUtil,
+  SafeNumber,
 } from "@stabbleorg/solana-sdk";
 import { stableVaultKP, weightedVaultKP, adminKP, daiMintKP, usdcMintKP, stbMintKP } from "./consts";
 
@@ -101,14 +101,14 @@ describe("Swap", () => {
     console.log("1 DAI =", amountIn / estAmountOut, "USDC");
     if (estAmountOut === 0) return;
     // slippage tolarance 0.3% (0.003)
-    const minAmountOut = estAmountOut * (1 - 0.003);
+    const minimumAmountOut = estAmountOut * (1 - 0.003);
 
     const tx = await sdk.swap({
       pool,
       mintInAddress,
       mintOutAddress,
       amountIn,
-      minAmountOut,
+      minimumAmountOut,
     });
     await provider.sendAndConfirm(tx);
 
@@ -142,7 +142,7 @@ describe("Swap", () => {
       console.log("1 STB =", amountIn / estAmountOut, "USDC");
       if (estAmountOut === 0) return;
       // slippage tolarance 0.3% (0.003)
-      const minAmountOut = estAmountOut * (1 - 0.003);
+      const minimumAmountOut = estAmountOut * (1 - 0.003);
 
       if (i > 0) {
         const { value: balance } = await provider.connection.getTokenAccountBalance(
@@ -154,7 +154,7 @@ describe("Swap", () => {
           mintInAddress,
           mintOutAddress,
           amountIn,
-          minAmountOut,
+          minimumAmountOut,
         });
         await provider.sendAndConfirm(tx);
 
@@ -163,10 +163,7 @@ describe("Swap", () => {
         );
         console.log(
           "STB out:",
-          TokenAmountUtil.toUiAmountString(
-            new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-            postBalance.decimals,
-          ),
+          SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
         );
       } else {
         const tx = await sdk.swap({
@@ -174,7 +171,7 @@ describe("Swap", () => {
           mintInAddress,
           mintOutAddress,
           amountIn,
-          minAmountOut,
+          minimumAmountOut,
         });
         await provider.sendAndConfirm(tx);
 

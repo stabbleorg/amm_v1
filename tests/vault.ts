@@ -12,6 +12,7 @@ import {
   daiMintKP,
   stbMintKP,
   sbrMintKP,
+  bonkMintKP,
 } from "./consts";
 
 describe("Vault", () => {
@@ -77,7 +78,17 @@ describe("Vault", () => {
       sbrMintKP.publicKey,
       await createAssociatedTokenAccount(provider.connection, adminKP, sbrMintKP.publicKey, adminKP.publicKey),
       adminKP,
-      BigInt("2000000000000000"), // 2bn
+      BigInt("2000000000000000"), // 2B
+    );
+
+    await createMint(provider.connection, adminKP, adminKP.publicKey, null, 5, bonkMintKP);
+    await mintTo(
+      provider.connection,
+      adminKP,
+      bonkMintKP.publicKey,
+      await createAssociatedTokenAccount(provider.connection, adminKP, bonkMintKP.publicKey, adminKP.publicKey),
+      adminKP,
+      BigInt("10000000000000000000"), // 200T
     );
   });
 

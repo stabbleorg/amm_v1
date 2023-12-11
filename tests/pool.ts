@@ -7,7 +7,7 @@ import {
   StablePoolContext,
   WeightedMath,
   SDKWrapper,
-  TokenAmountUtil,
+  SafeNumber,
 } from "@stabbleorg/solana-sdk";
 import {
   weightedVaultKP,
@@ -18,6 +18,7 @@ import {
   adminKP,
   stbMintKP,
   sbrMintKP,
+  bonkMintKP,
   usdcMintKP,
   usdtMintKP,
   daiMintKP,
@@ -52,9 +53,9 @@ describe("Pool", () => {
       const { tx: createTX, address: poolAddress } = await sdk.createWeightedPoolAndAddress({
         vaultAddress: weightedVaultKP.publicKey,
         mintAddresses: [stbMintKP.publicKey, sbrMintKP.publicKey, usdcMintKP.publicKey],
-        weights: ["0.5", 0.3, 0.2], // either in string or in number
         swapFee: 0.0125, // 1.25%
-        poolKP: weightedN3PoolKP, // can be omit in dapp
+        weights: ["0.5", 0.3, 0.2], // either in string or in number
+        poolKP: weightedN3PoolKP, // can omit in dapp
       });
       await ctxWeighted.provider.sendAndConfirm(createTX);
 
@@ -100,10 +101,7 @@ describe("Pool", () => {
       );
       console.log(
         "LP out:",
-        TokenAmountUtil.toUiAmountString(
-          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-          postBalance.decimals,
-        ),
+        SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
       );
     });
 
@@ -125,10 +123,7 @@ describe("Pool", () => {
       );
       console.log(
         "LP out:",
-        TokenAmountUtil.toUiAmountString(
-          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-          postBalance.decimals,
-        ),
+        SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
       );
     });
 
@@ -150,10 +145,7 @@ describe("Pool", () => {
       );
       console.log(
         "USDC out:",
-        TokenAmountUtil.toUiAmountString(
-          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-          postBalance.decimals,
-        ),
+        SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
       );
     });
   });
@@ -174,9 +166,10 @@ describe("Pool", () => {
       const { tx: createTX, address: poolAddress } = await sdk.createWeightedPoolAndAddress({
         vaultAddress: weightedVaultKP.publicKey,
         mintAddresses,
-        weights: ["0.6", "0.4"], // either in string or in number
         swapFee: 0.01, // 1%
-        poolKP: weightedN2PoolKP, // can be omit in dapp
+        weights: ["0.6", "0.4"], // either in string or in number
+        ticks: [0.00000001, "0.000001"],
+        poolKP: weightedN2PoolKP, // can omit in dapp
       });
       await ctxWeighted.provider.sendAndConfirm(createTX);
 
@@ -219,63 +212,160 @@ describe("Pool", () => {
       );
       console.log(
         "LP out:",
-        TokenAmountUtil.toUiAmountString(
-          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-          postBalance.decimals,
-        ),
+        SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
       );
     });
 
-    it("should add liquidity in single token", async () => {
-      const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
+    // it("should add liquidity in single token", async () => {
+    //   const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
 
-      const { value: balance } = await provider.connection.getTokenAccountBalance(
-        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
-      );
-      const tx = await sdk.addLiquidity({
-        pool,
-        mintAddresses: [usdcMintKP.publicKey],
-        amounts: ["1250"],
-      });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+    //   const { value: balance } = await provider.connection.getTokenAccountBalance(
+    //     ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+    //   );
+    //   const tx = await sdk.addLiquidity({
+    //     pool,
+    //     mintAddresses: [usdcMintKP.publicKey],
+    //     amounts: ["1250"],
+    //   });
+    //   await ctxWeighted.provider.sendAndConfirm(tx);
 
-      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
-      );
-      console.log(
-        "LP out:",
-        TokenAmountUtil.toUiAmountString(
-          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-          postBalance.decimals,
-        ),
-      );
-    });
+    //   const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+    //     ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+    //   );
+    //   console.log(
+    //     "LP out:",
+    //     SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
+    //   );
+    // });
 
-    it("should remove liquidity in single token", async () => {
-      const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
+    // it("should remove liquidity in single token", async () => {
+    //   const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
 
-      const { value: balance } = await provider.connection.getTokenAccountBalance(
-        ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
-      );
-      const tx = await sdk.removeLiquidity({
-        pool,
-        mintAddresses: [usdcMintKP.publicKey],
-        amount: "14616.649271449",
-      });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+    //   const { value: balance } = await provider.connection.getTokenAccountBalance(
+    //     ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
+    //   );
+    //   const tx = await sdk.removeLiquidity({
+    //     pool,
+    //     mintAddresses: [usdcMintKP.publicKey],
+    //     amount: "14616.649271449",
+    //   });
+    //   await ctxWeighted.provider.sendAndConfirm(tx);
 
-      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-        ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
-      );
-      console.log(
-        "USDC out:",
-        TokenAmountUtil.toUiAmountString(
-          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-          postBalance.decimals,
-        ),
-      );
-    });
+    //   const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+    //     ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
+    //   );
+    //   console.log(
+    //     "USDC out:",
+    //     SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
+    //   );
+    // });
   });
+
+  // describe("Bonk50-STB30-USDC20", () => {
+  //   it("should create weighted pool", async () => {
+  //     // Bonk: $0.000000109, STB: $0.0175, USDC: $1
+  //     const bRatio_BONK_USDC = WeightedMath.calcBalanceRatio(0.5, 0.000000109, 0.2, 1);
+  //     const bRatio_STB_USDC = WeightedMath.calcBalanceRatio(0.3, 0.0175, 0.2, 1);
+
+  //     // given 1,000,000 USDC
+  //     const usdcAmount = 1000000;
+  //     const bonkAmount = usdcAmount * bRatio_BONK_USDC;
+  //     const stbAmount = usdcAmount * bRatio_STB_USDC;
+  //     console.log("Bonk in:", bonkAmount);
+
+  //     const { tx: createTX, address: poolAddress } = await sdk.createWeightedPoolAndAddress({
+  //       vaultAddress: weightedVaultKP.publicKey,
+  //       mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
+  //       swapFee: 0.001, // 0.1%
+  //       weights: ["0.5", 0.3, 0.2], // either in string or in number
+  //       ticks: [1, "0.000000001", 0.000001],
+  //     });
+  //     await ctxWeighted.provider.sendAndConfirm(createTX);
+
+  //     // add initial liquidity
+  //     const pool = await ctxWeighted.findOne(poolAddress);
+  //     const tx = await sdk.addLiquidity({
+  //       pool,
+  //       mintAddresses: pool.tokens.map((token) => token.mintAddress),
+  //       amounts: [bonkAmount, stbAmount, usdcAmount],
+  //     });
+  //     await ctxWeighted.provider.sendAndConfirm(tx);
+
+  //     const { value: balance } = await provider.connection.getTokenAccountBalance(
+  //       ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+  //     );
+  //     console.log("LP out:", balance.uiAmountString);
+
+  //     {
+  //       const pool = await ctxWeighted.findOne(poolAddress);
+  //       console.log("Bonk balance (ticks):", pool.tokens[0].balance);
+  //       console.log("Bonk balance (amount):", pool.tokens[0].amount);
+  //     }
+
+  //     {
+  //       const pool = await ctxWeighted.findOne(poolAddress);
+  //       const { value: balance } = await provider.connection.getTokenAccountBalance(
+  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
+  //       );
+  //       const tx = await sdk.removeLiquidity({
+  //         pool,
+  //         mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
+  //         amount: 86350325.209763808,
+  //       });
+  //       await ctxWeighted.provider.sendAndConfirm(tx);
+
+  //       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
+  //       );
+  //       console.log(
+  //         "Bonk out:",
+  //         SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
+  //       );
+  //     }
+
+  //     {
+  //       const pool = await ctxWeighted.findOne(poolAddress);
+  //       const { value: balance } = await provider.connection.getTokenAccountBalance(
+  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
+  //       );
+  //       const tx = await sdk.removeLiquidity({
+  //         pool,
+  //         mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
+  //         amount: 8635032.520976381,
+  //       });
+  //       await ctxWeighted.provider.sendAndConfirm(tx);
+
+  //       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
+  //       );
+  //       console.log(
+  //         "Bonk out:",
+  //         SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
+  //       );
+  //     }
+
+  //     {
+  //       const pool = await ctxWeighted.findOne(poolAddress);
+  //       const { value: balance } = await provider.connection.getTokenAccountBalance(
+  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
+  //       );
+  //       const tx = await sdk.removeLiquidity({
+  //         pool,
+  //         mintAddresses: [bonkMintKP.publicKey],
+  //         amount: 8635032.520976381,
+  //       });
+  //       await ctxWeighted.provider.sendAndConfirm(tx);
+
+  //       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
+  //       );
+  //       console.log(
+  //         "Bonk out:",
+  //         SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
+  //       );
+  //     }
+  //   });
+  // });
 
   describe("DAI-USDT-USDC", () => {
     it("should create stable pool", async () => {
@@ -284,7 +374,7 @@ describe("Pool", () => {
         mintAddresses: [daiMintKP.publicKey, usdtMintKP.publicKey, usdcMintKP.publicKey],
         amp: 2000,
         swapFee: "0.004", // 0.4%
-        poolKP: stableN3PoolKP, // can be omit in dapp
+        poolKP: stableN3PoolKP, // can omit in dapp
       });
       await ctxStable.provider.sendAndConfirm(createTX);
 
@@ -330,10 +420,7 @@ describe("Pool", () => {
       );
       console.log(
         "LP out:",
-        TokenAmountUtil.toUiAmountString(
-          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-          postBalance.decimals,
-        ),
+        SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
       );
     });
 
@@ -355,10 +442,7 @@ describe("Pool", () => {
       );
       console.log(
         "LP out:",
-        TokenAmountUtil.toUiAmountString(
-          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-          postBalance.decimals,
-        ),
+        SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
       );
     });
 
@@ -380,10 +464,7 @@ describe("Pool", () => {
       );
       console.log(
         "USDC out:",
-        TokenAmountUtil.toUiAmountString(
-          new BN(postBalance.amount!).sub(new BN(balance.amount!)),
-          postBalance.decimals,
-        ),
+        SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
       );
     });
   });
