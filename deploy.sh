@@ -113,7 +113,7 @@ yarn cli pool-weighted-deposit \
   --amounts 71215940976.22812 11428571.42857143 300000
 
 # USDT-USDC
-# Pool: EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV
+# Pool: 2W5WBB84Sj9sChysqBpQ6psb1uFsnn1keWcfK9UDBoNB
 yarn cli pool-stable-init \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --vault-k 5eCVujqt76MtEaz9oCknwPqj8atA8XwtE1V22eprVrbz \
@@ -124,12 +124,12 @@ yarn cli pool-stable-init \
 yarn cli pool-stable-deposit \
   -u https://twilight-necessary-liquid.solana-devnet.quiknode.pro/2bfc6e7fb487a78fb5ef6811fd89954567629035/ \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --pool-k EFCjUhXAbtRY5oC2TBoTp15jr8e58d2x2WvnZCAZbzwV \
+  --pool-k 2W5WBB84Sj9sChysqBpQ6psb1uFsnn1keWcfK9UDBoNB \
   --mints FeCtM4bXUGo8vGrvHUCZjybmesovZLkQqCGqMuhHUHfZ AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
   --amounts 821588.3 386525.6
 
 # UXD-USDC
-# Pool: B3jTNQaeUyrtdGDhNEx5qcHn2acDcA5eMVetChha2Zvf
+# Pool: Ap5Dsn8ey15v9kP7A6S1dsvk1AdRJHhRFziR6hvLnYUM
 yarn cli pool-stable-init \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --vault-k 5eCVujqt76MtEaz9oCknwPqj8atA8XwtE1V22eprVrbz \
@@ -140,12 +140,12 @@ yarn cli pool-stable-init \
 yarn cli pool-stable-deposit \
   -u https://twilight-necessary-liquid.solana-devnet.quiknode.pro/2bfc6e7fb487a78fb5ef6811fd89954567629035/ \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --pool-k B3jTNQaeUyrtdGDhNEx5qcHn2acDcA5eMVetChha2Zvf \
+  --pool-k Ap5Dsn8ey15v9kP7A6S1dsvk1AdRJHhRFziR6hvLnYUM \
   --mints 94w5e3aQfc2DR3CuvAgr9XZXGpyMghznPqPWo2UFUuDU AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
   --amounts 4236919 4081940
 
 # USH-USDC
-# Pool: BnYsLJsMY3M5Nw6EsG6WoDiHHZjnY7hC9DKW7BmL8fhm
+# Pool: 3wvwQVrFf5jakBSsSDna8CzPveoHhHSuQJaa5yWJirUY
 yarn cli pool-stable-init \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
   --vault-k 5eCVujqt76MtEaz9oCknwPqj8atA8XwtE1V22eprVrbz \
@@ -155,7 +155,7 @@ yarn cli pool-stable-init \
 
 yarn cli pool-stable-deposit \
   -k ~/.config/solana/7cfgcwEWQr5vmJrEemdbafhCyTywPYDt46TXQ8wBi4ma.json \
-  --pool-k BnYsLJsMY3M5Nw6EsG6WoDiHHZjnY7hC9DKW7BmL8fhm \
+  --pool-k 3wvwQVrFf5jakBSsSDna8CzPveoHhHSuQJaa5yWJirUY \
   --mints 8anyQR9CrzDHap8gm9YRymvEoFUzy71yd5MygQVQ4hVB AfWWqUHFzJFSxQHYn6PvyaoyswyodHgCTeDiRgovEmHX \
   --amounts 63052.01 21875.76
 
