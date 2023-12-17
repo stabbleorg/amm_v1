@@ -27,6 +27,12 @@ export const pools: PoolMeta[] = [
   },
   {
     chainId: 103,
+    address: "4WjGfjA9UiMoz9euDudZ4KbqwuMsVNCDtCaEh5esW72K",
+    type: "weighted",
+    name: "Bonk70-USDT30",
+  },
+  {
+    chainId: 103,
     address: "2W5WBB84Sj9sChysqBpQ6psb1uFsnn1keWcfK9UDBoNB",
     type: "stable",
     name: "USDT-USDC",
@@ -41,9 +47,23 @@ export const pools: PoolMeta[] = [
   },
   {
     chainId: 103,
+    address: "AVS9Wv2vSL8rt9bFzuRGiNPxZwGR6xx1ZLozL5p9beDR",
+    type: "stable",
+    name: "UXD-USDT",
+    tags: ["usd", "uxd"],
+  },
+  {
+    chainId: 103,
     address: "3wvwQVrFf5jakBSsSDna8CzPveoHhHSuQJaa5yWJirUY",
     type: "stable",
     name: "USH-USDC",
+    tags: ["usd", "ush"],
+  },
+  {
+    chainId: 103,
+    address: "9s6v5Pme9wfvcqLDcAWDSiKAUR5sqg5GTC3mKB1zaybY",
+    type: "stable",
+    name: "USH-USDT",
     tags: ["usd", "ush"],
   },
   {
