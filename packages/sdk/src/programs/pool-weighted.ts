@@ -27,7 +27,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     super(provider);
     this.program = new Program(
       IDL,
-      programId || new PublicKey("BQnZgt5MrNEnMyB2LhBbmJUuF2hoRu5Cf1yXcLTRaJEZ"),
+      programId || new PublicKey("MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy"),
       provider,
     );
   }

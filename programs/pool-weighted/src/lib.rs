@@ -7,7 +7,7 @@ pub mod state;
 use crate::processor::*;
 use anchor_lang::prelude::*;
 
-declare_id!("BQnZgt5MrNEnMyB2LhBbmJUuF2hoRu5Cf1yXcLTRaJEZ");
+declare_id!("MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy");
 
 #[program]
 pub mod pool_weighted {

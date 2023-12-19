@@ -7,7 +7,7 @@ pub mod state;
 pub use crate::processor::*;
 use anchor_lang::prelude::*;
 
-declare_id!("88eN7xkpWwyCrtVAuhuKtVLkmuSEFv6MgTkpAodvpd31");
+declare_id!("FtmRXo2x8Re3PrzLebm7dqNKPoYSnXYBzU9toXeKCvAw");
 
 #[program]
 pub mod slr {

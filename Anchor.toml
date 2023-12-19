@@ -7,10 +7,10 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-slr = "88eN7xkpWwyCrtVAuhuKtVLkmuSEFv6MgTkpAodvpd31"
-pool_stable = "BGJ7Ra51bCSLfJTzXXQsx6Mc8KYuzBnvG2JuUgkp454a"
-pool_weighted = "BQnZgt5MrNEnMyB2LhBbmJUuF2hoRu5Cf1yXcLTRaJEZ"
-vault = "7oh6tTdSfoWdKgqFXotGtPfS3Gqk6Jwc2yDZ7NCErYLW"
+slr = "FtmRXo2x8Re3PrzLebm7dqNKPoYSnXYBzU9toXeKCvAw"
+pool_stable = "EeyyyuAXAzo3YuMv7REuHYtPzEssgK4oBeFYM8K9CoGM"
+pool_weighted = "MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy"
+vault = "6sTpp3Z7s4YSWgxuibjhE8tvcywhRc8a5FYfuv6vhuQA"
 
 [registry]
 url = "https://api.apr.dev"

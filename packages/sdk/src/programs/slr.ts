@@ -7,7 +7,7 @@ import { WalletContext } from "../wallet";
 import { SlrPool } from "../accounts";
 
 export type SlrProgram = Program<IDLType>;
-export const SLR_PROGRAM_ID = new PublicKey("88eN7xkpWwyCrtVAuhuKtVLkmuSEFv6MgTkpAodvpd31");
+export const SLR_PROGRAM_ID = new PublicKey("FtmRXo2x8Re3PrzLebm7dqNKPoYSnXYBzU9toXeKCvAw");
 export const SLR_VAULT_AUTHORITY_ADDRESS = new PublicKey("tvmw3gFJvvWnD2SuvGi6vhMkwNNY6sLwYhBy6XhffU6");
 
 export class SlrContext<T extends Provider> extends WalletContext<T> {

@@ -24,7 +24,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     super(provider);
     this.program = new Program(
       IDL,
-      programId || new PublicKey("BGJ7Ra51bCSLfJTzXXQsx6Mc8KYuzBnvG2JuUgkp454a"),
+      programId || new PublicKey("EeyyyuAXAzo3YuMv7REuHYtPzEssgK4oBeFYM8K9CoGM"),
       provider,
     );
   }
