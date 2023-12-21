@@ -182,4 +182,38 @@ describe("Swap", () => {
       }
     }
   });
+
+  it("should match liquidity with reserves in vault", async () => {
+    const vaultAuthorityAddress = sdk.ctxVault.findVaultAuthorityAddress(sdk.vaults[1].address);
+
+    const liqSTB = pools
+      .filter((pool) => pool.vaultAddress.equals(sdk.vaults[1].address))
+      .reduce(
+        (liquidity, pool) =>
+          (pool.tokens.find((token) => token.mintAddress.equals(stbMintKP.publicKey))?.balance || 0) + liquidity,
+        0,
+      );
+    const {
+      value: { uiAmount: balSTB },
+    } = await provider.connection.getTokenAccountBalance(
+      getAssociatedTokenAddressSync(stbMintKP.publicKey, vaultAuthorityAddress, true),
+    );
+    console.log("STB Liquidity:", liqSTB);
+    console.log("STB Reserve:", balSTB);
+
+    const liqUSDC = pools
+      .filter((pool) => pool.vaultAddress.equals(sdk.vaults[1].address))
+      .reduce(
+        (liquidity, pool) =>
+          (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,
+        0,
+      );
+    const {
+      value: { uiAmount: balUSDC },
+    } = await provider.connection.getTokenAccountBalance(
+      getAssociatedTokenAddressSync(usdcMintKP.publicKey, vaultAuthorityAddress, true),
+    );
+    console.log("USDC Liquidity:", liqUSDC);
+    console.log("USDC Reserve:", balUSDC);
+  });
 });

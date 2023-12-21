@@ -1,5 +1,6 @@
 import { BN } from "bn.js";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
+import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import {
   SlrContext,
   VaultContext,
@@ -168,7 +169,7 @@ describe("Pool", () => {
         mintAddresses,
         swapFee: 0.01, // 1%
         weights: ["0.6", "0.4"], // either in string or in number
-        ticks: [0.00000001, "0.000001"],
+        ticks: [0.00001, "0.000001"],
         poolKP: weightedN2PoolKP, // can omit in dapp
       });
       await ctxWeighted.provider.sendAndConfirm(createTX);
@@ -259,6 +260,41 @@ describe("Pool", () => {
     //     SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
     //   );
     // });
+
+    it("should match liquidity with reserves in vault", async () => {
+      const pools = await ctxWeighted.findManyByVault(weightedVaultKP.publicKey);
+      const vaultAuthorityAddress = sdk.ctxVault.findVaultAuthorityAddress(weightedVaultKP.publicKey);
+
+      const liqSTB = pools
+        .filter((pool) => pool.vaultAddress.equals(weightedVaultKP.publicKey))
+        .reduce(
+          (liquidity, pool) =>
+            (pool.tokens.find((token) => token.mintAddress.equals(stbMintKP.publicKey))?.balance || 0) + liquidity,
+          0,
+        );
+      const {
+        value: { uiAmount: balSTB },
+      } = await provider.connection.getTokenAccountBalance(
+        getAssociatedTokenAddressSync(stbMintKP.publicKey, vaultAuthorityAddress, true),
+      );
+      console.log("STB Liquidity:", liqSTB);
+      console.log("STB Reserve:", balSTB);
+
+      const liqUSDC = pools
+        .filter((pool) => pool.vaultAddress.equals(weightedVaultKP.publicKey))
+        .reduce(
+          (liquidity, pool) =>
+            (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,
+          0,
+        );
+      const {
+        value: { uiAmount: balUSDC },
+      } = await provider.connection.getTokenAccountBalance(
+        getAssociatedTokenAddressSync(usdcMintKP.publicKey, vaultAuthorityAddress, true),
+      );
+      console.log("USDC Liquidity:", liqUSDC);
+      console.log("USDC Reserve:", balUSDC);
+    });
   });
 
   // describe("Bonk50-STB30-USDC20", () => {

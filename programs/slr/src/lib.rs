@@ -7,6 +7,9 @@ pub mod state;
 pub use crate::processor::*;
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "development")]
+declare_id!("88eN7xkpWwyCrtVAuhuKtVLkmuSEFv6MgTkpAodvpd31");
+#[cfg(not(feature = "development"))]
 declare_id!("FtmRXo2x8Re3PrzLebm7dqNKPoYSnXYBzU9toXeKCvAw");
 
 #[program]
