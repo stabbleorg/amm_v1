@@ -137,7 +137,7 @@ describe("Pool", () => {
       const tx = await sdk.removeLiquidity({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
-        amount: "164163.651935620",
+        amount: "156189.993848500",
       });
       await ctxWeighted.provider.sendAndConfirm(tx);
 
@@ -217,49 +217,49 @@ describe("Pool", () => {
       );
     });
 
-    // it("should add liquidity in single token", async () => {
-    //   const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
+    it("should add liquidity in single token", async () => {
+      const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
 
-    //   const { value: balance } = await provider.connection.getTokenAccountBalance(
-    //     ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
-    //   );
-    //   const tx = await sdk.addLiquidity({
-    //     pool,
-    //     mintAddresses: [usdcMintKP.publicKey],
-    //     amounts: ["1250"],
-    //   });
-    //   await ctxWeighted.provider.sendAndConfirm(tx);
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      const tx = await sdk.addLiquidity({
+        pool,
+        mintAddresses: [usdcMintKP.publicKey],
+        amounts: ["1250"],
+      });
+      await ctxWeighted.provider.sendAndConfirm(tx);
 
-    //   const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-    //     ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
-    //   );
-    //   console.log(
-    //     "LP out:",
-    //     SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-    //   );
-    // });
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      console.log(
+        "LP out:",
+        SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
+      );
+    });
 
-    // it("should remove liquidity in single token", async () => {
-    //   const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
+    it("should remove liquidity in single token", async () => {
+      const pool = await ctxWeighted.findOne(weightedN2PoolKP.publicKey); // selected pool address in dapp
 
-    //   const { value: balance } = await provider.connection.getTokenAccountBalance(
-    //     ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
-    //   );
-    //   const tx = await sdk.removeLiquidity({
-    //     pool,
-    //     mintAddresses: [usdcMintKP.publicKey],
-    //     amount: "14616.649271449",
-    //   });
-    //   await ctxWeighted.provider.sendAndConfirm(tx);
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
+      );
+      const tx = await sdk.removeLiquidity({
+        pool,
+        mintAddresses: [usdcMintKP.publicKey],
+        amount: "56.760017596",
+      });
+      await ctxWeighted.provider.sendAndConfirm(tx);
 
-    //   const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-    //     ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
-    //   );
-    //   console.log(
-    //     "USDC out:",
-    //     SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-    //   );
-    // });
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
+      );
+      console.log(
+        "USDC out:",
+        SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
+      );
+    });
 
     it("should match liquidity with reserves in vault", async () => {
       const pools = await ctxWeighted.findManyByVault(weightedVaultKP.publicKey);

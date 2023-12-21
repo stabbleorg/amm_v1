@@ -81,15 +81,18 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
 
     for (token_index, user_account) in ctx.remaining_accounts[0..amounts.len()].iter().enumerate() {
         let mint = get_token_mint(&user_account)?;
-        if amounts.len() > 1 {
+        let token_in_index = if amounts.len() > 1 {
             // check token orders
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
-        }
+            token_index
+        } else {
+            ctx.accounts.pool.get_token_index(mint)
+        };
         let balance_in = amounts[token_index]
-            .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u64)
+            .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor as u64)
             .unwrap();
         // add token balances
-        ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
+        ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index]
             .balance
             .checked_add(balance_in)
             .unwrap();

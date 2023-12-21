@@ -54,15 +54,18 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
 
     for (token_index, user_account) in ctx.remaining_accounts[0..amounts_out.len()].iter().enumerate() {
         let mint = get_token_mint(&user_account)?;
-        if ctx.remaining_accounts.len() > 2 {
+        let token_out_index = if ctx.remaining_accounts.len() > 2 {
             // check token orders
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
-        }
+            token_index
+        } else {
+            ctx.accounts.pool.get_token_index(mint)
+        };
         // remove token balances
         let balance_out = amounts_out[token_index]
-            .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u64)
+            .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u64)
             .unwrap();
-        ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
+        ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index]
             .balance
             .checked_sub(balance_out)
             .unwrap();
