@@ -19,7 +19,6 @@ pub fn process_initialize(ctx: Context<Initialize>, max_liquidity: u64) -> Resul
 
 impl<'info> Initialize<'info> {
     pub fn validate(ctx: &Context<Initialize>) -> Result<()> {
-        // uncomment it for devnet/mainnet deployment
         assert_eq!(ctx.accounts.admin.key(), admin::ID);
         assert_eq!(ctx.accounts.mint.supply, 0);
         assert_eq!(ctx.accounts.mint.decimals, ctx.accounts.underlying_mint.decimals);

@@ -7,15 +7,21 @@ import { WalletContext } from "../wallet";
 import { SlrPool } from "../accounts";
 
 export type SlrProgram = Program<IDLType>;
-export const SLR_PROGRAM_ID = new PublicKey("FtmRXo2x8Re3PrzLebm7dqNKPoYSnXYBzU9toXeKCvAw");
-export const SLR_VAULT_AUTHORITY_ADDRESS = new PublicKey("tvmw3gFJvvWnD2SuvGi6vhMkwNNY6sLwYhBy6XhffU6");
 
 export class SlrContext<T extends Provider> extends WalletContext<T> {
   readonly program: SlrProgram;
 
-  constructor(provider: T) {
+  constructor(provider: T, programId?: PublicKey) {
     super(provider);
-    this.program = new Program(IDL, SLR_PROGRAM_ID, provider);
+    this.program = new Program(
+      IDL,
+      programId || new PublicKey("FtmRXo2x8Re3PrzLebm7dqNKPoYSnXYBzU9toXeKCvAw"),
+      provider,
+    );
+  }
+
+  get vaultAuthorityAddress(): PublicKey {
+    return PublicKey.findProgramAddressSync([Buffer.from("SLR Vault Authority")], this.program.programId)[0];
   }
 
   findPoolAuthorityAddress(poolAddress: PublicKey): PublicKey {
@@ -52,7 +58,7 @@ export class SlrContext<T extends Provider> extends WalletContext<T> {
         .accounts({
           user: this.walletAddress,
           userUnderlyingToken: this.getAssociatedTokenAddress(underlyingMintAddress),
-          vaultUnderlyingToken: this.getAssociatedTokenAddress(underlyingMintAddress, SLR_VAULT_AUTHORITY_ADDRESS),
+          vaultUnderlyingToken: this.getAssociatedTokenAddress(underlyingMintAddress, this.vaultAuthorityAddress),
           poolToken: userPoolTokenAddress,
           mint: poolMintAddress,
           pool: poolAddress,
@@ -83,11 +89,11 @@ export class SlrContext<T extends Provider> extends WalletContext<T> {
         .accounts({
           user: this.walletAddress,
           userUnderlyingToken: userUnderlyingTokenAddress,
-          vaultUnderlyingToken: this.getAssociatedTokenAddress(underlyingMintAddress, SLR_VAULT_AUTHORITY_ADDRESS),
+          vaultUnderlyingToken: this.getAssociatedTokenAddress(underlyingMintAddress, this.vaultAuthorityAddress),
           poolToken: this.getAssociatedTokenAddress(poolMintAddress),
           mint: poolMintAddress,
           pool: poolAddress,
-          vaultAuthority: SLR_VAULT_AUTHORITY_ADDRESS,
+          vaultAuthority: this.vaultAuthorityAddress,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .instruction(),
@@ -133,7 +139,7 @@ export class SlrContext<T extends Provider> extends WalletContext<T> {
     ];
 
     const { address, instruction: vaultUnderlyingTokenInstruction } =
-      await this.getOrCreateAssociatedTokenAddressInstruction(underlyingMintAddress, SLR_VAULT_AUTHORITY_ADDRESS);
+      await this.getOrCreateAssociatedTokenAddressInstruction(underlyingMintAddress, this.vaultAuthorityAddress);
     if (vaultUnderlyingTokenInstruction) instructions.push(vaultUnderlyingTokenInstruction);
 
     return instructions;
