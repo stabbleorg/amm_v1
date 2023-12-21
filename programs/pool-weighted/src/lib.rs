@@ -51,4 +51,20 @@ pub mod pool_weighted {
     ) -> Result<()> {
         process_swap(ctx, amount_in, minimum_amount_out)
     }
+
+    pub fn pause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
+        process_pause(ctx)
+    }
+
+    pub fn unpause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
+        process_unpause(ctx)
+    }
+
+    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u16) -> Result<()> {
+        process_change_swap_fee(ctx, new_swap_fee)
+    }
+
+    pub fn change_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: Pubkey) -> Result<()> {
+        process_change_owner(ctx, new_owner)
+    }
 }

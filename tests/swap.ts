@@ -183,7 +183,7 @@ describe("Swap", () => {
     }
   });
 
-  it("should match liquidity with reserves in vault", async () => {
+  it("should match liquidity with reserves in weighted vault", async () => {
     const vaultAuthorityAddress = sdk.ctxVault.findVaultAuthorityAddress(sdk.vaults[1].address);
 
     const liqSTB = pools
@@ -203,6 +203,25 @@ describe("Swap", () => {
 
     const liqUSDC = pools
       .filter((pool) => pool.vaultAddress.equals(sdk.vaults[1].address))
+      .reduce(
+        (liquidity, pool) =>
+          (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,
+        0,
+      );
+    const {
+      value: { uiAmount: balUSDC },
+    } = await provider.connection.getTokenAccountBalance(
+      getAssociatedTokenAddressSync(usdcMintKP.publicKey, vaultAuthorityAddress, true),
+    );
+    console.log("USDC Liquidity:", liqUSDC);
+    console.log("USDC Reserve:", balUSDC);
+  });
+
+  it("should match liquidity with reserves in stable vault", async () => {
+    const vaultAuthorityAddress = sdk.ctxVault.findVaultAuthorityAddress(sdk.vaults[0].address);
+
+    const liqUSDC = pools
+      .filter((pool) => pool.vaultAddress.equals(sdk.vaults[0].address))
       .reduce(
         (liquidity, pool) =>
           (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,
