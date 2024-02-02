@@ -373,6 +373,18 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
   }
+
+  async changeSwapFeeInstructions(poolAddress: PublicKey, newSwapFee: number): Promise<TransactionInstruction[]> {
+    return [
+      await this.program.methods
+        .changeSwapFee(newSwapFee)
+        .accounts({
+          owner: this.walletAddress,
+          pool: poolAddress,
+        })
+        .instruction(),
+    ];
+  }
 }
 
 export class WeightedPoolListener {

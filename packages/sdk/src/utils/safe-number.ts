@@ -6,6 +6,7 @@ export type IntegerLike = BN | number | string;
 export class SafeNumber {
   static toBigAmount(uiAmount: FloatLike, decimals: number): BN {
     if (!decimals) return new BN(uiAmount);
+    if (!uiAmount) return new BN(0);
     const uiAmountString = typeof uiAmount === "number" ? parseFloat(uiAmount.toString()).toFixed(decimals) : uiAmount;
     const [l, r] = uiAmountString.split(".");
     return new BN(l + (r || "0").substring(0, decimals).padEnd(decimals, "0"));
