@@ -15,7 +15,7 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 
-export class WalletContext<T extends Provider> {
+export class WalletContext<T extends Provider = Provider> {
   constructor(readonly provider: T) {}
 
   get walletAddress(): PublicKey {

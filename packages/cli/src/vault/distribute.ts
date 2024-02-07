@@ -14,7 +14,7 @@ import { SafeNumber } from "@stabbleorg/solana-sdk";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
-const BATCH_SIZE = 7;
+const BATCH_SIZE = 9;
 type WhitelistItem = { address: string; amount: number };
 
 export function distribute(program: Command) {
