@@ -1,7 +1,7 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { BasePool, PoolToken, PoolTokenData, BasePoolData } from "./pool-base";
-import { StableMath, SafeNumber } from "../utils";
+import { StableMath, SafeNumber, BasicMath } from "../utils";
 
 export interface StablePoolToken extends PoolToken {}
 
@@ -79,5 +79,16 @@ export class StablePool implements BasePool<StablePoolToken, StablePoolData> {
       this.swapFee,
     );
     return Math.max(amountOut, 0);
+  }
+
+  getEstAmountsOut(amountIn: number, totalSupply: number = 1, tokenAddress?: PublicKey): number[] {
+    if (tokenAddress) {
+      return [0];
+    }
+    return BasicMath.calcProportionalAmountsOut(
+      this.tokens.map((token) => token.balance),
+      amountIn,
+      totalSupply,
+    );
   }
 }

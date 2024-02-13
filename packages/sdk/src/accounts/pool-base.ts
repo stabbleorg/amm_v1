@@ -47,4 +47,6 @@ export interface BasePool<T extends PoolToken, D extends BasePoolData> {
   getPostPrice(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number;
 
   getEstAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number;
+
+  getEstAmountsOut(amountIn: number, totalSupply: number, tokenAddress?: PublicKey): number[];
 }

@@ -7,6 +7,7 @@ export class WeightedMath {
     amountIn: number,
     swapFee: number = 0,
   ): number {
+    if (amountIn > balanceIn * 0.3) return 0;
     return balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut)) * (1 - swapFee);
   }
 
@@ -123,5 +124,11 @@ export class StableMath {
     }
 
     return balance;
+  }
+}
+
+export class BasicMath {
+  static calcProportionalAmountsOut(balances: number[], amountIn: number, totalSupply: number): number[] {
+    return balances.map((balance) => (balance * amountIn) / totalSupply);
   }
 }

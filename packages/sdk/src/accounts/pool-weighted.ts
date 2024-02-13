@@ -1,7 +1,7 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { BasePool, PoolToken, PoolTokenData, BasePoolData } from "./pool-base";
-import { SafeNumber, WeightedMath } from "../utils";
+import { BasicMath, SafeNumber, WeightedMath } from "../utils";
 
 export interface WeightedPoolToken extends PoolToken {
   balanceT: number;
@@ -97,5 +97,16 @@ export class WeightedPool implements BasePool<WeightedPoolToken, WeightedPoolDat
         this.swapFee,
       ) * tokenOut.tick
     );
+  }
+
+  getEstAmountsOut(amountIn: number, totalSupply: number = 1, tokenAddress?: PublicKey): number[] {
+    if (tokenAddress) {
+      return [0];
+    }
+    return BasicMath.calcProportionalAmountsOut(
+      this.tokens.map((token) => token.balanceT),
+      amountIn,
+      totalSupply,
+    ).map((ticks, index) => ticks * this.tokens[index].tick);
   }
 }

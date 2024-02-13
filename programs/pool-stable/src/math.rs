@@ -376,11 +376,11 @@ pub fn calc_in_exact_tokens_out(
         .unwrap();
 
     // return amountBPTIn
-    return Ok(total_supply
+    Ok(total_supply
         .checked_mul(complement(invariant_ratio))
         .unwrap()
         .checked_div(BALANCE_PRECISION)
-        .unwrap());
+        .unwrap())
 }
 
 // StableMath._calcTokenOutGivenExactBptIn
@@ -433,13 +433,13 @@ pub fn calc_token_out_exact_in(
     let non_taxable_amount = amount_out_without_fee.checked_sub(taxable_amount).unwrap();
 
     // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
-    return Ok(taxable_amount
+    Ok(taxable_amount
         .checked_mul(FEE_PRECISION.saturating_sub(swap_fee))
         .unwrap()
         .checked_div(FEE_PRECISION)
         .unwrap()
         .checked_add(non_taxable_amount)
-        .unwrap());
+        .unwrap())
 }
 
 // BasePoolMath.computeProportionalAmountsOut

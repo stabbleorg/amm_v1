@@ -245,7 +245,7 @@ pub fn calc_token_in_exact_out(
 
     let taxable_amount_with_fees = taxable_amount / complement(swap_fee);
 
-    return Ok(non_taxable_amount + taxable_amount_with_fees);
+    Ok(non_taxable_amount + taxable_amount_with_fees)
 }
 
 // WeightedMath._calcTokenOutGivenExactBptIn
