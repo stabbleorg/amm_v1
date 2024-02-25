@@ -23,9 +23,9 @@ export function initialize(program: Command) {
         beneficiaryK: PublicKey;
         beneficiaryFee: string;
       }) => {
-        const { sdk } = useContext();
+        const { amm } = useContext();
 
-        const { tx, address } = await sdk.createVaultAndAddress({
+        const { tx, address } = await amm.createVaultAndAddress({
           beneficiaryAddress: beneficiaryK,
           beneficiaryFee,
           poolKind,

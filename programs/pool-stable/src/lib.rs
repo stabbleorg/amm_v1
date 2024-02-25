@@ -17,9 +17,9 @@ pub mod pool_stable {
     use super::*;
 
     /// initialize a pool
-    #[access_control(Initialize::validate(&ctx, amp, swap_fee))]
-    pub fn initialize(ctx: Context<Initialize>, amp: u16, swap_fee: u16) -> Result<()> {
-        process_initialize(ctx, amp, swap_fee)
+    #[access_control(Initialize::validate(&ctx, amp_factor, swap_fee))]
+    pub fn initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u16) -> Result<()> {
+        process_initialize(ctx, amp_factor, swap_fee)
     }
 
     /// add liquidity

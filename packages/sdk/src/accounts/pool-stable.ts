@@ -8,11 +8,11 @@ export interface StablePoolToken extends PoolToken {}
 export interface StablePoolTokenData extends PoolTokenData {}
 
 export interface StablePoolData extends BasePoolData {
-  amp: number;
-  ampStart: number;
-  ampStartTime: BN;
-  ampEndTime: BN;
-  ampDuration: number;
+  ampInitialFactor: number;
+  ampTargetFactor: number;
+  rampStartTs: BN;
+  rampStopTs: BN;
+  rampTick: number;
   tokens: StablePoolTokenData[];
 }
 
@@ -38,7 +38,16 @@ export class StablePool implements BasePool<StablePoolToken, StablePoolData> {
   }
 
   get amplification(): number {
-    return this.data.amp;
+    if (this.data.ampInitialFactor >= this.data.ampTargetFactor) this.data.ampInitialFactor;
+
+    const currentTs = new Date().getTime() / 1000;
+
+    if (currentTs >= this.data.rampStopTs.toNumber()) return this.data.ampTargetFactor;
+
+    const rampElapsed = currentTs - this.data.rampStartTs.toNumber();
+    const rampDuration = this.data.rampStopTs.toNumber() - this.data.rampStartTs.toNumber();
+    const ampOffset = ((this.data.ampTargetFactor - this.data.ampInitialFactor) * rampElapsed) / rampDuration;
+    return this.data.ampInitialFactor + ampOffset;
   }
 
   get swapFee(): number {

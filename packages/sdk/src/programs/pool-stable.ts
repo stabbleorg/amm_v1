@@ -1,14 +1,6 @@
 import BN from "bn.js";
 import { Program, Provider } from "@coral-xyz/anchor";
-import { Metaplex } from "@metaplex-foundation/js";
-import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
-import {
-  AuthorityType,
-  MintLayout,
-  TOKEN_PROGRAM_ID,
-  createInitializeMint2Instruction,
-  createSetAuthorityInstruction,
-} from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { type PoolStable as IDLType, IDL } from "../generated/pool_stable";
 import { WalletContext } from "../wallet";
@@ -200,7 +192,6 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
           userPoolToken: userPoolTokenAddress,
           mint: poolMintAddress,
           pool: poolAddress,
-          poolAuthority: this.findPoolAuthorityAddress(poolAddress),
           withdrawAuthority: this.findWithdrawAuthorityAddress(vaultAddress),
           vault: vaultAddress,
           vaultAuthority: vaultAuthorityAddress,
@@ -224,53 +215,8 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
   ): Promise<TransactionInstruction[]> {
     const poolAccountSize = this.program.account.pool.size + StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
-    const metadataAddress = Metaplex.make(this.provider.connection).nfts().pdas().metadata({ mint: poolMintAddress });
 
     return [
-      SystemProgram.createAccount({
-        fromPubkey: this.walletAddress,
-        newAccountPubkey: poolMintAddress,
-        space: MintLayout.span,
-        lamports: await this.provider.connection.getMinimumBalanceForRentExemption(MintLayout.span),
-        programId: TOKEN_PROGRAM_ID,
-      }),
-      createInitializeMint2Instruction(
-        poolMintAddress,
-        StablePool.POOL_TOKEN_DECIMALS,
-        this.walletAddress,
-        this.walletAddress,
-      ),
-      createCreateMetadataAccountV3Instruction(
-        {
-          metadata: metadataAddress,
-          mint: poolMintAddress,
-          mintAuthority: this.walletAddress,
-          payer: this.walletAddress,
-          updateAuthority: this.walletAddress,
-        },
-        {
-          createMetadataAccountArgsV3: {
-            data: {
-              name: "",
-              symbol: "",
-              uri: "",
-              sellerFeeBasisPoints: 0,
-              creators: null,
-              collection: null,
-              uses: null,
-            },
-            isMutable: true,
-            collectionDetails: null,
-          },
-        },
-      ),
-      createSetAuthorityInstruction(
-        poolMintAddress,
-        this.walletAddress,
-        AuthorityType.MintTokens,
-        poolAuthorityAddress,
-      ),
-      createSetAuthorityInstruction(poolMintAddress, this.walletAddress, AuthorityType.FreezeAccount, null),
       SystemProgram.createAccount({
         fromPubkey: this.walletAddress,
         newAccountPubkey: poolAddress,

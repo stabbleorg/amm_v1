@@ -5,31 +5,31 @@ import { parseKey, parseKeypair } from "../utils";
 
 export function initialize(program: Command) {
   program
-    .command("slr-init")
-    .description("initialize slr")
+    .command("smart-init")
+    .description("initialize smart pool")
     .option("--pool-k-p <string>", "pool keypair", parseKeypair)
-    .requiredOption("--underlying-mint-k <string>", "underlying mint key", parseKey)
+    .requiredOption("--quote-mint-k <string>", "quote mint key", parseKey)
     .requiredOption("--max-liquidity <number>", "max liquidity")
     .action(
       async ({
         poolKP,
-        underlyingMintK,
+        quoteMintK,
         maxLiquidity,
       }: {
         poolKP?: Keypair;
-        underlyingMintK: PublicKey;
+        quoteMintK: PublicKey;
         maxLiquidity: string;
       }) => {
         const { sdk } = useContext();
 
-        const { tx, address } = await sdk.createSlrPoolAndAddress({
+        const { tx, address } = await sdk.createSmartPoolAndAddress({
           poolKP,
-          underlyingMintAddress: underlyingMintK,
+          quoteMintAddress: quoteMintK,
           maxLiquidity,
         });
 
         submitTX(tx);
-        console.log("SLR:", address.toBase58());
+        console.log("Pool:", address.toBase58());
       },
     );
 }

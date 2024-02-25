@@ -126,16 +126,12 @@ pub struct Withdraw<'info> {
 
     #[account(mut, has_one = vault)]
     pub pool: Account<'info, Pool>,
-    /// CHECK: OK
-    #[account(seeds = [Pool::AUTHORITY_PREFIX, pool.key().as_ref()], bump = pool.authority_bump)]
-    pub pool_authority: UncheckedAccount<'info>,
 
-    /// CHECK: OK
+    /// CHECK: signer & account checked in vault.withdraw
     pub withdraw_authority: UncheckedAccount<'info>,
 
-    #[account(has_one = withdraw_authority)]
     pub vault: Account<'info, Vault>,
-    /// CHECK: checked in vault program
+    /// CHECK: PDA checked in vault.withdraw
     pub vault_authority: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,

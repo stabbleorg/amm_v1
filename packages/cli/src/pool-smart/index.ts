@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { initialize } from "./initialize";
 
-export const setupSlrProgram = (program: Command) => {
+export const setupSmartPoolProgram = (program: Command) => {
   initialize(program);
 };

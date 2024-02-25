@@ -154,7 +154,6 @@ pub struct Swap<'info> {
     /// CHECK: OK
     pub withdraw_authority: UncheckedAccount<'info>,
 
-    #[account(has_one = withdraw_authority)]
     pub vault: Account<'info, Vault>,
     /// CHECK: checked in vault program
     pub vault_authority: UncheckedAccount<'info>,

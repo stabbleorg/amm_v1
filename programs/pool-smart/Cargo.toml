@@ -1,12 +1,12 @@
 [package]
-name = "slr"
-version = "1.1.0"
+name = "pool-smart"
+version = "1.2.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "slr"
+name = "pool_smart"
 
 [features]
 no-entrypoint = []
@@ -19,5 +19,6 @@ default = []
 [dependencies]
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
+vault = { path = "../vault", features = ["cpi"] }
 pool-stable = { path = "../pool-stable", features = ["cpi"] }
 pool-weighted = { path = "../pool-weighted", features = ["cpi"] }

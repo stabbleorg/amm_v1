@@ -1,9 +1,16 @@
 import { BN, Provider } from "@coral-xyz/anchor";
 import { Metaplex } from "@metaplex-foundation/js";
 import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
-import { MintLayout, TOKEN_PROGRAM_ID, createInitializeMint2Instruction, getMint } from "@solana/spl-token";
+import {
+  AuthorityType,
+  MintLayout,
+  TOKEN_PROGRAM_ID,
+  createInitializeMint2Instruction,
+  createSetAuthorityInstruction,
+  getMint,
+} from "@solana/spl-token";
 import { PublicKey, Keypair, TransactionInstruction, VersionedTransaction, SystemProgram } from "@solana/web3.js";
-import { StablePoolContext, WeightedPoolContext, VaultContext, SlrContext } from "./programs";
+import { VaultContext, StablePoolContext, WeightedPoolContext } from "./programs";
 import {
   BasePool,
   StablePool,
@@ -13,21 +20,19 @@ import {
   WeightedPoolData,
   WeightedPoolToken,
   Vault,
-  SlrPool,
 } from "./accounts";
 import { PoolKind } from "./consts";
 import { SafeNumber } from "./utils";
 
-export interface ProgramContexts<T extends Provider> {
-  slr: SlrContext<T>;
+export interface AmmContexts<T extends Provider> {
   vault: VaultContext<T>;
   stable: StablePoolContext<T>;
   weighted: WeightedPoolContext<T>;
 }
 
-export class SDKWrapper<T extends Provider> {
+export class Amm<T extends Provider> {
   constructor(
-    readonly contexts: ProgramContexts<T>,
+    readonly contexts: AmmContexts<T>,
     readonly vaults: Vault[] = [],
   ) {}
 
@@ -41,10 +46,6 @@ export class SDKWrapper<T extends Provider> {
 
   get ctxWeighted(): WeightedPoolContext<T> {
     return this.contexts.weighted;
-  }
-
-  get ctxSlr(): SlrContext<T> {
-    return this.contexts.slr;
   }
 
   async swap({
@@ -104,7 +105,7 @@ export class SDKWrapper<T extends Provider> {
     return this.ctxVault.newTX(ixs);
   }
 
-  async addLiquidity({
+  async deposit({
     pool,
     mintAddresses,
     amounts,
@@ -154,7 +155,7 @@ export class SDKWrapper<T extends Provider> {
     return this.ctxVault.newTX(ixs);
   }
 
-  async removeLiquidity({
+  async withdraw({
     pool,
     mintAddresses,
     amount,
@@ -216,17 +217,73 @@ export class SDKWrapper<T extends Provider> {
     const mints = await Promise.all(
       mintAddresses.map((address) => getMint(this.ctxWeighted.provider.connection, address)),
     );
-    const ixs = await this.ctxWeighted.initializeInstructions(
-      vaultAddress,
-      poolKP.publicKey,
-      poolMintKP.publicKey,
-      mintAddresses,
-      SafeNumber.toBps(swapFee),
-      weights.map((weight) => SafeNumber.toBps(weight)),
-      ticks
-        ? ticks.map((tickSize, index) => SafeNumber.toBigAmount(tickSize, mints[index].decimals))
-        : Array(mintAddresses.length).fill(new BN(1)),
-    );
+    const metadataAddress = Metaplex.make(this.ctxWeighted.provider.connection)
+      .nfts()
+      .pdas()
+      .metadata({ mint: poolMintKP.publicKey });
+
+    const ixs = [
+      SystemProgram.createAccount({
+        fromPubkey: this.ctxWeighted.walletAddress,
+        newAccountPubkey: poolMintKP.publicKey,
+        space: MintLayout.span,
+        lamports: await this.ctxWeighted.provider.connection.getMinimumBalanceForRentExemption(MintLayout.span),
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      createInitializeMint2Instruction(
+        poolMintKP.publicKey,
+        StablePool.POOL_TOKEN_DECIMALS,
+        this.ctxWeighted.walletAddress,
+        this.ctxWeighted.walletAddress,
+      ),
+      createCreateMetadataAccountV3Instruction(
+        {
+          metadata: metadataAddress,
+          mint: poolMintKP.publicKey,
+          mintAuthority: this.ctxWeighted.walletAddress,
+          payer: this.ctxWeighted.walletAddress,
+          updateAuthority: this.ctxWeighted.walletAddress,
+        },
+        {
+          createMetadataAccountArgsV3: {
+            data: {
+              name: "",
+              symbol: "",
+              uri: "",
+              sellerFeeBasisPoints: 0,
+              creators: null,
+              collection: null,
+              uses: null,
+            },
+            isMutable: true,
+            collectionDetails: null,
+          },
+        },
+      ),
+      createSetAuthorityInstruction(
+        poolMintKP.publicKey,
+        this.ctxWeighted.walletAddress,
+        AuthorityType.MintTokens,
+        this.ctxWeighted.findPoolAuthorityAddress(poolKP.publicKey),
+      ),
+      createSetAuthorityInstruction(
+        poolMintKP.publicKey,
+        this.ctxWeighted.walletAddress,
+        AuthorityType.FreezeAccount,
+        null,
+      ),
+      ...(await this.ctxWeighted.initializeInstructions(
+        vaultAddress,
+        poolKP.publicKey,
+        poolMintKP.publicKey,
+        mintAddresses,
+        SafeNumber.toBps(swapFee),
+        weights.map((weight) => SafeNumber.toBps(weight)),
+        ticks
+          ? ticks.map((tickSize, index) => SafeNumber.toBigAmount(tickSize, mints[index].decimals))
+          : Array(mintAddresses.length).fill(new BN(1)),
+      )),
+    ];
 
     const tx = await this.ctxWeighted.newTX(ixs);
     tx.sign([poolKP, poolMintKP]);
@@ -248,14 +305,70 @@ export class SDKWrapper<T extends Provider> {
     poolKP?: Keypair;
     poolMintKP?: Keypair;
   }): Promise<{ tx: VersionedTransaction; address: PublicKey }> {
-    const ixs = await this.ctxStable.initializeInstructions(
-      vaultAddress,
-      poolKP.publicKey,
-      poolMintKP.publicKey,
-      mintAddresses,
-      Math.floor(Number(amp)),
-      SafeNumber.toBps(swapFee),
-    );
+    const metadataAddress = Metaplex.make(this.ctxStable.provider.connection)
+      .nfts()
+      .pdas()
+      .metadata({ mint: poolMintKP.publicKey });
+
+    const ixs = [
+      SystemProgram.createAccount({
+        fromPubkey: this.ctxStable.walletAddress,
+        newAccountPubkey: poolMintKP.publicKey,
+        space: MintLayout.span,
+        lamports: await this.ctxStable.provider.connection.getMinimumBalanceForRentExemption(MintLayout.span),
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      createInitializeMint2Instruction(
+        poolMintKP.publicKey,
+        StablePool.POOL_TOKEN_DECIMALS,
+        this.ctxStable.walletAddress,
+        this.ctxStable.walletAddress,
+      ),
+      createCreateMetadataAccountV3Instruction(
+        {
+          metadata: metadataAddress,
+          mint: poolMintKP.publicKey,
+          mintAuthority: this.ctxStable.walletAddress,
+          payer: this.ctxStable.walletAddress,
+          updateAuthority: this.ctxStable.walletAddress,
+        },
+        {
+          createMetadataAccountArgsV3: {
+            data: {
+              name: "",
+              symbol: "",
+              uri: "",
+              sellerFeeBasisPoints: 0,
+              creators: null,
+              collection: null,
+              uses: null,
+            },
+            isMutable: true,
+            collectionDetails: null,
+          },
+        },
+      ),
+      createSetAuthorityInstruction(
+        poolMintKP.publicKey,
+        this.ctxStable.walletAddress,
+        AuthorityType.MintTokens,
+        this.ctxStable.findPoolAuthorityAddress(poolKP.publicKey),
+      ),
+      createSetAuthorityInstruction(
+        poolMintKP.publicKey,
+        this.ctxStable.walletAddress,
+        AuthorityType.FreezeAccount,
+        null,
+      ),
+      ...(await this.ctxStable.initializeInstructions(
+        vaultAddress,
+        poolKP.publicKey,
+        poolMintKP.publicKey,
+        mintAddresses,
+        Math.floor(Number(amp)),
+        SafeNumber.toBps(swapFee),
+      )),
+    ];
 
     const tx = await this.ctxStable.newTX(ixs);
     tx.sign([poolKP, poolMintKP]);
@@ -298,99 +411,5 @@ export class SDKWrapper<T extends Provider> {
     const tx = await this.ctxVault.newTX(ixs);
     tx.sign([vaultKP]);
     return { tx, address: vaultKP.publicKey };
-  }
-
-  async deposit({ pool, amount }: { pool: SlrPool; amount: number | string }): Promise<VersionedTransaction> {
-    const ixs = await this.ctxSlr.depositInstructions(
-      pool.address,
-      pool.mintAddress,
-      pool.underlyingMintAddress,
-      SafeNumber.toBigAmount(amount, pool.data.decimals),
-    );
-    return this.ctxSlr.newTX(ixs);
-  }
-
-  async withdraw({ pool, amount }: { pool: SlrPool; amount: number | string }): Promise<VersionedTransaction> {
-    const ixs = await this.ctxSlr.withdrawInstructions(
-      pool.address,
-      pool.mintAddress,
-      pool.underlyingMintAddress,
-      SafeNumber.toBigAmount(amount, pool.data.decimals),
-    );
-    return this.ctxSlr.newTX(ixs);
-  }
-
-  async createSlrPoolAndAddress({
-    underlyingMintAddress,
-    maxLiquidity,
-    poolKP = Keypair.generate(),
-    poolMintKP = Keypair.generate(),
-    name = "",
-    symbol = "",
-    uri = "",
-  }: {
-    underlyingMintAddress: PublicKey;
-    maxLiquidity: number | string;
-    poolKP?: Keypair;
-    poolMintKP?: Keypair;
-    name?: string;
-    symbol?: string;
-    uri?: string;
-  }): Promise<{ tx: VersionedTransaction; address: PublicKey }> {
-    const metadataAddress = Metaplex.make(this.ctxSlr.provider.connection)
-      .nfts()
-      .pdas()
-      .metadata({ mint: poolMintKP.publicKey });
-    const underlyingMint = await getMint(this.ctxSlr.provider.connection, underlyingMintAddress);
-
-    const ixs = [
-      SystemProgram.createAccount({
-        fromPubkey: this.ctxSlr.walletAddress,
-        newAccountPubkey: poolMintKP.publicKey,
-        space: MintLayout.span,
-        lamports: await this.ctxSlr.provider.connection.getMinimumBalanceForRentExemption(MintLayout.span),
-        programId: TOKEN_PROGRAM_ID,
-      }),
-      createInitializeMint2Instruction(
-        poolMintKP.publicKey,
-        underlyingMint.decimals,
-        this.ctxSlr.walletAddress,
-        this.ctxSlr.walletAddress,
-      ),
-      createCreateMetadataAccountV3Instruction(
-        {
-          metadata: metadataAddress,
-          mint: poolMintKP.publicKey,
-          mintAuthority: this.ctxSlr.walletAddress,
-          payer: this.ctxSlr.walletAddress,
-          updateAuthority: this.ctxSlr.walletAddress,
-        },
-        {
-          createMetadataAccountArgsV3: {
-            data: {
-              name,
-              symbol,
-              uri,
-              sellerFeeBasisPoints: 0,
-              creators: null,
-              collection: null,
-              uses: null,
-            },
-            isMutable: true,
-            collectionDetails: null,
-          },
-        },
-      ),
-      ...(await this.ctxSlr.initializeInstructions(
-        poolKP.publicKey,
-        poolMintKP.publicKey,
-        underlyingMintAddress,
-        SafeNumber.toBigAmount(maxLiquidity, underlyingMint.decimals),
-      )),
-    ];
-
-    const tx = await this.ctxSlr.newTX(ixs);
-    tx.sign([poolKP, poolMintKP]);
-    return { tx, address: poolKP.publicKey };
   }
 }

@@ -1,7 +1,12 @@
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { createAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { SlrContext, VaultContext, WeightedPoolContext, StablePoolContext, SDKWrapper } from "@stabbleorg/solana-sdk";
+import {
+  VaultContext,
+  WeightedPoolContext,
+  StablePoolContext,
+  Amm,
+} from "@stabbleorg/solana-sdk";
 import {
   weightedVaultKP,
   stableVaultKP,
@@ -17,12 +22,10 @@ import {
 
 describe("Vault", () => {
   const provider = AnchorProvider.env();
-  const ctxSlr = new SlrContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const sdk = new SDKWrapper({
-    slr: ctxSlr,
+  const amm = new Amm({
     vault: ctxVault,
     weighted: ctxWeighted,
     stable: ctxStable,
@@ -93,22 +96,22 @@ describe("Vault", () => {
   });
 
   it("should create vault for weighted pool", async () => {
-    const { tx } = await sdk.createVaultAndAddress({
+    const { tx } = await amm.createVaultAndAddress({
       beneficiaryAddress: beneficiaryKP.publicKey,
       beneficiaryFee: 0.22,
       poolKind: "weighted",
       vaultKP: weightedVaultKP,
     });
-    await sdk.ctxVault.provider.sendAndConfirm!(tx);
+    await amm.ctxVault.provider.sendAndConfirm!(tx);
   });
 
   it("should create vault for stable pool", async () => {
-    const { tx } = await sdk.createVaultAndAddress({
+    const { tx } = await amm.createVaultAndAddress({
       beneficiaryAddress: beneficiaryKP.publicKey,
       beneficiaryFee: "0.22",
       poolKind: "stable",
       vaultKP: stableVaultKP,
     });
-    await sdk.ctxVault.provider.sendAndConfirm!(tx);
+    await amm.ctxVault.provider.sendAndConfirm!(tx);
   });
 });

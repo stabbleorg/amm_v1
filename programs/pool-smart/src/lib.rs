@@ -1,4 +1,3 @@
-pub mod constants;
 pub mod error;
 pub mod located;
 pub mod processor;
@@ -13,7 +12,7 @@ declare_id!("88eN7xkpWwyCrtVAuhuKtVLkmuSEFv6MgTkpAodvpd31");
 declare_id!("FtmRXo2x8Re3PrzLebm7dqNKPoYSnXYBzU9toXeKCvAw");
 
 #[program]
-pub mod slr {
+pub mod pool_smart {
     use super::*;
 
     #[access_control(Initialize::validate(&ctx))]

@@ -3,21 +3,23 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct Pool {
-    pub authority_bump: u8,
-    pub decimals: u8,
-
+    // immutable
+    pub vault: Pubkey,
+    // immutable
     pub mint: Pubkey,
-    pub supply: u64,
-
-    pub underlying_mint: Pubkey,
+    // immutable
+    pub quote_mint: Pubkey,
+    // immutable
+    pub decimals: u8,
     pub liquidity: u64,
-    pub reserved_liquidity: u64,
-    pub locked_liquidity: u64,
     pub max_liquidity: u64,
+    pub is_active: bool,
+    // immutable
+    pub authority_bump: u8,
 }
 
 impl Pool {
-    pub const AUTHORITY_PREFIX: &'static [u8] = b"SLR Pool Authority";
+    pub const AUTHORITY_PREFIX: &'static [u8] = b"Smart Pool Authority";
 
     pub fn calc_new_supply(&self, total_supply: u64, amount_in: u64) -> u64 {
         if total_supply == 0 {
@@ -54,5 +56,38 @@ where
             &self.key().to_bytes(),
             &[self.as_ref().authority_bump],
         ])
+    }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct PoolUpdatedData {
+    pub liquidity: u64,
+    pub max_liquidity: u64,
+    pub is_active: bool,
+}
+
+#[event]
+pub struct PoolUpdatedEvent {
+    pub pubkey: Pubkey,
+    pub data: PoolUpdatedData,
+}
+
+pub trait EmitPoolUpdatedEvent {
+    fn emit_updated_event(&self);
+}
+
+impl<T> EmitPoolUpdatedEvent for T
+where
+    T: Located<Pool>,
+{
+    fn emit_updated_event(&self) {
+        emit!(PoolUpdatedEvent {
+            pubkey: self.key(),
+            data: PoolUpdatedData {
+                liquidity: self.as_ref().liquidity,
+                max_liquidity: self.as_ref().max_liquidity,
+                is_active: self.as_ref().is_active,
+            },
+        });
     }
 }
