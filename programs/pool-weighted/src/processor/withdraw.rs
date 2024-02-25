@@ -26,11 +26,17 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
             ctx.accounts.pool.get_swap_fee(),
         )?;
-        let ticks_out =
-            u64::try_from((balance_out * ctx.accounts.pool.tokens[token_index].multiplier as f64) as u128).unwrap();
-        let amount_out = ticks_out
-            .checked_mul(ctx.accounts.pool.tokens[token_index].tick)
-            .unwrap();
+        let ticks_out = (balance_out * ctx.accounts.pool.tokens[token_index].multiplier as f64) as u128;
+        let amount_out = u64::try_from(
+            ticks_out
+                .checked_mul(ctx.accounts.pool.tokens[token_index].tick as u128)
+                .unwrap()
+                .checked_div(ctx.accounts.pool.tokens[token_index].scaling_factor as u128)
+                .unwrap()
+                .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u128)
+                .unwrap(),
+        )
+        .unwrap();
         assert!(amount_out >= minimum_amounts_out[0]); // slippage
         vec![amount_out]
     } else {
@@ -43,12 +49,17 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             .iter()
             .enumerate()
             .map(|(token_index, &balance_out)| {
-                let ticks_out =
-                    u64::try_from((balance_out * ctx.accounts.pool.tokens[token_index].multiplier as f64) as u128)
-                        .unwrap();
-                let amount_out = ticks_out
-                    .checked_mul(ctx.accounts.pool.tokens[token_index].tick)
-                    .unwrap();
+                let ticks_out = (balance_out * ctx.accounts.pool.tokens[token_index].multiplier as f64) as u128;
+                let amount_out = u64::try_from(
+                    ticks_out
+                        .checked_mul(ctx.accounts.pool.tokens[token_index].tick as u128)
+                        .unwrap()
+                        .checked_div(ctx.accounts.pool.tokens[token_index].scaling_factor as u128)
+                        .unwrap()
+                        .checked_mul(ctx.accounts.pool.tokens[token_index].scaling_factor as u128)
+                        .unwrap(),
+                )
+                .unwrap();
                 assert!(amount_out >= minimum_amounts_out[token_index]); // slippage
                 amount_out
             })
@@ -130,11 +141,8 @@ pub struct Withdraw<'info> {
 
     #[account(mut, has_one = vault)]
     pub pool: Account<'info, Pool>,
-    /// CHECK: OK
-    #[account(seeds = [Pool::AUTHORITY_PREFIX, pool.key().as_ref()], bump = pool.authority_bump)]
-    pub pool_authority: UncheckedAccount<'info>,
 
-    /// CHECK: checked in vault program
+    /// CHECK: signer & account checked in vault.withdraw
     pub withdraw_authority: UncheckedAccount<'info>,
 
     pub vault: Account<'info, Vault>,

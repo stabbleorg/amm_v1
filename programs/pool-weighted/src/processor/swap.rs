@@ -49,29 +49,39 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
         ticks_in as f64 / ctx.accounts.pool.tokens[token_in_index].multiplier as f64,
     )?;
     let ticks_out_without_fee =
-        u64::try_from((amount_out_without_fee * ctx.accounts.pool.tokens[token_out_index].multiplier as f64) as u128)
-            .unwrap();
+        (amount_out_without_fee * ctx.accounts.pool.tokens[token_out_index].multiplier as f64) as u128;
 
-    let ticks_out = u64::try_from(
-        (Pool::FEE_PRECISION as u128)
-            .saturating_sub(ctx.accounts.pool.swap_fee as u128)
-            .checked_mul(ticks_out_without_fee as u128)
+    let ticks_out = (Pool::FEE_PRECISION as u128)
+        .saturating_sub(ctx.accounts.pool.swap_fee as u128)
+        .checked_mul(ticks_out_without_fee as u128)
+        .unwrap()
+        .checked_div(Pool::FEE_PRECISION as u128)
+        .unwrap();
+    let amount_out = u64::try_from(
+        ticks_out
+            .checked_mul(ctx.accounts.pool.tokens[token_out_index].tick as u128)
             .unwrap()
-            .checked_div(Pool::FEE_PRECISION as u128)
+            .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
+            .unwrap()
+            .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
             .unwrap(),
     )
     .unwrap();
-    let amount_out = ticks_out
-        .checked_mul(ctx.accounts.pool.tokens[token_out_index].tick)
-        .unwrap();
     assert!(amount_out >= minimum_amount_out); // slippage
 
     let swap_fee_ticks = ticks_out_without_fee.checked_sub(ticks_out).unwrap();
-    let beneficiary_fee_ticks = u64::try_from(
-        (swap_fee_ticks as u128)
-            .checked_mul(ctx.accounts.vault.beneficiary_fee as u128)
+    let beneficiary_fee_ticks = (swap_fee_ticks as u128)
+        .checked_mul(ctx.accounts.vault.beneficiary_fee as u128)
+        .unwrap()
+        .checked_div(Pool::FEE_PRECISION as u128)
+        .unwrap();
+    let beneficiary_fee_amount = u64::try_from(
+        beneficiary_fee_ticks
+            .checked_mul(ctx.accounts.pool.tokens[token_out_index].tick as u128)
             .unwrap()
-            .checked_div(Pool::FEE_PRECISION as u128)
+            .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
+            .unwrap()
+            .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
             .unwrap(),
     )
     .unwrap();
@@ -85,21 +95,20 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
         .checked_add(balance_in)
         .unwrap();
     // remove out token balance
-    let balance_out = ticks_out
-        .checked_add(beneficiary_fee_ticks)
-        .unwrap()
-        .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u64)
-        .unwrap();
+    let balance_out = u64::try_from(
+        ticks_out
+            .checked_add(beneficiary_fee_ticks)
+            .unwrap()
+            .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
+            .unwrap(),
+    )
+    .unwrap();
     ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index]
         .balance
         .checked_sub(balance_out)
         .unwrap();
 
     ctx.accounts.pool.emit_updated_event();
-
-    let beneficiary_fee_amount = beneficiary_fee_ticks
-        .checked_mul(ctx.accounts.pool.tokens[token_out_index].tick)
-        .unwrap();
 
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
         // transfer to user
