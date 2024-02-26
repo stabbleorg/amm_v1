@@ -5,9 +5,7 @@ import {
   VaultContext,
   WeightedPoolContext,
   StablePoolContext,
-  BasePool,
-  WeightedPoolToken,
-  StablePoolToken,
+  AmmPool,
   WeightedPoolListener,
   StablePoolListener,
   WeightedPool,
@@ -28,7 +26,7 @@ describe("Swap", () => {
   const listenerStable = new StablePoolListener(ctxStable.program);
 
   let amm: Amm<AnchorProvider>;
-  let pools: BasePool<WeightedPoolToken | StablePoolToken, WeightedPoolData | StablePoolData>[];
+  let pools: AmmPool[];
 
   before(async () => {
     await mintTo(
@@ -100,7 +98,7 @@ describe("Swap", () => {
     // slippage tolarance 0.3% (0.003)
     const minimumAmountOut = estAmountOut * (1 - 0.003);
 
-    const tx = await amm.swap({
+    const { tx } = await amm.swap({
       pool,
       mintInAddress,
       mintOutAddress,
@@ -146,7 +144,7 @@ describe("Swap", () => {
           getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
         );
 
-        const tx = await amm.swap({
+        const { tx } = await amm.swap({
           pool,
           mintInAddress,
           mintOutAddress,
@@ -163,7 +161,7 @@ describe("Swap", () => {
           SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
         );
       } else {
-        const tx = await amm.swap({
+        const { tx } = await amm.swap({
           pool,
           mintInAddress,
           mintOutAddress,

@@ -1,23 +1,8 @@
-import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import { BasePool, PoolToken, PoolTokenData, BasePoolData } from "./pool-base";
-import { BasicMath, SafeNumber, WeightedMath } from "../utils";
+import { AmmPool, WeightedPoolToken, WeightedPoolData } from "./base";
+import { BasicMath, SafeNumber, WeightedMath } from "../../utils";
 
-export interface WeightedPoolToken extends PoolToken {
-  balanceT: number;
-  tick: number;
-  weight: number; // UI BPS
-}
-
-export interface WeightedPoolTokenData extends PoolTokenData {
-  weight: number; // u16, BPS
-}
-
-export interface WeightedPoolData extends BasePoolData {
-  tokens: WeightedPoolTokenData[];
-}
-
-export class WeightedPool implements BasePool<WeightedPoolToken, WeightedPoolData> {
+export class WeightedPool implements AmmPool<WeightedPoolToken, WeightedPoolData> {
   static POOL_TOKEN_DECIMALS = 9;
   static POOL_TOKEN_SIZE = 32 + 1 + 2 + 4 + 4 + 8 + 8;
 
@@ -39,7 +24,7 @@ export class WeightedPool implements BasePool<WeightedPoolToken, WeightedPoolDat
   }
 
   get swapFee(): number {
-    return SafeNumber.toUiBps(this.data.swapFee);
+    return SafeNumber.toPercentage(this.data.swapFee);
   }
 
   get isActive(): boolean {
@@ -53,33 +38,8 @@ export class WeightedPool implements BasePool<WeightedPoolToken, WeightedPoolDat
       balanceT: SafeNumber.toUiAmount(token.balance, WeightedPool.POOL_TOKEN_DECIMALS),
       balance: SafeNumber.toUiAmount(token.balance.mul(token.tick), WeightedPool.POOL_TOKEN_DECIMALS),
       tick: token.tick.toNumber(),
-      weight: SafeNumber.toUiBps(token.weight),
+      weight: SafeNumber.toPercentage(token.weight),
     }));
-  }
-
-  getSpotPrice(tokenInAddress: PublicKey, tokenOutAddress: PublicKey): number {
-    // const tokenIn = this.tokens.find((token) => token.mintAddress.equals(tokenInAddress));
-    // if (!tokenIn) return 0;
-    // const tokenOut = this.tokens.find((token) => token.mintAddress.equals(tokenOutAddress));
-    // if (!tokenOut) return 0;
-    // return WeightedMath.calcSpotPrice(tokenIn.balance, tokenIn.weight, tokenOut.balance, tokenOut.weight, this.swapFee);
-    throw Error("Not Implemented");
-  }
-
-  getPostPrice(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {
-    // const tokenIn = this.tokens.find((token) => token.mintAddress.equals(tokenInAddress));
-    // if (!tokenIn) return 0;
-    // const tokenOut = this.tokens.find((token) => token.mintAddress.equals(tokenOutAddress));
-    // if (!tokenOut) return 0;
-    // return WeightedMath.calcPostPrice(
-    //   tokenIn.balance,
-    //   tokenIn.weight,
-    //   tokenOut.balance,
-    //   tokenOut.weight,
-    //   amountIn,
-    //   this.swapFee,
-    // );
-    throw Error("Not Implemented");
   }
 
   getEstAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {

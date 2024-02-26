@@ -9,9 +9,10 @@ import {
   createSetAuthorityInstruction,
   getMint,
 } from "@solana/spl-token";
-import { PublicKey, Keypair, VersionedTransaction, SystemProgram } from "@solana/web3.js";
+import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
 import { VaultContext, SmartPoolContext } from "./programs";
 import { SmartPool, Vault } from "./accounts";
+import { TransactionWithRecentBlock } from "./wallet";
 import { SafeNumber } from "./utils";
 
 export interface SmartContexts<T extends Provider> {
@@ -33,28 +34,30 @@ export class Smart<T extends Provider> {
     return this.contexts.smart;
   }
 
-  async deposit({ pool, amount }: { pool: SmartPool; amount: number | string }): Promise<VersionedTransaction> {
-    const ixs = await this.ctxSmart.depositInstructions(
-      pool.vaultAddress,
-      this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
-      pool.address,
-      pool.mintAddress,
-      pool.quoteMintAddress,
-      SafeNumber.toBigAmount(amount, pool.data.decimals),
-    );
+  async deposit({ pool, amount }: { pool: SmartPool; amount: number | string }): Promise<TransactionWithRecentBlock> {
+    const ixs = await this.ctxSmart.depositInstructions({
+      vaultAddress: pool.vaultAddress,
+      vaultAuthorityAddress: this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
+      poolAddress: pool.address,
+      poolMintAddress: pool.mintAddress,
+      quoteMintAddress: pool.quoteMintAddress,
+      amount: SafeNumber.toBigAmount(amount, pool.data.decimals),
+    });
+
     return this.ctxSmart.newTX(ixs);
   }
 
-  async withdraw({ pool, amount }: { pool: SmartPool; amount: number | string }): Promise<VersionedTransaction> {
-    const ixs = await this.ctxSmart.withdrawInstructions(
-      pool.vaultAddress,
-      this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
-      this.ctxVault.program.programId,
-      pool.address,
-      pool.mintAddress,
-      pool.quoteMintAddress,
-      SafeNumber.toBigAmount(amount, pool.data.decimals),
-    );
+  async withdraw({ pool, amount }: { pool: SmartPool; amount: number | string }): Promise<TransactionWithRecentBlock> {
+    const ixs = await this.ctxSmart.withdrawInstructions({
+      vaultAddress: pool.vaultAddress,
+      vaultAuthorityAddress: this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
+      vaultProgramAddress: this.ctxVault.program.programId,
+      poolAddress: pool.address,
+      poolMintAddress: pool.mintAddress,
+      quoteMintAddress: pool.quoteMintAddress,
+      amount: SafeNumber.toBigAmount(amount, pool.data.decimals),
+    });
+
     return this.ctxSmart.newTX(ixs);
   }
 
@@ -76,7 +79,7 @@ export class Smart<T extends Provider> {
     name?: string;
     symbol?: string;
     uri?: string;
-  }): Promise<{ tx: VersionedTransaction; address: PublicKey }> {
+  }): Promise<TransactionWithRecentBlock & { address: PublicKey }> {
     const metadataAddress = Metaplex.make(this.ctxSmart.provider.connection)
       .nfts()
       .pdas()
@@ -133,18 +136,19 @@ export class Smart<T extends Provider> {
         AuthorityType.FreezeAccount,
         null,
       ),
-      ...(await this.ctxSmart.initializeInstructions(
+      ...(await this.ctxSmart.initializeInstructions({
         vaultAddress,
-        poolKP.publicKey,
-        poolMintKP.publicKey,
+        poolAddress: poolKP.publicKey,
+        poolMintAddress: poolMintKP.publicKey,
         quoteMintAddress,
-        SafeNumber.toBigAmount(maxLiquidity, quoteMint.decimals),
-      )),
+        maxLiquidity: SafeNumber.toBigAmount(maxLiquidity, quoteMint.decimals),
+      })),
     ];
 
-    const tx = await this.ctxSmart.newTX(ixs);
-    tx.sign([poolKP, poolMintKP]);
-    return { tx, address: poolKP.publicKey };
+    const txRes = await this.ctxSmart.newTX(ixs);
+    txRes.tx.sign([poolKP, poolMintKP]);
+
+    return { ...txRes, address: poolKP.publicKey };
   }
 
   async createVaultAndAddress({
@@ -155,21 +159,22 @@ export class Smart<T extends Provider> {
     beneficiaryAddress: PublicKey;
     beneficiaryFee: number | string;
     vaultKP?: Keypair;
-  }): Promise<{ tx: VersionedTransaction; address: PublicKey }> {
+  }): Promise<TransactionWithRecentBlock & { address: PublicKey }> {
     const [withdrawAuthorityAddress, withdrawAuthorityBump] = this.ctxSmart.findWithdrawAuthorityAddressAndBump(
       vaultKP.publicKey,
     );
 
-    const ixs = await this.ctxVault.initializeInstructions(
-      vaultKP.publicKey,
+    const ixs = await this.ctxVault.initializeInstructions({
+      vaultAddress: vaultKP.publicKey,
       withdrawAuthorityAddress,
       withdrawAuthorityBump,
       beneficiaryAddress,
-      SafeNumber.toBps(beneficiaryFee),
-    );
+      beneficiaryFee: SafeNumber.toBasisPoints(beneficiaryFee),
+    });
 
-    const tx = await this.ctxVault.newTX(ixs);
-    tx.sign([vaultKP]);
-    return { tx, address: vaultKP.publicKey };
+    const txRes = await this.ctxVault.newTX(ixs);
+    txRes.tx.sign([vaultKP]);
+
+    return { ...txRes, address: vaultKP.publicKey };
   }
 }

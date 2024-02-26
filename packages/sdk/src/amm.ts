@@ -9,20 +9,13 @@ import {
   createSetAuthorityInstruction,
   getMint,
 } from "@solana/spl-token";
-import { PublicKey, Keypair, TransactionInstruction, VersionedTransaction, SystemProgram } from "@solana/web3.js";
+import { PublicKey, Keypair, TransactionInstruction, SystemProgram } from "@solana/web3.js";
 import { VaultContext, StablePoolContext, WeightedPoolContext } from "./programs";
-import {
-  BasePool,
-  StablePool,
-  StablePoolData,
-  StablePoolToken,
-  WeightedPool,
-  WeightedPoolData,
-  WeightedPoolToken,
-  Vault,
-} from "./accounts";
-import { PoolKind } from "./consts";
+import { AmmPool, StablePool, WeightedPool, Vault } from "./accounts";
+import { TransactionWithRecentBlock } from "./wallet";
 import { SafeNumber } from "./utils";
+
+export type PoolKind = "weighted" | "stable";
 
 export interface AmmContexts<T extends Provider> {
   vault: VaultContext<T>;
@@ -55,14 +48,14 @@ export class Amm<T extends Provider> {
     amountIn,
     minimumAmountOut = 0,
   }: {
-    pool: BasePool<WeightedPoolToken | StablePoolToken, WeightedPoolData | StablePoolData>;
+    pool: AmmPool;
     mintInAddress: PublicKey;
     mintOutAddress: PublicKey;
     amountIn: number | string;
     minimumAmountOut?: number | string;
-  }): Promise<VersionedTransaction> {
+  }): Promise<TransactionWithRecentBlock> {
     const vault = this.vaults.find((v) => v.address.equals(pool.vaultAddress));
-    if (!vault) throw Error("Unkown vault");
+    if (!vault) throw Error("Unknown swap");
     const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintInAddress));
     if (!tokenIn) throw Error("Invalid token input");
     const tokenOut = pool.tokens.find((token) => token.mintAddress.equals(mintOutAddress));
@@ -72,34 +65,34 @@ export class Amm<T extends Provider> {
 
     if (pool instanceof WeightedPool) {
       ixs.push(
-        ...(await this.ctxWeighted.swapInstructions(
-          vault.beneficiaryAddress,
-          vault.address,
-          this.ctxVault.findVaultAuthorityAddress(vault.address),
-          this.ctxVault.program.programId,
-          pool.address,
+        ...(await this.ctxWeighted.swapInstructions({
+          beneficiaryAddress: vault.beneficiaryAddress,
+          vaultAddress: vault.address,
+          vaultAuthorityAddress: this.ctxVault.findVaultAuthorityAddress(vault.address),
+          vaultProgramAddress: this.ctxVault.program.programId,
+          poolAddress: pool.address,
           mintInAddress,
           mintOutAddress,
-          SafeNumber.toBigAmount(amountIn, tokenIn.decimals),
-          SafeNumber.toBigAmount(minimumAmountOut, tokenOut.decimals),
-        )),
+          amountIn: SafeNumber.toBigAmount(amountIn, tokenIn.decimals),
+          minimumAmountOut: SafeNumber.toBigAmount(minimumAmountOut, tokenOut.decimals),
+        })),
       );
     } else if (pool instanceof StablePool) {
       ixs.push(
-        ...(await this.ctxStable.swapInstructions(
-          vault.beneficiaryAddress,
-          vault.address,
-          this.ctxVault.findVaultAuthorityAddress(vault.address),
-          this.ctxVault.program.programId,
-          pool.address,
+        ...(await this.ctxStable.swapInstructions({
+          beneficiaryAddress: vault.beneficiaryAddress,
+          vaultAddress: vault.address,
+          vaultAuthorityAddress: this.ctxVault.findVaultAuthorityAddress(vault.address),
+          vaultProgramAddress: this.ctxVault.program.programId,
+          poolAddress: pool.address,
           mintInAddress,
           mintOutAddress,
-          SafeNumber.toBigAmount(amountIn, tokenIn.decimals),
-          SafeNumber.toBigAmount(minimumAmountOut, tokenOut.decimals),
-        )),
+          amountIn: SafeNumber.toBigAmount(amountIn, tokenIn.decimals),
+          minimumAmountOut: SafeNumber.toBigAmount(minimumAmountOut, tokenOut.decimals),
+        })),
       );
     } else {
-      throw Error("Unknown pool");
+      throw Error("Unknown swap");
     }
 
     return this.ctxVault.newTX(ixs);
@@ -110,43 +103,45 @@ export class Amm<T extends Provider> {
     mintAddresses,
     amounts,
   }: {
-    pool: BasePool<WeightedPoolToken | StablePoolToken, WeightedPoolData | StablePoolData>;
+    pool: AmmPool;
     mintAddresses: PublicKey[];
     amounts: (string | number)[];
-  }): Promise<VersionedTransaction> {
+  }): Promise<TransactionWithRecentBlock> {
     const ixs: TransactionInstruction[] = [];
 
     if (pool instanceof WeightedPool) {
       ixs.push(
-        ...(await this.ctxWeighted.depositInstructions(
-          pool.vaultAddress,
-          this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
-          pool.address,
-          pool.mintAddress,
+        ...(await this.ctxWeighted.depositInstructions({
+          vaultAddress: pool.vaultAddress,
+          vaultAuthorityAddress: this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
+          poolAddress: pool.address,
+          poolMintAddress: pool.mintAddress,
           mintAddresses,
-          amounts.map((amount, index) =>
+          amounts: amounts.map((amount, index) =>
             SafeNumber.toBigAmount(
               amount,
               pool.tokens.find((token) => token.mintAddress.equals(mintAddresses[index]))!.decimals,
             ),
           ),
-        )),
+          minimumAmountOut: new BN(0),
+        })),
       );
     } else if (pool instanceof StablePool) {
       ixs.push(
-        ...(await this.ctxStable.depositInstructions(
-          pool.vaultAddress,
-          this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
-          pool.address,
-          pool.mintAddress,
+        ...(await this.ctxStable.depositInstructions({
+          vaultAddress: pool.vaultAddress,
+          vaultAuthorityAddress: this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
+          poolAddress: pool.address,
+          poolMintAddress: pool.mintAddress,
           mintAddresses,
-          amounts.map((amount, index) =>
+          amounts: amounts.map((amount, index) =>
             SafeNumber.toBigAmount(
               amount,
               pool.tokens.find((token) => token.mintAddress.equals(mintAddresses[index]))!.decimals,
             ),
           ),
-        )),
+          minimumAmountOut: new BN(0),
+        })),
       );
     } else {
       throw Error("Unknown pool");
@@ -160,35 +155,37 @@ export class Amm<T extends Provider> {
     mintAddresses,
     amount,
   }: {
-    pool: BasePool<WeightedPoolToken | StablePoolToken, WeightedPoolData | StablePoolData>;
+    pool: AmmPool;
     mintAddresses: PublicKey[];
     amount: string | number;
-  }): Promise<VersionedTransaction> {
+  }): Promise<TransactionWithRecentBlock> {
     const ixs: TransactionInstruction[] = [];
 
     if (pool instanceof WeightedPool) {
       ixs.push(
-        ...(await this.ctxWeighted.withdrawInstructions(
-          pool.vaultAddress,
-          this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
-          this.ctxVault.program.programId,
-          pool.address,
-          pool.mintAddress,
+        ...(await this.ctxWeighted.withdrawInstructions({
+          vaultAddress: pool.vaultAddress,
+          vaultAuthorityAddress: this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
+          vaultProgramAddress: this.ctxVault.program.programId,
+          poolAddress: pool.address,
+          poolMintAddress: pool.mintAddress,
           mintAddresses,
-          SafeNumber.toBigAmount(amount, WeightedPool.POOL_TOKEN_DECIMALS),
-        )),
+          amount: SafeNumber.toBigAmount(amount, WeightedPool.POOL_TOKEN_DECIMALS),
+          minimumAmountsOut: [],
+        })),
       );
     } else if (pool instanceof StablePool) {
       ixs.push(
-        ...(await this.ctxStable.withdrawInstructions(
-          pool.vaultAddress,
-          this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
-          this.ctxVault.program.programId,
-          pool.address,
-          pool.mintAddress,
+        ...(await this.ctxStable.withdrawInstructions({
+          vaultAddress: pool.vaultAddress,
+          vaultAuthorityAddress: this.ctxVault.findVaultAuthorityAddress(pool.vaultAddress),
+          vaultProgramAddress: this.ctxVault.program.programId,
+          poolAddress: pool.address,
+          poolMintAddress: pool.mintAddress,
           mintAddresses,
-          SafeNumber.toBigAmount(amount, StablePool.POOL_TOKEN_DECIMALS),
-        )),
+          amount: SafeNumber.toBigAmount(amount, StablePool.POOL_TOKEN_DECIMALS),
+          minimumAmountsOut: [],
+        })),
       );
     } else {
       throw Error("Unknown pool");
@@ -205,6 +202,9 @@ export class Amm<T extends Provider> {
     ticks,
     poolKP = Keypair.generate(),
     poolMintKP = Keypair.generate(),
+    name = "",
+    symbol = "",
+    uri = "",
   }: {
     vaultAddress: PublicKey;
     mintAddresses: PublicKey[];
@@ -213,7 +213,10 @@ export class Amm<T extends Provider> {
     ticks?: (number | string)[];
     poolKP?: Keypair;
     poolMintKP?: Keypair;
-  }): Promise<{ tx: VersionedTransaction; address: PublicKey }> {
+    name?: string;
+    symbol?: string;
+    uri?: string;
+  }): Promise<TransactionWithRecentBlock & { address: PublicKey }> {
     const mints = await Promise.all(
       mintAddresses.map((address) => getMint(this.ctxWeighted.provider.connection, address)),
     );
@@ -247,9 +250,9 @@ export class Amm<T extends Provider> {
         {
           createMetadataAccountArgsV3: {
             data: {
-              name: "",
-              symbol: "",
-              uri: "",
+              name,
+              symbol,
+              uri,
               sellerFeeBasisPoints: 0,
               creators: null,
               collection: null,
@@ -272,22 +275,23 @@ export class Amm<T extends Provider> {
         AuthorityType.FreezeAccount,
         null,
       ),
-      ...(await this.ctxWeighted.initializeInstructions(
+      ...(await this.ctxWeighted.initializeInstructions({
         vaultAddress,
-        poolKP.publicKey,
-        poolMintKP.publicKey,
+        poolAddress: poolKP.publicKey,
+        poolMintAddress: poolMintKP.publicKey,
         mintAddresses,
-        SafeNumber.toBps(swapFee),
-        weights.map((weight) => SafeNumber.toBps(weight)),
-        ticks
+        swapFee: SafeNumber.toBasisPoints(swapFee),
+        weights: weights.map((weight) => SafeNumber.toBasisPoints(weight)),
+        ticks: ticks
           ? ticks.map((tickSize, index) => SafeNumber.toBigAmount(tickSize, mints[index].decimals))
           : Array(mintAddresses.length).fill(new BN(1)),
-      )),
+      })),
     ];
 
-    const tx = await this.ctxWeighted.newTX(ixs);
-    tx.sign([poolKP, poolMintKP]);
-    return { tx, address: poolKP.publicKey };
+    const txRes = await this.ctxWeighted.newTX(ixs);
+    txRes.tx.sign([poolKP, poolMintKP]);
+
+    return { ...txRes, address: poolKP.publicKey };
   }
 
   async createStablePoolAndAddress({
@@ -297,6 +301,9 @@ export class Amm<T extends Provider> {
     swapFee,
     poolKP = Keypair.generate(),
     poolMintKP = Keypair.generate(),
+    name = "",
+    symbol = "",
+    uri = "",
   }: {
     vaultAddress: PublicKey;
     mintAddresses: PublicKey[];
@@ -304,7 +311,10 @@ export class Amm<T extends Provider> {
     swapFee: number | string;
     poolKP?: Keypair;
     poolMintKP?: Keypair;
-  }): Promise<{ tx: VersionedTransaction; address: PublicKey }> {
+    name?: string;
+    symbol?: string;
+    uri?: string;
+  }): Promise<TransactionWithRecentBlock & { address: PublicKey }> {
     const metadataAddress = Metaplex.make(this.ctxStable.provider.connection)
       .nfts()
       .pdas()
@@ -335,9 +345,9 @@ export class Amm<T extends Provider> {
         {
           createMetadataAccountArgsV3: {
             data: {
-              name: "",
-              symbol: "",
-              uri: "",
+              name,
+              symbol,
+              uri,
               sellerFeeBasisPoints: 0,
               creators: null,
               collection: null,
@@ -360,19 +370,20 @@ export class Amm<T extends Provider> {
         AuthorityType.FreezeAccount,
         null,
       ),
-      ...(await this.ctxStable.initializeInstructions(
+      ...(await this.ctxStable.initializeInstructions({
         vaultAddress,
-        poolKP.publicKey,
-        poolMintKP.publicKey,
+        poolAddress: poolKP.publicKey,
+        poolMintAddress: poolMintKP.publicKey,
         mintAddresses,
-        Math.floor(Number(amp)),
-        SafeNumber.toBps(swapFee),
-      )),
+        amp: Math.floor(Number(amp)),
+        swapFee: SafeNumber.toBasisPoints(swapFee),
+      })),
     ];
 
-    const tx = await this.ctxStable.newTX(ixs);
-    tx.sign([poolKP, poolMintKP]);
-    return { tx, address: poolKP.publicKey };
+    const txRes = await this.ctxStable.newTX(ixs);
+    txRes.tx.sign([poolKP, poolMintKP]);
+
+    return { ...txRes, address: poolKP.publicKey };
   }
 
   async createVaultAndAddress({
@@ -385,7 +396,7 @@ export class Amm<T extends Provider> {
     beneficiaryFee: number | string;
     poolKind: PoolKind;
     vaultKP?: Keypair;
-  }): Promise<{ tx: VersionedTransaction; address: PublicKey }> {
+  }): Promise<TransactionWithRecentBlock & { address: PublicKey }> {
     let withdrawAuthorityAddress: PublicKey;
     let withdrawAuthorityBump: number;
     if (poolKind === "weighted") {
@@ -400,16 +411,17 @@ export class Amm<T extends Provider> {
       throw Error("Unknown pool kind");
     }
 
-    const ixs = await this.ctxVault.initializeInstructions(
-      vaultKP.publicKey,
+    const ixs = await this.ctxVault.initializeInstructions({
+      vaultAddress: vaultKP.publicKey,
       withdrawAuthorityAddress,
       withdrawAuthorityBump,
       beneficiaryAddress,
-      SafeNumber.toBps(beneficiaryFee),
-    );
+      beneficiaryFee: SafeNumber.toBasisPoints(beneficiaryFee),
+    });
 
-    const tx = await this.ctxVault.newTX(ixs);
-    tx.sign([vaultKP]);
-    return { tx, address: vaultKP.publicKey };
+    const txRes = await this.ctxVault.newTX(ixs);
+    txRes.tx.sign([vaultKP]);
+
+    return { ...txRes, address: vaultKP.publicKey };
   }
 }

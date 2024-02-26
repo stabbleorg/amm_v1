@@ -62,7 +62,7 @@ export function distribute(program: Command) {
         );
         if (index % BATCH_SIZE === 0 || index === items.length) {
           console.log("Batch #:", Math.ceil(index / BATCH_SIZE));
-          const tx = await amm.ctxVault.newTX(ixs);
+          const { tx } = await amm.ctxVault.newTX(ixs);
           const signature = await provider.sendAndConfirm(tx);
           console.log("Signature:", signature);
           ixs = [];

@@ -19,4 +19,5 @@ export const stableVaultKP = Keypair.generate();
 export const stableN2PoolKP = Keypair.generate();
 export const stableN3PoolKP = Keypair.generate();
 
+export const smartVaultKP = Keypair.generate();
 export const usdcPoolKP = Keypair.generate();

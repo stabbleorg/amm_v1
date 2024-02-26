@@ -28,7 +28,7 @@ export function changeSwapFee(program: Command) {
       const { sdk } = useContext();
 
       const tx = await sdk.ctxWeighted.newTX(
-        await sdk.ctxWeighted.changeSwapFeeInstructions(poolK, SafeNumber.toBps(newSwapFee)),
+        await sdk.ctxWeighted.changeSwapFeeInstructions(poolK, SafeNumber.toBasisPoints(newSwapFee)),
       );
 
       submitTX(tx);

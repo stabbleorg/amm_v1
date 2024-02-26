@@ -3,9 +3,8 @@ import { Program, Provider } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { type PoolStable as IDLType, IDL } from "../generated/pool_stable";
-import { WalletContext } from "../wallet";
 import { StablePool, StablePoolData } from "../accounts";
-import { DataUpdatedEvent, SIMULATED_SIGNATURE } from "../consts";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "../wallet";
 
 export type StablePoolProgram = Program<IDLType>;
 
@@ -59,20 +58,30 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
         },
       },
     ]);
-    return accounts.map((account) => new StablePool(account.publicKey, account.account));
+    return accounts.map((data) => new StablePool(data.publicKey, data.account));
   }
 
-  async swapInstructions(
-    beneficiaryAddress: PublicKey,
-    vaultAddress: PublicKey,
-    vaultAuthorityAddress: PublicKey,
-    vaultProgramAddress: PublicKey,
-    poolAddress: PublicKey,
-    mintInAddress: PublicKey,
-    mintOutAddress: PublicKey,
-    amountIn: BN,
-    minimumAmountOut: BN = new BN(0),
-  ): Promise<TransactionInstruction[]> {
+  async swapInstructions({
+    beneficiaryAddress,
+    vaultAddress,
+    vaultAuthorityAddress,
+    vaultProgramAddress,
+    poolAddress,
+    mintInAddress,
+    mintOutAddress,
+    amountIn,
+    minimumAmountOut,
+  }: {
+    beneficiaryAddress: PublicKey;
+    vaultAddress: PublicKey;
+    vaultAuthorityAddress: PublicKey;
+    vaultProgramAddress: PublicKey;
+    poolAddress: PublicKey;
+    mintInAddress: PublicKey;
+    mintOutAddress: PublicKey;
+    amountIn: BN;
+    minimumAmountOut: BN;
+  }): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
 
     const { address: userTokenOutAddress, instruction: userTokenOutInstruction } =
@@ -106,15 +115,23 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     return instructions;
   }
 
-  async depositInstructions(
-    vaultAddress: PublicKey,
-    vaultAuthorityAddress: PublicKey,
-    poolAddress: PublicKey,
-    poolMintAddress: PublicKey,
-    mintAddresses: PublicKey[],
-    amounts: BN[],
-    minimumAmountOut: BN = new BN(0),
-  ): Promise<TransactionInstruction[]> {
+  async depositInstructions({
+    vaultAddress,
+    vaultAuthorityAddress,
+    poolAddress,
+    poolMintAddress,
+    mintAddresses,
+    amounts,
+    minimumAmountOut,
+  }: {
+    vaultAddress: PublicKey;
+    vaultAuthorityAddress: PublicKey;
+    poolAddress: PublicKey;
+    poolMintAddress: PublicKey;
+    mintAddresses: PublicKey[];
+    amounts: BN[];
+    minimumAmountOut: BN;
+  }): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
@@ -154,16 +171,25 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     return instructions;
   }
 
-  async withdrawInstructions(
-    vaultAddress: PublicKey,
-    vaultAuthorityAddress: PublicKey,
-    vaultProgramAddress: PublicKey,
-    poolAddress: PublicKey,
-    poolMintAddress: PublicKey,
-    mintAddresses: PublicKey[],
-    amount: BN,
-    minimumAmountsOut: BN[] = [],
-  ): Promise<TransactionInstruction[]> {
+  async withdrawInstructions({
+    vaultAddress,
+    vaultAuthorityAddress,
+    vaultProgramAddress,
+    poolAddress,
+    poolMintAddress,
+    mintAddresses,
+    amount,
+    minimumAmountsOut,
+  }: {
+    vaultAddress: PublicKey;
+    vaultAuthorityAddress: PublicKey;
+    vaultProgramAddress: PublicKey;
+    poolAddress: PublicKey;
+    poolMintAddress: PublicKey;
+    mintAddresses: PublicKey[];
+    amount: BN;
+    minimumAmountsOut: BN[];
+  }): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
@@ -205,14 +231,21 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     return instructions;
   }
 
-  async initializeInstructions(
-    vaultAddress: PublicKey,
-    poolAddress: PublicKey,
-    poolMintAddress: PublicKey,
-    mintAddresses: PublicKey[],
-    amp: number,
-    swapFee: number,
-  ): Promise<TransactionInstruction[]> {
+  async initializeInstructions({
+    vaultAddress,
+    poolAddress,
+    poolMintAddress,
+    mintAddresses,
+    amp,
+    swapFee,
+  }: {
+    vaultAddress: PublicKey;
+    poolAddress: PublicKey;
+    poolMintAddress: PublicKey;
+    mintAddresses: PublicKey[];
+    amp: number;
+    swapFee: number;
+  }): Promise<TransactionInstruction[]> {
     const poolAccountSize = this.program.account.pool.size + StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
 
@@ -249,7 +282,7 @@ export class StablePoolListener {
     this.removePoolListener();
     this._listener = this.program.addEventListener(
       "PoolUpdatedEvent",
-      (event: DataUpdatedEvent<Partial<StablePoolData>>, slot: number, signature: TransactionSignature) => {
+      (event: DataUpdatedEvent<Partial<StablePoolData>>, _slot: number, signature: TransactionSignature) => {
         if (signature !== SIMULATED_SIGNATURE) {
           callback(event);
         }

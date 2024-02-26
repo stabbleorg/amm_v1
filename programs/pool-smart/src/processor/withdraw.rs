@@ -27,7 +27,7 @@ pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
         withdraw_vault(
             CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.vault_program.to_account_info(),
                 WithdrawVault {
                     withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
                     vault: ctx.accounts.vault.to_account_info(),

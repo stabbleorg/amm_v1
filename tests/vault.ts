@@ -5,7 +5,9 @@ import {
   VaultContext,
   WeightedPoolContext,
   StablePoolContext,
+  SmartPoolContext,
   Amm,
+  Smart,
 } from "@stabbleorg/solana-sdk";
 import {
   weightedVaultKP,
@@ -18,6 +20,7 @@ import {
   stbMintKP,
   sbrMintKP,
   bonkMintKP,
+  smartVaultKP,
 } from "./consts";
 
 describe("Vault", () => {
@@ -25,14 +28,22 @@ describe("Vault", () => {
   const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const ctxSmart = new SmartPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+
   const amm = new Amm({
     vault: ctxVault,
     weighted: ctxWeighted,
     stable: ctxStable,
   });
+  const smart = new Smart({
+    vault: ctxVault,
+    smart: ctxSmart,
+  });
 
   before(async () => {
-    await ctxVault.confirmTX(await provider.connection.requestAirdrop(ctxVault.walletAddress, LAMPORTS_PER_SOL));
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(ctxVault.walletAddress, LAMPORTS_PER_SOL),
+    );
 
     await createMint(provider.connection, adminKP, adminKP.publicKey, null, 6, usdcMintKP);
     await mintTo(
@@ -111,6 +122,15 @@ describe("Vault", () => {
       beneficiaryFee: "0.22",
       poolKind: "stable",
       vaultKP: stableVaultKP,
+    });
+    await amm.ctxVault.provider.sendAndConfirm!(tx);
+  });
+
+  it("should create vault for smart pool", async () => {
+    const { tx } = await smart.createVaultAndAddress({
+      beneficiaryAddress: beneficiaryKP.publicKey,
+      beneficiaryFee: 0.14,
+      vaultKP: smartVaultKP,
     });
     await amm.ctxVault.provider.sendAndConfirm!(tx);
   });

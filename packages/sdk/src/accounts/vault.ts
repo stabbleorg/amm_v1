@@ -30,7 +30,7 @@ export class Vault {
   }
 
   get beneficiaryFee(): number {
-    return SafeNumber.toUiBps(this.data.beneficiaryFee);
+    return SafeNumber.toPercentage(this.data.beneficiaryFee);
   }
 
   get isActive(): boolean {

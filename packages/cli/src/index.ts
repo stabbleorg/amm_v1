@@ -2,12 +2,7 @@ import type { Command } from "commander";
 import { program } from "commander";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-import {
-  VaultContext,
-  WeightedPoolContext,
-  StablePoolContext,
-  Amm,
-} from "@stabbleorg/solana-sdk";
+import { VaultContext, WeightedPoolContext, StablePoolContext, Amm } from "@stabbleorg/solana-sdk";
 import { setContext, useContext, processTX } from "./context";
 import { setupVaultProgram } from "./vault";
 import { setupWeightedPoolProgram } from "./pool-weighted";

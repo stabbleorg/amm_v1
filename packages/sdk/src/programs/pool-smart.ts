@@ -3,9 +3,8 @@ import { Program, Provider } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { type PoolSmart as IDLType, IDL } from "../generated/pool_smart";
-import { WalletContext } from "../wallet";
 import { SmartPool, SmartPoolData } from "../accounts";
-import { DataUpdatedEvent, SIMULATED_SIGNATURE } from "../consts";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "../wallet";
 
 export type SmartPoolProgram = Program<IDLType>;
 
@@ -16,7 +15,7 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
     super(provider);
     this.program = new Program(
       IDL,
-      programId || new PublicKey("FtmRXo2x8Re3PrzLebm7dqNKPoYSnXYBzU9toXeKCvAw"),
+      programId || new PublicKey("smpDKqHRt79KZPjWNC1UK5UWrrRv5avn9NqU6y2HJPT"),
       provider,
     );
   }
@@ -48,14 +47,21 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
     return (await this.program.account.pool.all()).map((data) => new SmartPool(data.publicKey, data.account));
   }
 
-  async depositInstructions(
-    vaultAddress: PublicKey,
-    vaultAuthorityAddress: PublicKey,
-    poolAddress: PublicKey,
-    poolMintAddress: PublicKey,
-    quoteMintAddress: PublicKey,
-    amount: BN,
-  ): Promise<TransactionInstruction[]> {
+  async depositInstructions({
+    vaultAddress,
+    vaultAuthorityAddress,
+    poolAddress,
+    poolMintAddress,
+    quoteMintAddress,
+    amount,
+  }: {
+    vaultAddress: PublicKey;
+    vaultAuthorityAddress: PublicKey;
+    poolAddress: PublicKey;
+    poolMintAddress: PublicKey;
+    quoteMintAddress: PublicKey;
+    amount: BN;
+  }): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
 
     const { address: userPoolTokenAddress, instruction: userPoolTokenInstruction } =
@@ -87,15 +93,23 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
     return instructions;
   }
 
-  async withdrawInstructions(
-    vaultAddress: PublicKey,
-    vaultAuthorityAddress: PublicKey,
-    vaultProgramAddress: PublicKey,
-    poolAddress: PublicKey,
-    poolMintAddress: PublicKey,
-    quoteMintAddress: PublicKey,
-    amount: BN,
-  ): Promise<TransactionInstruction[]> {
+  async withdrawInstructions({
+    vaultAddress,
+    vaultAuthorityAddress,
+    vaultProgramAddress,
+    poolAddress,
+    poolMintAddress,
+    quoteMintAddress,
+    amount,
+  }: {
+    vaultAddress: PublicKey;
+    vaultAuthorityAddress: PublicKey;
+    vaultProgramAddress: PublicKey;
+    poolAddress: PublicKey;
+    poolMintAddress: PublicKey;
+    quoteMintAddress: PublicKey;
+    amount: BN;
+  }): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
 
     const { address: userQuoteTokenAddress, instruction: userQuoteTokenInstruction } =
@@ -112,6 +126,7 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
           vaultQuoteToken: this.getAssociatedTokenAddress(quoteMintAddress, vaultAuthorityAddress),
           mint: poolMintAddress,
           pool: poolAddress,
+          withdrawAuthority: this.findWithdrawAuthorityAddress(vaultAddress),
           vault: vaultAddress,
           vaultAuthority: vaultAuthorityAddress,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -123,14 +138,20 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
     return instructions;
   }
 
-  async initializeInstructions(
-    vaultAddress: PublicKey,
-    poolAddress: PublicKey,
-    poolMintAddress: PublicKey,
-    quoteMintAddress: PublicKey,
-    maxLiquidity: BN,
-  ): Promise<TransactionInstruction[]> {
-    const poolAccountSize = this.program.account.pool.size + 200;
+  async initializeInstructions({
+    vaultAddress,
+    poolAddress,
+    poolMintAddress,
+    quoteMintAddress,
+    maxLiquidity,
+  }: {
+    vaultAddress: PublicKey;
+    poolAddress: PublicKey;
+    poolMintAddress: PublicKey;
+    quoteMintAddress: PublicKey;
+    maxLiquidity: BN;
+  }): Promise<TransactionInstruction[]> {
+    const poolAccountSize = this.program.account.pool.size;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
 
     const instructions = [
@@ -149,6 +170,7 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
           quoteMint: quoteMintAddress,
           pool: poolAddress,
           poolAuthority: poolAuthorityAddress,
+          withdrawAuthority: this.findWithdrawAuthorityAddress(vaultAddress),
           vault: vaultAddress,
         })
         .instruction(),
@@ -167,7 +189,7 @@ export class SmartPoolListener {
     this.removePoolListener();
     this._listener = this.program.addEventListener(
       "PoolUpdatedEvent",
-      (event: DataUpdatedEvent<Partial<SmartPoolData>>, slot: number, signature: TransactionSignature) => {
+      (event: DataUpdatedEvent<Partial<SmartPoolData>>, _slot: number, signature: TransactionSignature) => {
         if (signature !== SIMULATED_SIGNATURE) {
           callback(event);
         }

@@ -56,3 +56,15 @@ where
         ])
     }
 }
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct VaultUpdatedData {
+    pub beneficiary_fee: u16,
+    pub is_active: bool,
+}
+
+#[event]
+pub struct VaultUpdatedEvent {
+    pub pubkey: Pubkey,
+    pub data: VaultUpdatedData,
+}
