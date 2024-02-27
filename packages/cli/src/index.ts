@@ -2,15 +2,23 @@ import type { Command } from "commander";
 import { program } from "commander";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-import { VaultContext, WeightedPoolContext, StablePoolContext, Amm } from "@stabbleorg/solana-sdk";
+import {
+  VaultContext,
+  WeightedPoolContext,
+  StablePoolContext,
+  SmartPoolContext,
+  Amm,
+  Smart,
+} from "@stabbleorg/solana-sdk";
 import { setContext, useContext, processTX } from "./context";
 import { setupVaultProgram } from "./vault";
 import { setupWeightedPoolProgram } from "./pool-weighted";
 import { setupStablePoolProgram } from "./pool-stable";
+import { setupSmartPoolProgram } from "./pool-smart";
 import { parseKeypair } from "./utils";
 
 program
-  .version("1.2.0")
+  .version("1.2.2")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
   .option("-s, --simulate", "simulate transaction")
@@ -37,6 +45,10 @@ program
         weighted: new WeightedPoolContext(provider),
         stable: new StablePoolContext(provider),
       }),
+      smart: new Smart({
+        vault: new VaultContext(provider),
+        smart: new SmartPoolContext(provider),
+      }),
       provider,
       simulate: Boolean(simulate),
     });
@@ -45,6 +57,7 @@ program
 setupVaultProgram(program);
 setupWeightedPoolProgram(program);
 setupStablePoolProgram(program);
+setupSmartPoolProgram(program);
 
 program
   .parseAsync(process.argv)

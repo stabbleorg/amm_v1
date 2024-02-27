@@ -5,7 +5,7 @@ import { parseKey, parseKeypair } from "../utils";
 
 export function initialize(program: Command) {
   program
-    .command("pool-weighted-init")
+    .command("weighted-init")
     .description("initialize a weighted pool")
     .requiredOption("--vault-k <string>", "vault key", parseKey)
     .requiredOption("--mints <strings...>", "mint keys")
@@ -32,9 +32,9 @@ export function initialize(program: Command) {
         poolKP?: Keypair;
         poolMintKP?: Keypair;
       }) => {
-        const { sdk } = useContext();
+        const { amm } = useContext();
 
-        const { tx, address } = await sdk.createWeightedPoolAndAddress({
+        const { tx, address } = await amm.createWeightedPoolAndAddress({
           vaultAddress: vaultK,
           swapFee,
           weights,

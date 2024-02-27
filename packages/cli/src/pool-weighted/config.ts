@@ -6,13 +6,13 @@ import { parseKey } from "../utils";
 
 export function pause(program: Command) {
   program
-    .command("pool-weighted-pause")
+    .command("weighted-pause")
     .description("pause weighted pool")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
     .action(async ({ poolK }: { poolK: PublicKey }) => {
-      const { sdk } = useContext();
+      const { amm } = useContext();
 
-      const tx = await sdk.ctxWeighted.newTX(await sdk.ctxWeighted.pauseInstructions(poolK));
+      const { tx } = await amm.ctxWeighted.newTX(await amm.ctxWeighted.pauseInstructions({ poolAddress: poolK }));
 
       submitTX(tx);
     });
@@ -20,15 +20,18 @@ export function pause(program: Command) {
 
 export function changeSwapFee(program: Command) {
   program
-    .command("pool-weighted-swap-fee")
+    .command("weighted-swap-fee")
     .description("change swap fee given a weighted pool")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
     .requiredOption("--new-swap-fee <string>", "new swap fee")
     .action(async ({ poolK, newSwapFee }: { poolK: PublicKey; newSwapFee: string }) => {
-      const { sdk } = useContext();
+      const { amm } = useContext();
 
-      const tx = await sdk.ctxWeighted.newTX(
-        await sdk.ctxWeighted.changeSwapFeeInstructions(poolK, SafeNumber.toBasisPoints(newSwapFee)),
+      const { tx } = await amm.ctxWeighted.newTX(
+        await amm.ctxWeighted.changeSwapFeeInstructions({
+          poolAddress: poolK,
+          newSwapFee: SafeNumber.toBasisPoints(newSwapFee),
+        }),
       );
 
       submitTX(tx);
