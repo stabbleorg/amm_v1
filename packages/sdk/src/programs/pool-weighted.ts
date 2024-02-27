@@ -66,6 +66,11 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     return accounts.map((data) => new WeightedPool(data.publicKey, data.account));
   }
 
+  async findAll(): Promise<WeightedPool[]> {
+    const accounts = await this.program.account.pool.all();
+    return accounts.map((data) => new WeightedPool(data.publicKey, data.account));
+  }
+
   async swapInstructions({
     beneficiaryAddress,
     vaultAddress,

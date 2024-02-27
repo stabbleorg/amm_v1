@@ -61,6 +61,11 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     return accounts.map((data) => new StablePool(data.publicKey, data.account));
   }
 
+  async findAll(): Promise<StablePool[]> {
+    const accounts = await this.program.account.pool.all();
+    return accounts.map((data) => new StablePool(data.publicKey, data.account));
+  }
+
   async swapInstructions({
     beneficiaryAddress,
     vaultAddress,

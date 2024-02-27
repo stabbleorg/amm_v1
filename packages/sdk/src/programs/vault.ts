@@ -30,15 +30,15 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     return new Vault(vaultAddress, data);
   }
 
-  async findAll(): Promise<Vault[]> {
-    const accounts = await this.program.account.vault.all();
-    return accounts.map((data) => new Vault(data.publicKey, data.account));
-  }
-
   async findMany(vaultAddresses: PublicKey[]): Promise<Vault[]> {
     return (await this.program.account.vault.fetchMultiple(vaultAddresses)).map(
       (data, index) => new Vault(vaultAddresses[index], data!),
     );
+  }
+
+  async findAll(): Promise<Vault[]> {
+    const accounts = await this.program.account.vault.all();
+    return accounts.map((data) => new Vault(data.publicKey, data.account));
   }
 
   async initializeInstructions({

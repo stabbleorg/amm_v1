@@ -44,7 +44,8 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
   }
 
   async findAll(): Promise<SmartPool[]> {
-    return (await this.program.account.pool.all()).map((data) => new SmartPool(data.publicKey, data.account));
+    const accounts = await this.program.account.pool.all();
+    return accounts.map((data) => new SmartPool(data.publicKey, data.account));
   }
 
   async depositInstructions({
