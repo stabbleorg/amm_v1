@@ -30,4 +30,24 @@ pub mod vault {
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         process_withdraw(ctx, amount)
     }
+
+    pub fn pause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
+        process_pause(ctx)
+    }
+
+    pub fn unpause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
+        process_unpause(ctx)
+    }
+
+    pub fn change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary_fee: u16) -> Result<()> {
+        process_change_beneficiary_fee(ctx, new_beneficiary_fee)
+    }
+
+    pub fn change_beneficiary<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary: Pubkey) -> Result<()> {
+        process_change_beneficiary(ctx, new_beneficiary)
+    }
+
+    pub fn change_admin<'info>(ctx: Context<AdminOnly<'info>>, new_admin: Pubkey) -> Result<()> {
+        process_change_admin(ctx, new_admin)
+    }
 }

@@ -45,6 +45,8 @@ pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 
 impl<'info> Withdraw<'info> {
     pub fn validate(ctx: &Context<Withdraw>) -> Result<()> {
+        assert!(ctx.accounts.vault.is_active);
+        assert!(ctx.accounts.pool.is_active);
         assert_eq!(ctx.accounts.vault_quote_token.mint, ctx.accounts.pool.quote_mint);
         Ok(())
     }

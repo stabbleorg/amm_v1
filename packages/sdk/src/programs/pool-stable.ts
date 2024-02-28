@@ -276,6 +276,48 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
   }
+
+  async pauseInstructions({ poolAddress }: { poolAddress: PublicKey }): Promise<TransactionInstruction[]> {
+    return [
+      await this.program.methods
+        .pause()
+        .accounts({
+          owner: this.walletAddress,
+          pool: poolAddress,
+        })
+        .instruction(),
+    ];
+  }
+
+  async unpauseInstructions({ poolAddress }: { poolAddress: PublicKey }): Promise<TransactionInstruction[]> {
+    return [
+      await this.program.methods
+        .unpause()
+        .accounts({
+          owner: this.walletAddress,
+          pool: poolAddress,
+        })
+        .instruction(),
+    ];
+  }
+
+  async changeSwapFeeInstructions({
+    poolAddress,
+    newSwapFee,
+  }: {
+    poolAddress: PublicKey;
+    newSwapFee: number;
+  }): Promise<TransactionInstruction[]> {
+    return [
+      await this.program.methods
+        .changeSwapFee(newSwapFee)
+        .accounts({
+          owner: this.walletAddress,
+          pool: poolAddress,
+        })
+        .instruction(),
+    ];
+  }
 }
 
 export class StablePoolListener {

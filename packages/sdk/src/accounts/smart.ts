@@ -8,6 +8,7 @@ export type SmartPoolData = {
   quoteMint: PublicKey;
   decimals: number;
   liquidity: BN;
+  lockedLiquidity: BN;
   maxLiquidity: BN;
   isActive: boolean;
   authorityBump: number;
@@ -33,6 +34,10 @@ export class SmartPool {
 
   get liquidity(): number {
     return SafeNumber.toUiAmount(this.data.liquidity, this.data.decimals);
+  }
+
+  get lockedLiquidity(): number {
+    return SafeNumber.toUiAmount(this.data.lockedLiquidity, this.data.decimals);
   }
 
   get maxLiquidity(): number {

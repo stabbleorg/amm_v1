@@ -42,6 +42,8 @@ pub fn process_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 
 impl<'info> Deposit<'info> {
     pub fn validate(ctx: &Context<Deposit>) -> Result<()> {
+        assert!(ctx.accounts.vault.is_active);
+        assert!(ctx.accounts.pool.is_active);
         assert_eq!(ctx.accounts.vault_quote_token.mint, ctx.accounts.pool.quote_mint);
         assert_eq!(ctx.accounts.vault_quote_token.owner, ctx.accounts.vault_authority.key());
         Ok(())

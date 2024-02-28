@@ -13,7 +13,7 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
         amp_target_factor: amp_factor,
         ramp_start_ts: 0,
         ramp_stop_ts: 0,
-        ramp_tick: 0,
+        ramp_tick: 1,
         swap_fee,
         is_active: true,
         authority_bump: ctx.bumps.pool_authority,
@@ -38,7 +38,8 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
 
 impl<'info> Initialize<'info> {
     pub fn validate(ctx: &Context<Initialize>, amp_factor: u16, swap_fee: u16) -> Result<()> {
-        // custom stable pool is not allowed
+        assert!(ctx.accounts.vault.is_active);
+        // custom stable pool is not allowed yet
         assert_eq!(ctx.accounts.owner.key(), ctx.accounts.vault.admin);
         assert_eq!(ctx.accounts.mint.supply, 0);
         assert_eq!(ctx.accounts.mint.decimals, Pool::POOL_TOKEN_DECIMALS);

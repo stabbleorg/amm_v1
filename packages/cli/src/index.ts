@@ -18,7 +18,7 @@ import { setupSmartPoolProgram } from "./pool-smart";
 import { parseKeypair } from "./utils";
 
 program
-  .version("1.2.2")
+  .version("1.3.0")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
   .option("-s, --simulate", "simulate transaction")

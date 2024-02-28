@@ -64,4 +64,8 @@ pub mod pool_weighted {
     pub fn change_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: Pubkey) -> Result<()> {
         process_change_owner(ctx, new_owner)
     }
+
+    pub fn close<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, '_, 'info, OwnerOnly<'info>>) -> Result<()> {
+        process_close(ctx)
+    }
 }

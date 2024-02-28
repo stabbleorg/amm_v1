@@ -12,6 +12,7 @@ pub struct Pool {
     // immutable
     pub decimals: u8,
     pub liquidity: u64,
+    pub locked_liquidity: u64,
     pub max_liquidity: u64,
     pub is_active: bool,
     // immutable
@@ -62,6 +63,7 @@ where
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct PoolUpdatedData {
     pub liquidity: u64,
+    pub locked_liquidity: u64,
     pub max_liquidity: u64,
     pub is_active: bool,
 }
@@ -85,6 +87,7 @@ where
             pubkey: self.key(),
             data: PoolUpdatedData {
                 liquidity: self.as_ref().liquidity,
+                locked_liquidity: self.as_ref().locked_liquidity,
                 max_liquidity: self.as_ref().max_liquidity,
                 is_active: self.as_ref().is_active,
             },

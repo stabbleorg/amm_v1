@@ -26,4 +26,20 @@ pub mod pool_smart {
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         process_withdraw(ctx, amount)
     }
+
+    pub fn pause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
+        process_pause(ctx)
+    }
+
+    pub fn unpause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
+        process_unpause(ctx)
+    }
+
+    pub fn change_max_liquidity<'info>(ctx: Context<AdminOnly<'info>>, new_max_liquidity: u64) -> Result<()> {
+        process_change_max_liquidity(ctx, new_max_liquidity)
+    }
+
+    pub fn close<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, '_, 'info, AdminOnly<'info>>) -> Result<()> {
+        process_close(ctx)
+    }
 }

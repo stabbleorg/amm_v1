@@ -179,6 +179,58 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
 
     return instructions;
   }
+
+  async pauseInstructions({ poolAddress }: { poolAddress: PublicKey }): Promise<TransactionInstruction[]> {
+    return [
+      await this.program.methods
+        .pause()
+        .accounts({
+          admin: this.walletAddress,
+          pool: poolAddress,
+        })
+        .instruction(),
+    ];
+  }
+
+  async unpauseInstructions({ poolAddress }: { poolAddress: PublicKey }): Promise<TransactionInstruction[]> {
+    return [
+      await this.program.methods
+        .unpause()
+        .accounts({
+          admin: this.walletAddress,
+          pool: poolAddress,
+        })
+        .instruction(),
+    ];
+  }
+
+  async closeInstructions({
+    poolAddress,
+    vaultAddress,
+  }: {
+    poolAddress: PublicKey;
+    vaultAddress: PublicKey;
+  }): Promise<TransactionInstruction[]> {
+    const instructions = [
+      await this.program.methods
+        .close()
+        .accounts({
+          admin: this.walletAddress,
+          pool: poolAddress,
+          vault: vaultAddress,
+        })
+        .remainingAccounts([
+          {
+            pubkey: this.walletAddress,
+            isSigner: false,
+            isWritable: true,
+          },
+        ])
+        .instruction(),
+    ];
+
+    return instructions;
+  }
 }
 
 export class SmartPoolListener {
