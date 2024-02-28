@@ -5,7 +5,7 @@ import { parseKey, parseKeypair } from "../utils";
 
 export function initialize(program: Command) {
   program
-    .command("pool-stable-init")
+    .command("stable-init")
     .description("initialize a stable pool")
     .requiredOption("--vault-k <string>", "vault key", parseKey)
     .requiredOption("--mints <strings...>", "mint keys")
@@ -29,9 +29,9 @@ export function initialize(program: Command) {
         poolKP?: Keypair;
         poolMintKP?: Keypair;
       }) => {
-        const { sdk } = useContext();
+        const { amm } = useContext();
 
-        const { tx, address } = await sdk.createStablePoolAndAddress({
+        const { tx, address } = await amm.createStablePoolAndAddress({
           vaultAddress: vaultK,
           swapFee,
           amp,

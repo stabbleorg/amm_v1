@@ -1,22 +1,15 @@
 import BN from "bn.js";
 import { Program, Provider } from "@coral-xyz/anchor";
-import { Metaplex } from "@metaplex-foundation/js";
-import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
 import {
-  AuthorityType,
-  MintLayout,
   NATIVE_MINT,
   TOKEN_PROGRAM_ID,
   createCloseAccountInstruction,
-  createInitializeMint2Instruction,
-  createSetAuthorityInstruction,
   createSyncNativeInstruction,
 } from "@solana/spl-token";
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { type PoolWeighted as IDLType, IDL } from "../generated/pool_weighted";
-import { WalletContext } from "../wallet";
 import { WeightedPool, WeightedPoolData } from "../accounts";
-import { DataUpdatedEvent, SIMULATED_SIGNATURE } from "../consts";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "../wallet";
 
 export type WeightedPoolProgram = Program<IDLType>;
 
@@ -70,20 +63,35 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
         },
       },
     ]);
-    return accounts.map((account) => new WeightedPool(account.publicKey, account.account));
+    return accounts.map((data) => new WeightedPool(data.publicKey, data.account));
   }
 
-  async swapInstructions(
-    beneficiaryAddress: PublicKey,
-    vaultAddress: PublicKey,
-    vaultAuthorityAddress: PublicKey,
-    vaultProgramAddress: PublicKey,
-    poolAddress: PublicKey,
-    mintInAddress: PublicKey,
-    mintOutAddress: PublicKey,
-    amountIn: BN,
-    minimumAmountOut: BN = new BN(0),
-  ): Promise<TransactionInstruction[]> {
+  async findAll(): Promise<WeightedPool[]> {
+    const accounts = await this.program.account.pool.all();
+    return accounts.map((data) => new WeightedPool(data.publicKey, data.account));
+  }
+
+  async swapInstructions({
+    beneficiaryAddress,
+    vaultAddress,
+    vaultAuthorityAddress,
+    vaultProgramAddress,
+    poolAddress,
+    mintInAddress,
+    mintOutAddress,
+    amountIn,
+    minimumAmountOut,
+  }: {
+    beneficiaryAddress: PublicKey;
+    vaultAddress: PublicKey;
+    vaultAuthorityAddress: PublicKey;
+    vaultProgramAddress: PublicKey;
+    poolAddress: PublicKey;
+    mintInAddress: PublicKey;
+    mintOutAddress: PublicKey;
+    amountIn: BN;
+    minimumAmountOut: BN;
+  }): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     let closeWSOLAccountIX: TransactionInstruction | null = null;
 
@@ -142,15 +150,23 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     return instructions;
   }
 
-  async depositInstructions(
-    vaultAddress: PublicKey,
-    vaultAuthorityAddress: PublicKey,
-    poolAddress: PublicKey,
-    poolMintAddress: PublicKey,
-    mintAddresses: PublicKey[],
-    amounts: BN[],
-    minimumAmountOut: BN = new BN(0),
-  ): Promise<TransactionInstruction[]> {
+  async depositInstructions({
+    vaultAddress,
+    vaultAuthorityAddress,
+    poolAddress,
+    poolMintAddress,
+    mintAddresses,
+    amounts,
+    minimumAmountOut,
+  }: {
+    vaultAddress: PublicKey;
+    vaultAuthorityAddress: PublicKey;
+    poolAddress: PublicKey;
+    poolMintAddress: PublicKey;
+    mintAddresses: PublicKey[];
+    amounts: BN[];
+    minimumAmountOut: BN;
+  }): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
@@ -210,16 +226,25 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     return instructions;
   }
 
-  async withdrawInstructions(
-    vaultAddress: PublicKey,
-    vaultAuthorityAddress: PublicKey,
-    vaultProgramAddress: PublicKey,
-    poolAddress: PublicKey,
-    poolMintAddress: PublicKey,
-    mintAddresses: PublicKey[],
-    amount: BN,
-    minimumAmountsOut: BN[] = [],
-  ): Promise<TransactionInstruction[]> {
+  async withdrawInstructions({
+    vaultAddress,
+    vaultAuthorityAddress,
+    vaultProgramAddress,
+    poolAddress,
+    poolMintAddress,
+    mintAddresses,
+    amount,
+    minimumAmountsOut,
+  }: {
+    vaultAddress: PublicKey;
+    vaultAuthorityAddress: PublicKey;
+    vaultProgramAddress: PublicKey;
+    poolAddress: PublicKey;
+    poolMintAddress: PublicKey;
+    mintAddresses: PublicKey[];
+    amount: BN;
+    minimumAmountsOut: BN[];
+  }): Promise<TransactionInstruction[]> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
@@ -254,7 +279,6 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
           userPoolToken: userPoolTokenAddress,
           mint: poolMintAddress,
           pool: poolAddress,
-          poolAuthority: this.findPoolAuthorityAddress(poolAddress),
           withdrawAuthority: this.findWithdrawAuthorityAddress(vaultAddress),
           vault: vaultAddress,
           vaultAuthority: vaultAuthorityAddress,
@@ -270,64 +294,27 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     return instructions;
   }
 
-  async initializeInstructions(
-    vaultAddress: PublicKey,
-    poolAddress: PublicKey,
-    poolMintAddress: PublicKey,
-    mintAddresses: PublicKey[],
-    swapFee: number,
-    weights: number[],
-    ticks: BN[],
-  ): Promise<TransactionInstruction[]> {
+  async initializeInstructions({
+    vaultAddress,
+    poolAddress,
+    poolMintAddress,
+    mintAddresses,
+    swapFee,
+    weights,
+    ticks,
+  }: {
+    vaultAddress: PublicKey;
+    poolAddress: PublicKey;
+    poolMintAddress: PublicKey;
+    mintAddresses: PublicKey[];
+    swapFee: number;
+    weights: number[];
+    ticks: BN[];
+  }): Promise<TransactionInstruction[]> {
     const poolAccountSize = this.program.account.pool.size + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
-    const metadataAddress = Metaplex.make(this.provider.connection).nfts().pdas().metadata({ mint: poolMintAddress });
 
     return [
-      SystemProgram.createAccount({
-        fromPubkey: this.walletAddress,
-        newAccountPubkey: poolMintAddress,
-        space: MintLayout.span,
-        lamports: await this.provider.connection.getMinimumBalanceForRentExemption(MintLayout.span),
-        programId: TOKEN_PROGRAM_ID,
-      }),
-      createInitializeMint2Instruction(
-        poolMintAddress,
-        WeightedPool.POOL_TOKEN_DECIMALS,
-        this.walletAddress,
-        this.walletAddress,
-      ),
-      createCreateMetadataAccountV3Instruction(
-        {
-          metadata: metadataAddress,
-          mint: poolMintAddress,
-          mintAuthority: this.walletAddress,
-          payer: this.walletAddress,
-          updateAuthority: this.walletAddress,
-        },
-        {
-          createMetadataAccountArgsV3: {
-            data: {
-              name: "",
-              symbol: "",
-              uri: "",
-              sellerFeeBasisPoints: 0,
-              creators: null,
-              collection: null,
-              uses: null,
-            },
-            isMutable: true,
-            collectionDetails: null,
-          },
-        },
-      ),
-      createSetAuthorityInstruction(
-        poolMintAddress,
-        this.walletAddress,
-        AuthorityType.MintTokens,
-        poolAuthorityAddress,
-      ),
-      createSetAuthorityInstruction(poolMintAddress, this.walletAddress, AuthorityType.FreezeAccount, null),
       SystemProgram.createAccount({
         fromPubkey: this.walletAddress,
         newAccountPubkey: poolAddress,
@@ -350,7 +337,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     ];
   }
 
-  async pauseInstructions(poolAddress: PublicKey): Promise<TransactionInstruction[]> {
+  async pauseInstructions({ poolAddress }: { poolAddress: PublicKey }): Promise<TransactionInstruction[]> {
     return [
       await this.program.methods
         .pause()
@@ -362,7 +349,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     ];
   }
 
-  async unpauseInstructions(poolAddress: PublicKey): Promise<TransactionInstruction[]> {
+  async unpauseInstructions({ poolAddress }: { poolAddress: PublicKey }): Promise<TransactionInstruction[]> {
     return [
       await this.program.methods
         .unpause()
@@ -374,7 +361,13 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     ];
   }
 
-  async changeSwapFeeInstructions(poolAddress: PublicKey, newSwapFee: number): Promise<TransactionInstruction[]> {
+  async changeSwapFeeInstructions({
+    poolAddress,
+    newSwapFee,
+  }: {
+    poolAddress: PublicKey;
+    newSwapFee: number;
+  }): Promise<TransactionInstruction[]> {
     return [
       await this.program.methods
         .changeSwapFee(newSwapFee)
@@ -396,7 +389,7 @@ export class WeightedPoolListener {
     this.removePoolListener();
     this._listener = this.program.addEventListener(
       "PoolUpdatedEvent",
-      (event: DataUpdatedEvent<Partial<WeightedPoolData>>, slot: number, signature: TransactionSignature) => {
+      (event: DataUpdatedEvent<Partial<WeightedPoolData>>, _slot: number, signature: TransactionSignature) => {
         if (signature !== SIMULATED_SIGNATURE) {
           callback(event);
         }

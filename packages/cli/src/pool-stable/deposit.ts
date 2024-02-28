@@ -5,17 +5,17 @@ import { parseKey } from "../utils";
 
 export function deposit(program: Command) {
   program
-    .command("pool-stable-deposit")
+    .command("stable-deposit")
     .description("add liquidity to stable pool")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
     .requiredOption("--amounts <numbers...>", "amounts")
     .requiredOption("--mints <strings...>", "mint keys")
     .action(async ({ poolK, amounts, mints }: { poolK: PublicKey; amounts: number[]; mints: string[] }) => {
-      const { sdk } = useContext();
+      const { amm } = useContext();
 
-      const pool = await sdk.ctxStable.findOne(poolK);
+      const pool = await amm.ctxStable.findOne(poolK);
 
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         amounts,
         mintAddresses: mints.map((pubkey) => new PublicKey(pubkey)),

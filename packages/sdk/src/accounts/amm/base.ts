@@ -6,7 +6,6 @@ export interface PoolToken {
   decimals: number;
   balance: number;
 }
-
 export interface PoolTokenData {
   mint: PublicKey;
   decimals: number; // u8
@@ -15,7 +14,6 @@ export interface PoolTokenData {
   tick: BN; // u64
   balance: BN; // u64
 }
-
 export interface BasePoolData {
   owner: PublicKey;
   vault: PublicKey;
@@ -26,7 +24,33 @@ export interface BasePoolData {
   authorityBump: number;
 }
 
-export interface BasePool<T extends PoolToken, D extends BasePoolData> {
+export interface StablePoolToken extends PoolToken {}
+export interface StablePoolTokenData extends PoolTokenData {}
+export interface StablePoolData extends BasePoolData {
+  ampInitialFactor: number;
+  ampTargetFactor: number;
+  rampStartTs: BN;
+  rampStopTs: BN;
+  rampTick: number;
+  tokens: StablePoolTokenData[];
+}
+
+export interface WeightedPoolToken extends PoolToken {
+  balanceT: number;
+  tick: number;
+  weight: number; // percentage
+}
+export interface WeightedPoolTokenData extends PoolTokenData {
+  weight: number; // u16, basis points
+}
+export interface WeightedPoolData extends BasePoolData {
+  tokens: WeightedPoolTokenData[];
+}
+
+export type AmmPoolToken = StablePoolToken | WeightedPoolToken;
+export type AmmPoolData = StablePoolData | WeightedPoolData;
+
+export interface AmmPool<T extends PoolToken = AmmPoolToken, D extends BasePoolData = AmmPoolData> {
   readonly address: PublicKey;
   readonly data: D;
 
@@ -41,10 +65,6 @@ export interface BasePool<T extends PoolToken, D extends BasePoolData> {
   get isActive(): boolean;
 
   get tokens(): T[];
-
-  getSpotPrice(tokenInAddress: PublicKey, tokenOutAddress: PublicKey): number;
-
-  getPostPrice(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number;
 
   getEstAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number;
 

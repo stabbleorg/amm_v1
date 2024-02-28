@@ -19,21 +19,32 @@ export function initialize(program: Command) {
         beneficiaryFee,
       }: {
         vaultKP?: Keypair;
-        poolKind: "weighted" | "stable";
+        poolKind: "weighted" | "stable" | "smart";
         beneficiaryK: PublicKey;
         beneficiaryFee: string;
       }) => {
-        const { sdk } = useContext();
+        const { amm, smart } = useContext();
 
-        const { tx, address } = await sdk.createVaultAndAddress({
-          beneficiaryAddress: beneficiaryK,
-          beneficiaryFee,
-          poolKind,
-          vaultKP,
-        });
+        if (poolKind === "smart") {
+          const { tx, address } = await smart.createVaultAndAddress({
+            beneficiaryAddress: beneficiaryK,
+            beneficiaryFee,
+            vaultKP,
+          });
 
-        submitTX(tx);
-        console.log("Vault:", address.toBase58());
+          submitTX(tx);
+          console.log("Vault:", address.toBase58());
+        } else {
+          const { tx, address } = await amm.createVaultAndAddress({
+            beneficiaryAddress: beneficiaryK,
+            beneficiaryFee,
+            poolKind,
+            vaultKP,
+          });
+
+          submitTX(tx);
+          console.log("Vault:", address.toBase58());
+        }
       },
     );
 }

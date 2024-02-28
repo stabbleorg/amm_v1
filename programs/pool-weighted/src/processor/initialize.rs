@@ -35,6 +35,7 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<
 
 impl<'info> Initialize<'info> {
     pub fn validate(ctx: &Context<Initialize>, swap_fee: u16, weights: &Vec<u16>) -> Result<()> {
+        assert!(ctx.accounts.vault.is_active);
         assert_eq!(ctx.accounts.mint.supply, 0);
         assert_eq!(ctx.accounts.mint.decimals, Pool::POOL_TOKEN_DECIMALS);
         assert_eq!(

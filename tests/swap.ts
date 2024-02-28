@@ -2,35 +2,31 @@ import { BN } from "bn.js";
 import { AnchorProvider } from "@coral-xyz/anchor";
 import { createAssociatedTokenAccount, getAssociatedTokenAddressSync, mintTo } from "@solana/spl-token";
 import {
-  SlrContext,
   VaultContext,
   WeightedPoolContext,
   StablePoolContext,
-  SDKWrapper,
-  BasePool,
-  WeightedPoolToken,
-  StablePoolToken,
+  AmmPool,
   WeightedPoolListener,
   StablePoolListener,
   WeightedPool,
   StablePool,
   WeightedPoolData,
   StablePoolData,
+  Amm,
   SafeNumber,
 } from "@stabbleorg/solana-sdk";
 import { stableVaultKP, weightedVaultKP, adminKP, daiMintKP, usdcMintKP, stbMintKP } from "./consts";
 
 describe("Swap", () => {
   const provider = AnchorProvider.env();
-  const ctxSlr = new SlrContext(provider);
   const ctxVault = new VaultContext(provider);
   const ctxWeighted = new WeightedPoolContext(provider);
   const listenerWeighted = new WeightedPoolListener(ctxWeighted.program);
   const ctxStable = new StablePoolContext(provider);
   const listenerStable = new StablePoolListener(ctxStable.program);
 
-  let sdk: SDKWrapper<AnchorProvider>;
-  let pools: BasePool<WeightedPoolToken | StablePoolToken, WeightedPoolData | StablePoolData>[];
+  let amm: Amm<AnchorProvider>;
+  let pools: AmmPool[];
 
   before(async () => {
     await mintTo(
@@ -42,9 +38,8 @@ describe("Swap", () => {
       BigInt("10000000000"), // 10K
     );
 
-    sdk = new SDKWrapper(
+    amm = new Amm(
       {
-        slr: ctxSlr,
         vault: ctxVault,
         weighted: ctxWeighted,
         stable: ctxStable,
@@ -103,7 +98,7 @@ describe("Swap", () => {
     // slippage tolarance 0.3% (0.003)
     const minimumAmountOut = estAmountOut * (1 - 0.003);
 
-    const tx = await sdk.swap({
+    const { tx } = await amm.swap({
       pool,
       mintInAddress,
       mintOutAddress,
@@ -149,7 +144,7 @@ describe("Swap", () => {
           getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
         );
 
-        const tx = await sdk.swap({
+        const { tx } = await amm.swap({
           pool,
           mintInAddress,
           mintOutAddress,
@@ -166,7 +161,7 @@ describe("Swap", () => {
           SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
         );
       } else {
-        const tx = await sdk.swap({
+        const { tx } = await amm.swap({
           pool,
           mintInAddress,
           mintOutAddress,
@@ -184,10 +179,10 @@ describe("Swap", () => {
   });
 
   it("should match liquidity with reserves in weighted vault", async () => {
-    const vaultAuthorityAddress = sdk.ctxVault.findVaultAuthorityAddress(sdk.vaults[1].address);
+    const vaultAuthorityAddress = amm.ctxVault.findVaultAuthorityAddress(amm.vaults[1].address);
 
     const liqSTB = pools
-      .filter((pool) => pool.vaultAddress.equals(sdk.vaults[1].address))
+      .filter((pool) => pool.vaultAddress.equals(amm.vaults[1].address))
       .reduce(
         (liquidity, pool) =>
           (pool.tokens.find((token) => token.mintAddress.equals(stbMintKP.publicKey))?.balance || 0) + liquidity,
@@ -202,7 +197,7 @@ describe("Swap", () => {
     console.log("STB Reserve:", balSTB);
 
     const liqUSDC = pools
-      .filter((pool) => pool.vaultAddress.equals(sdk.vaults[1].address))
+      .filter((pool) => pool.vaultAddress.equals(amm.vaults[1].address))
       .reduce(
         (liquidity, pool) =>
           (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,
@@ -218,10 +213,10 @@ describe("Swap", () => {
   });
 
   it("should match liquidity with reserves in stable vault", async () => {
-    const vaultAuthorityAddress = sdk.ctxVault.findVaultAuthorityAddress(sdk.vaults[0].address);
+    const vaultAuthorityAddress = amm.ctxVault.findVaultAuthorityAddress(amm.vaults[0].address);
 
     const liqUSDC = pools
-      .filter((pool) => pool.vaultAddress.equals(sdk.vaults[0].address))
+      .filter((pool) => pool.vaultAddress.equals(amm.vaults[0].address))
       .reduce(
         (liquidity, pool) =>
           (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,

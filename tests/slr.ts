@@ -1,67 +1,61 @@
 import { BN } from "bn.js";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
-import {
-  SlrContext,
-  VaultContext,
-  WeightedPoolContext,
-  StablePoolContext,
-  SDKWrapper,
-  SafeNumber,
-} from "@stabbleorg/solana-sdk";
-import { adminKP, usdcMintKP, usdcPoolKP } from "./consts";
+import { VaultContext, SmartPoolContext, Smart, SafeNumber } from "@stabbleorg/solana-sdk";
+import { adminKP, smartVaultKP, usdcMintKP, usdcPoolKP } from "./consts";
 
 describe("SLR", () => {
   const provider = AnchorProvider.env();
-  const ctxSlr = new SlrContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const sdk = new SDKWrapper({
-    slr: ctxSlr,
+  const ctxSmart = new SmartPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const sdk = new Smart({
     vault: ctxVault,
-    weighted: ctxWeighted,
-    stable: ctxStable,
+    smart: ctxSmart,
   });
 
   it("should create SLR pool", async () => {
-    const { tx } = await sdk.createSlrPoolAndAddress({
-      underlyingMintAddress: usdcMintKP.publicKey,
+    const { tx } = await sdk.createSmartPoolAndAddress({
+      vaultAddress: smartVaultKP.publicKey,
+      quoteMintAddress: usdcMintKP.publicKey,
       maxLiquidity: 100000,
       poolKP: usdcPoolKP,
     });
-    await sdk.ctxSlr.provider.sendAndConfirm!(tx);
+    await sdk.ctxSmart.provider.sendAndConfirm!(tx);
   });
 
   it("should deposit", async () => {
-    const pool = await sdk.ctxSlr.findOne(usdcPoolKP.publicKey);
+    const pool = await sdk.ctxSmart.findOne(usdcPoolKP.publicKey);
 
-    const tx = await sdk.deposit({
+    const { tx } = await sdk.deposit({
       pool,
       amount: 1000,
     });
-    await sdk.ctxSlr.provider.sendAndConfirm!(tx);
+    await sdk.ctxSmart.provider.sendAndConfirm!(tx);
 
     const { value: balance } = await provider.connection.getTokenAccountBalance(
-      ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+      sdk.ctxSmart.getAssociatedTokenAddress(pool.mintAddress),
     );
     console.log("LP out:", balance.uiAmountString);
   });
 
   it("should withdraw", async () => {
-    const pool = await sdk.ctxSlr.findOne(usdcPoolKP.publicKey);
+    const pool = await sdk.ctxSmart.findOne(usdcPoolKP.publicKey);
 
     const { value: balance } = await provider.connection.getTokenAccountBalance(
-      ctxWeighted.getAssociatedTokenAddress(pool.underlyingMintAddress),
+      sdk.ctxSmart.getAssociatedTokenAddress(pool.quoteMintAddress),
     );
 
-    const tx = await sdk.withdraw({
+    const { tx } = await sdk.withdraw({
       pool,
       amount: 1000,
     });
-    await sdk.ctxSlr.provider.sendAndConfirm!(tx);
+    try {
+      await sdk.ctxSmart.provider.sendAndConfirm!(tx);
+    } catch (err) {
+      console.error(err);
+    }
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-      ctxWeighted.getAssociatedTokenAddress(pool.underlyingMintAddress),
+      sdk.ctxSmart.getAssociatedTokenAddress(pool.quoteMintAddress),
     );
     console.log(
       "USDC out:",

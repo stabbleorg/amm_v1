@@ -2,12 +2,11 @@ import { BN } from "bn.js";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import {
-  SlrContext,
   VaultContext,
   WeightedPoolContext,
   StablePoolContext,
   WeightedMath,
-  SDKWrapper,
+  Amm,
   SafeNumber,
 } from "@stabbleorg/solana-sdk";
 import {
@@ -27,12 +26,10 @@ import {
 
 describe("Pool", () => {
   const provider = AnchorProvider.env();
-  const ctxSlr = new SlrContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
   const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const sdk = new SDKWrapper({
-    slr: ctxSlr,
+  const amm = new Amm({
     vault: ctxVault,
     weighted: ctxWeighted,
     stable: ctxStable,
@@ -51,7 +48,7 @@ describe("Pool", () => {
       const stbAmount = usdcAmount * bRatio_STB_USDC;
       const sbrAmount = usdcAmount * bRatio_SBR_USDC;
 
-      const { tx: createTX, address: poolAddress } = await sdk.createWeightedPoolAndAddress({
+      const { tx: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
         vaultAddress: weightedVaultKP.publicKey,
         mintAddresses: [stbMintKP.publicKey, sbrMintKP.publicKey, usdcMintKP.publicKey],
         swapFee: 0.0125, // 1.25%
@@ -62,7 +59,7 @@ describe("Pool", () => {
 
       // add initial liquidity
       const pool = await ctxWeighted.findOne(poolAddress);
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [stbAmount, sbrAmount, usdcAmount],
@@ -90,7 +87,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [stbAmount, sbrAmount, usdcAmount],
@@ -112,7 +109,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amounts: ["2500"],
@@ -134,7 +131,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
       );
-      const tx = await sdk.removeLiquidity({
+      const { tx } = await amm.withdraw({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amount: "156189.993848500",
@@ -164,19 +161,19 @@ describe("Pool", () => {
       const usdcAmount = 50000;
       const stbAmount = usdcAmount * bRatio_STB_USDC;
 
-      const { tx: createTX, address: poolAddress } = await sdk.createWeightedPoolAndAddress({
+      const { tx: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
         vaultAddress: weightedVaultKP.publicKey,
         mintAddresses,
         swapFee: 0.01, // 1%
         weights: ["0.6", "0.4"], // either in string or in number
-        ticks: [0.00001, "0.000001"],
+        ticks: [0.00025, "0.000001"],
         poolKP: weightedN2PoolKP, // can omit in dapp
       });
       await ctxWeighted.provider.sendAndConfirm(createTX);
 
       // add initial liquidity
       const pool = await ctxWeighted.findOne(poolAddress);
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         mintAddresses,
         amounts: [stbAmount, usdcAmount],
@@ -201,7 +198,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [stbAmount, usdcAmount],
@@ -223,7 +220,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amounts: ["1250"],
@@ -245,7 +242,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
       );
-      const tx = await sdk.removeLiquidity({
+      const { tx } = await amm.withdraw({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amount: "56.760017596",
@@ -263,7 +260,7 @@ describe("Pool", () => {
 
     it("should match liquidity with reserves in vault", async () => {
       const pools = await ctxWeighted.findManyByVault(weightedVaultKP.publicKey);
-      const vaultAuthorityAddress = sdk.ctxVault.findVaultAuthorityAddress(weightedVaultKP.publicKey);
+      const vaultAuthorityAddress = amm.ctxVault.findVaultAuthorityAddress(weightedVaultKP.publicKey);
 
       const liqSTB = pools
         .filter((pool) => pool.vaultAddress.equals(weightedVaultKP.publicKey))
@@ -309,7 +306,7 @@ describe("Pool", () => {
   //     const stbAmount = usdcAmount * bRatio_STB_USDC;
   //     console.log("Bonk in:", bonkAmount);
 
-  //     const { tx: createTX, address: poolAddress } = await sdk.createWeightedPoolAndAddress({
+  //     const { tx: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
   //       vaultAddress: weightedVaultKP.publicKey,
   //       mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
   //       swapFee: 0.001, // 0.1%
@@ -320,7 +317,7 @@ describe("Pool", () => {
 
   //     // add initial liquidity
   //     const pool = await ctxWeighted.findOne(poolAddress);
-  //     const tx = await sdk.addLiquidity({
+  //     const {tx} = await amm.deposit({
   //       pool,
   //       mintAddresses: pool.tokens.map((token) => token.mintAddress),
   //       amounts: [bonkAmount, stbAmount, usdcAmount],
@@ -343,7 +340,7 @@ describe("Pool", () => {
   //       const { value: balance } = await provider.connection.getTokenAccountBalance(
   //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
   //       );
-  //       const tx = await sdk.removeLiquidity({
+  //       const {tx} = await amm.withdraw({
   //         pool,
   //         mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
   //         amount: 86350325.209763808,
@@ -364,7 +361,7 @@ describe("Pool", () => {
   //       const { value: balance } = await provider.connection.getTokenAccountBalance(
   //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
   //       );
-  //       const tx = await sdk.removeLiquidity({
+  //       const {tx} = await amm.withdraw({
   //         pool,
   //         mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
   //         amount: 8635032.520976381,
@@ -385,7 +382,7 @@ describe("Pool", () => {
   //       const { value: balance } = await provider.connection.getTokenAccountBalance(
   //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
   //       );
-  //       const tx = await sdk.removeLiquidity({
+  //       const {tx} = await amm.withdraw({
   //         pool,
   //         mintAddresses: [bonkMintKP.publicKey],
   //         amount: 8635032.520976381,
@@ -405,7 +402,7 @@ describe("Pool", () => {
 
   describe("DAI-USDT-USDC", () => {
     it("should create stable pool", async () => {
-      const { tx: createTX, address: poolAddress } = await sdk.createStablePoolAndAddress({
+      const { tx: createTX, address: poolAddress } = await amm.createStablePoolAndAddress({
         vaultAddress: stableVaultKP.publicKey,
         mintAddresses: [daiMintKP.publicKey, usdtMintKP.publicKey, usdcMintKP.publicKey],
         amp: 2000,
@@ -416,7 +413,7 @@ describe("Pool", () => {
 
       // add initial liquidity
       const pool = await ctxStable.findOne(poolAddress);
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [40000, 30000, 20000],
@@ -444,7 +441,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [daiAmount, usdtAmount, usdcAmount],
@@ -466,7 +463,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const tx = await sdk.addLiquidity({
+      const { tx } = await amm.deposit({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amounts: [900],
@@ -488,7 +485,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(usdcMintKP.publicKey),
       );
-      const tx = await sdk.removeLiquidity({
+      const { tx } = await amm.withdraw({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amount: "897.420287765",

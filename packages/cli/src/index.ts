@@ -2,16 +2,23 @@ import type { Command } from "commander";
 import { program } from "commander";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-import { SlrContext, VaultContext, WeightedPoolContext, StablePoolContext, SDKWrapper } from "@stabbleorg/solana-sdk";
+import {
+  VaultContext,
+  WeightedPoolContext,
+  StablePoolContext,
+  SmartPoolContext,
+  Amm,
+  Smart,
+} from "@stabbleorg/solana-sdk";
 import { setContext, useContext, processTX } from "./context";
-import { setupSlrProgram } from "./slr";
 import { setupVaultProgram } from "./vault";
 import { setupWeightedPoolProgram } from "./pool-weighted";
 import { setupStablePoolProgram } from "./pool-stable";
+import { setupSmartPoolProgram } from "./pool-smart";
 import { parseKeypair } from "./utils";
 
 program
-  .version("1.1.1")
+  .version("1.3.0")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
   .option("-s, --simulate", "simulate transaction")
@@ -33,21 +40,24 @@ program
     const provider = new AnchorProvider(new Connection(rpcEndpoint), new Wallet(payer), {});
 
     setContext({
-      sdk: new SDKWrapper({
-        slr: new SlrContext(provider),
+      amm: new Amm({
         vault: new VaultContext(provider),
         weighted: new WeightedPoolContext(provider),
         stable: new StablePoolContext(provider),
+      }),
+      smart: new Smart({
+        vault: new VaultContext(provider),
+        smart: new SmartPoolContext(provider),
       }),
       provider,
       simulate: Boolean(simulate),
     });
   });
 
-setupSlrProgram(program);
 setupVaultProgram(program);
 setupWeightedPoolProgram(program);
 setupStablePoolProgram(program);
+setupSmartPoolProgram(program);
 
 program
   .parseAsync(process.argv)

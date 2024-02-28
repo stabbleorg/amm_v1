@@ -2,42 +2,38 @@ import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { SafeNumber } from "../utils";
 
-export type SlrPoolData = {
-  authorityBump: number;
-  decimals: number;
+export type SmartPoolData = {
+  vault: PublicKey;
   mint: PublicKey;
-  supply: BN;
-  underlyingMint: PublicKey;
+  quoteMint: PublicKey;
+  decimals: number;
   liquidity: BN;
-  reservedLiquidity: BN;
   lockedLiquidity: BN;
   maxLiquidity: BN;
+  isActive: boolean;
+  authorityBump: number;
 };
 
-export class SlrPool {
+export class SmartPool {
   constructor(
     readonly address: PublicKey,
-    readonly data: SlrPoolData,
+    readonly data: SmartPoolData,
   ) {}
+
+  get vaultAddress(): PublicKey {
+    return this.data.vault;
+  }
 
   get mintAddress(): PublicKey {
     return this.data.mint;
   }
 
-  get supply(): number {
-    return SafeNumber.toUiAmount(this.data.supply, this.data.decimals);
-  }
-
-  get underlyingMintAddress(): PublicKey {
-    return this.data.underlyingMint;
+  get quoteMintAddress(): PublicKey {
+    return this.data.quoteMint;
   }
 
   get liquidity(): number {
     return SafeNumber.toUiAmount(this.data.liquidity, this.data.decimals);
-  }
-
-  get reservedLiquidity(): number {
-    return SafeNumber.toUiAmount(this.data.reservedLiquidity, this.data.decimals);
   }
 
   get lockedLiquidity(): number {

@@ -7,13 +7,24 @@ import {
 } from "@solana/spl-token";
 import {
   AddressLookupTableAccount,
+  BlockhashWithExpiryBlockHeight,
   PublicKey,
-  SignatureResult,
   TransactionInstruction,
   TransactionMessage,
-  TransactionSignature,
   VersionedTransaction,
 } from "@solana/web3.js";
+
+export const SIMULATED_SIGNATURE = "1111111111111111111111111111111111111111111111111111111111111111";
+
+export interface DataUpdatedEvent<T> {
+  pubkey: PublicKey;
+  data: T;
+}
+
+export type TransactionWithRecentBlock = {
+  tx: VersionedTransaction;
+  recentBlock?: BlockhashWithExpiryBlockHeight;
+};
 
 export class WalletContext<T extends Provider = Provider> {
   constructor(readonly provider: T) {}
@@ -47,38 +58,38 @@ export class WalletContext<T extends Provider = Provider> {
     return { address, instruction };
   }
 
-  async newLegacyTX(instructions: TransactionInstruction[], payerAddress?: PublicKey): Promise<VersionedTransaction> {
-    const { blockhash } = await this.provider.connection.getLatestBlockhash();
-    return new VersionedTransaction(
+  async newLegacyTX(
+    instructions: TransactionInstruction[],
+    payerAddress?: PublicKey,
+  ): Promise<TransactionWithRecentBlock> {
+    const recentBlock = await this.provider.connection.getLatestBlockhash();
+
+    const tx = new VersionedTransaction(
       new TransactionMessage({
         payerKey: payerAddress || this.walletAddress,
-        recentBlockhash: blockhash,
+        recentBlockhash: recentBlock.blockhash,
         instructions,
       }).compileToLegacyMessage(),
     );
+
+    return { tx, recentBlock };
   }
 
   async newTX(
     instructions: TransactionInstruction[],
-    luts: AddressLookupTableAccount[] = [],
+    altAccounts: AddressLookupTableAccount[] = [],
     payerAddress?: PublicKey,
-  ): Promise<VersionedTransaction> {
-    const { blockhash } = await this.provider.connection.getLatestBlockhash();
-    return new VersionedTransaction(
+  ): Promise<TransactionWithRecentBlock> {
+    const recentBlock = await this.provider.connection.getLatestBlockhash();
+
+    const tx = new VersionedTransaction(
       new TransactionMessage({
         payerKey: payerAddress || this.walletAddress,
-        recentBlockhash: blockhash,
+        recentBlockhash: recentBlock.blockhash,
         instructions,
-      }).compileToV0Message(luts),
+      }).compileToV0Message(altAccounts),
     );
-  }
 
-  async confirmTX(signature: TransactionSignature): Promise<SignatureResult> {
-    const recentBlock = await this.provider.connection.getLatestBlockhash();
-    const { value } = await this.provider.connection.confirmTransaction({
-      ...recentBlock,
-      signature,
-    });
-    return value;
+    return { tx, recentBlock };
   }
 }

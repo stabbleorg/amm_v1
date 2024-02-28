@@ -1,5 +1,5 @@
 use crate::{located::*, math};
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::clock::Clock};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy)]
 pub struct PoolToken {
@@ -29,11 +29,11 @@ pub struct Pool {
     pub mint: Pubkey,
     pub invariant: u64,
     pub swap_fee: u16,
-    pub amp: u16,
-    pub amp_start: u16,
-    pub amp_start_time: i64,
-    pub amp_end_time: i64,
-    pub amp_duration: u32,
+    pub amp_initial_factor: u16,
+    pub amp_target_factor: u16,
+    pub ramp_start_ts: i64,
+    pub ramp_stop_ts: i64,
+    pub ramp_tick: u32,
     pub is_active: bool,
     // immutable
     pub authority_bump: u8,
@@ -60,7 +60,23 @@ impl Pool {
     }
 
     pub fn get_amplification(&self) -> u128 {
-        self.amp as u128
+        (if self.amp_initial_factor >= self.amp_target_factor {
+            self.amp_initial_factor
+        } else {
+            let current_ts = Clock::get().unwrap().unix_timestamp;
+            if current_ts >= self.ramp_stop_ts {
+                self.amp_target_factor
+            } else {
+                let ramp_elsapsed = current_ts.saturating_sub(self.ramp_start_ts);
+                let ramp_duration = self.ramp_stop_ts.saturating_sub(self.ramp_start_ts);
+                let amp_offset = (self.amp_target_factor.saturating_sub(self.amp_initial_factor) as i64)
+                    .checked_mul(ramp_elsapsed)
+                    .unwrap()
+                    .checked_div(ramp_duration)
+                    .unwrap() as u16;
+                self.amp_initial_factor.saturating_add(amp_offset)
+            }
+        }) as u128
     }
 
     pub fn get_swap_fee(&self) -> u128 {
@@ -122,10 +138,10 @@ where
 pub struct PoolUpdatedData {
     pub invariant: u64,
     pub swap_fee: u16,
-    pub amp: u16,
-    pub amp_start: u16,
-    pub amp_start_time: i64,
-    pub amp_end_time: i64,
+    pub amp_initial_factor: u16,
+    pub amp_target_factor: u16,
+    pub ramp_start_ts: i64,
+    pub ramp_stop_ts: i64,
     pub is_active: bool,
     pub tokens: Vec<PoolToken>,
 }
@@ -150,10 +166,10 @@ where
             data: PoolUpdatedData {
                 invariant: self.as_ref().invariant,
                 swap_fee: self.as_ref().swap_fee,
-                amp: self.as_ref().amp,
-                amp_start: self.as_ref().amp_start,
-                amp_start_time: self.as_ref().amp_start_time,
-                amp_end_time: self.as_ref().amp_end_time,
+                amp_initial_factor: self.as_ref().amp_initial_factor,
+                amp_target_factor: self.as_ref().amp_target_factor,
+                ramp_start_ts: self.as_ref().ramp_start_ts,
+                ramp_stop_ts: self.as_ref().ramp_stop_ts,
                 is_active: self.as_ref().is_active,
                 tokens: self.as_ref().tokens.clone(),
             },

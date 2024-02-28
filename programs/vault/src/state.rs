@@ -4,15 +4,17 @@ use anchor_lang::prelude::*;
 #[account]
 pub struct Vault {
     pub admin: Pubkey,
-    // immutable
-    // PDA of pool programs seeded by vault address
-    pub withdraw_authority: Pubkey,
-    // immutable
-    pub withdraw_authority_bump: u8,
+
+    /// PDA of pool programs seeded by vault address
+    pub withdraw_authority: Pubkey, // immutable
+    /// bump seed of withdraw authority PDA
+    pub withdraw_authority_bump: u8, // immutable
+
     pub beneficiary: Pubkey,
     pub beneficiary_fee: u16,
-    // immutable
-    pub authority_bump: u8,
+
+    /// bump seed of vault authority PDA
+    pub authority_bump: u8, // immutable
     pub is_active: bool,
 }
 
@@ -53,4 +55,16 @@ where
             &[self.as_ref().withdraw_authority_bump],
         ])
     }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct VaultUpdatedData {
+    pub beneficiary_fee: u16,
+    pub is_active: bool,
+}
+
+#[event]
+pub struct VaultUpdatedEvent {
+    pub pubkey: Pubkey,
+    pub data: VaultUpdatedData,
 }

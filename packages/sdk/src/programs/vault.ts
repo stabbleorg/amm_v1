@@ -1,8 +1,8 @@
 import { Program, Provider } from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
+import { PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { type Vault as IDLType, IDL } from "../generated/vault";
-import { WalletContext } from "../wallet";
-import { Vault } from "../accounts";
+import { Vault, VaultData } from "../accounts";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "../wallet";
 
 export type VaultProgram = Program<IDLType>;
 
@@ -36,13 +36,24 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     );
   }
 
-  async initializeInstructions(
-    vaultAddress: PublicKey,
-    withdrawAuthorityAddress: PublicKey,
-    withdrawAuthorityBump: number,
-    beneficiaryAddress: PublicKey,
-    beneficiaryFee: number,
-  ): Promise<TransactionInstruction[]> {
+  async findAll(): Promise<Vault[]> {
+    const accounts = await this.program.account.vault.all();
+    return accounts.map((data) => new Vault(data.publicKey, data.account));
+  }
+
+  async initializeInstructions({
+    vaultAddress,
+    withdrawAuthorityAddress,
+    withdrawAuthorityBump,
+    beneficiaryAddress,
+    beneficiaryFee,
+  }: {
+    vaultAddress: PublicKey;
+    withdrawAuthorityAddress: PublicKey;
+    withdrawAuthorityBump: number;
+    beneficiaryAddress: PublicKey;
+    beneficiaryFee: number;
+  }): Promise<TransactionInstruction[]> {
     return [
       SystemProgram.createAccount({
         fromPubkey: this.walletAddress,
@@ -64,5 +75,26 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
 }
 
 export class VaultListener {
+  private _listener?: number;
+
   constructor(readonly program: VaultProgram) {}
+
+  addVaultListener(callback: (event: DataUpdatedEvent<Partial<VaultData>>) => void) {
+    this.removeVaultListener();
+    this._listener = this.program.addEventListener(
+      "VaultUpdatedEvent",
+      (event: DataUpdatedEvent<Partial<VaultData>>, _slot: number, signature: TransactionSignature) => {
+        if (signature !== SIMULATED_SIGNATURE) {
+          callback(event);
+        }
+      },
+    );
+  }
+
+  removeVaultListener() {
+    if (this._listener !== undefined) {
+      this.program.removeEventListener(this._listener);
+      delete this._listener;
+    }
+  }
 }

@@ -7,7 +7,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-slr = "FtmRXo2x8Re3PrzLebm7dqNKPoYSnXYBzU9toXeKCvAw"
+pool_smart = "smpDKqHRt79KZPjWNC1UK5UWrrRv5avn9NqU6y2HJPT"
 pool_stable = "EeyyyuAXAzo3YuMv7REuHYtPzEssgK4oBeFYM8K9CoGM"
 pool_weighted = "MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy"
 vault = "6sTpp3Z7s4YSWgxuibjhE8tvcywhRc8a5FYfuv6vhuQA"
@@ -26,7 +26,7 @@ types = "packages/sdk/src/generated/"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.spec.ts"
 
 [test]
-startup_wait = 5000
+startup_wait = 100000
 shutdown_wait = 2000
 upgradeable = false
 

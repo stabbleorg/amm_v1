@@ -7,9 +7,6 @@ pub mod state;
 use crate::processor::*;
 use anchor_lang::prelude::*;
 
-#[cfg(feature = "development")]
-declare_id!("BGJ7Ra51bCSLfJTzXXQsx6Mc8KYuzBnvG2JuUgkp454a");
-#[cfg(not(feature = "development"))]
 declare_id!("EeyyyuAXAzo3YuMv7REuHYtPzEssgK4oBeFYM8K9CoGM");
 
 #[program]
@@ -17,9 +14,9 @@ pub mod pool_stable {
     use super::*;
 
     /// initialize a pool
-    #[access_control(Initialize::validate(&ctx, amp, swap_fee))]
-    pub fn initialize(ctx: Context<Initialize>, amp: u16, swap_fee: u16) -> Result<()> {
-        process_initialize(ctx, amp, swap_fee)
+    #[access_control(Initialize::validate(&ctx, amp_factor, swap_fee))]
+    pub fn initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u16) -> Result<()> {
+        process_initialize(ctx, amp_factor, swap_fee)
     }
 
     /// add liquidity
@@ -62,5 +59,9 @@ pub mod pool_stable {
 
     pub fn change_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: Pubkey) -> Result<()> {
         process_change_owner(ctx, new_owner)
+    }
+
+    pub fn close<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, '_, 'info, OwnerOnly<'info>>) -> Result<()> {
+        process_close(ctx)
     }
 }

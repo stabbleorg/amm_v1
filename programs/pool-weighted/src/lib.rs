@@ -7,9 +7,6 @@ pub mod state;
 use crate::processor::*;
 use anchor_lang::prelude::*;
 
-#[cfg(feature = "development")]
-declare_id!("BQnZgt5MrNEnMyB2LhBbmJUuF2hoRu5Cf1yXcLTRaJEZ");
-#[cfg(not(feature = "development"))]
 declare_id!("MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy");
 
 #[program]
@@ -66,5 +63,9 @@ pub mod pool_weighted {
 
     pub fn change_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: Pubkey) -> Result<()> {
         process_change_owner(ctx, new_owner)
+    }
+
+    pub fn close<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, '_, 'info, OwnerOnly<'info>>) -> Result<()> {
+        process_close(ctx)
     }
 }
