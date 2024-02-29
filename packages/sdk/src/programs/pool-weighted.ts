@@ -7,9 +7,9 @@ import {
   createSyncNativeInstruction,
 } from "@solana/spl-token";
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
-import { type PoolWeighted as IDLType, IDL } from "../generated/pool_weighted";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/solana-common";
 import { WeightedPool, WeightedPoolData } from "../accounts";
-import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "../wallet";
+import { type PoolWeighted as IDLType, IDL } from "../generated/pool_weighted";
 
 export type WeightedPoolProgram = Program<IDLType>;
 

@@ -1,8 +1,8 @@
 import { Program, Provider } from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
-import { type Vault as IDLType, IDL } from "../generated/vault";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/solana-common";
 import { Vault, VaultData } from "../accounts";
-import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "../wallet";
+import { type Vault as IDLType, IDL } from "../generated/vault";
 
 export type VaultProgram = Program<IDLType>;
 

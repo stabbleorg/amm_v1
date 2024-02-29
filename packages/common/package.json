@@ -1,0 +1,11 @@
+{
+  "name": "@stabbleorg/solana-common",
+  "version": "0.1.0",
+  "main": "src",
+  "types": "src/index.d.ts",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/spl-token": "^0.4.0",
+    "@solana/web3.js": "^1.90.0"
+  }
+}

@@ -1,4 +1,3 @@
-import { Provider } from "@coral-xyz/anchor";
 import {
   TokenAccountNotFoundError,
   createAssociatedTokenAccountInstruction,
@@ -13,13 +12,7 @@ import {
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-
-export const SIMULATED_SIGNATURE = "1111111111111111111111111111111111111111111111111111111111111111";
-
-export interface DataUpdatedEvent<T> {
-  pubkey: PublicKey;
-  data: T;
-}
+import { Provider } from "./provider";
 
 export type TransactionWithRecentBlock = {
   tx: VersionedTransaction;

@@ -10,9 +10,9 @@ import {
   getMint,
 } from "@solana/spl-token";
 import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
+import { TransactionWithRecentBlock } from "@stabbleorg/solana-common";
 import { VaultContext, SmartPoolContext } from "./programs";
 import { SmartPool, Vault } from "./accounts";
-import { TransactionWithRecentBlock } from "./wallet";
 import { SafeNumber } from "./utils";
 
 export interface SmartContexts<T extends Provider> {

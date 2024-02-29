@@ -10,9 +10,9 @@ import {
   getMint,
 } from "@solana/spl-token";
 import { PublicKey, Keypair, TransactionInstruction, SystemProgram } from "@solana/web3.js";
+import { TransactionWithRecentBlock } from "@stabbleorg/solana-common";
 import { VaultContext, StablePoolContext, WeightedPoolContext } from "./programs";
 import { AmmPool, StablePool, WeightedPool, Vault } from "./accounts";
-import { TransactionWithRecentBlock } from "./wallet";
 import { SafeNumber } from "./utils";
 
 export type PoolKind = "weighted" | "stable";
