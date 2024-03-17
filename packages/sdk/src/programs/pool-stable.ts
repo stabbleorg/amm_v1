@@ -2,7 +2,7 @@ import BN from "bn.js";
 import { Program, Provider } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
-import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/solana-common";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/anchor-contrib";
 import { StablePool, StablePoolData } from "../accounts";
 import { type PoolStable as IDLType, IDL } from "../generated/pool_stable";
 

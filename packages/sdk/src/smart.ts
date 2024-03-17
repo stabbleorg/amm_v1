@@ -10,7 +10,7 @@ import {
   getMint,
 } from "@solana/spl-token";
 import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
-import { TransactionWithRecentBlock } from "@stabbleorg/solana-common";
+import { TransactionWithRecentBlock } from "@stabbleorg/anchor-contrib";
 import { VaultContext, SmartPoolContext } from "./programs";
 import { SmartPool, Vault } from "./accounts";
 import { SafeNumber } from "./utils";

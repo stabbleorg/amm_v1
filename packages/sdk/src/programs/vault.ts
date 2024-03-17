@@ -1,6 +1,6 @@
 import { Program, Provider } from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
-import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/solana-common";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/anchor-contrib";
 import { Vault, VaultData } from "../accounts";
 import { type Vault as IDLType, IDL } from "../generated/vault";
 

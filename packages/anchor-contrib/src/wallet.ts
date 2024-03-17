@@ -1,3 +1,4 @@
+import { Provider } from "@coral-xyz/anchor";
 import {
   TokenAccountNotFoundError,
   createAssociatedTokenAccountInstruction,
@@ -7,12 +8,12 @@ import {
 import {
   AddressLookupTableAccount,
   BlockhashWithExpiryBlockHeight,
+  ComputeBudgetProgram,
   PublicKey,
   TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { Provider } from "./provider";
 
 export type TransactionWithRecentBlock = {
   tx: VersionedTransaction;
@@ -34,9 +35,9 @@ export class WalletContext<T extends Provider = Provider> {
   async getOrCreateAssociatedTokenAddressInstruction(
     mintAddress: PublicKey,
     owner: PublicKey = this.walletAddress,
-  ): Promise<{ address: PublicKey; instruction: TransactionInstruction | null }> {
+  ): Promise<{ address: PublicKey; instruction?: TransactionInstruction }> {
     const address = getAssociatedTokenAddressSync(mintAddress, owner, true);
-    let instruction = null;
+    let instruction;
 
     try {
       await getAccount(this.provider.connection, address);
@@ -51,6 +52,41 @@ export class WalletContext<T extends Provider = Provider> {
     return { address, instruction };
   }
 
+  newTX(
+    instructions: TransactionInstruction[],
+    altAccounts: AddressLookupTableAccount[] = [],
+    payerAddress?: PublicKey,
+  ): Promise<TransactionWithRecentBlock> {
+    return this.newPrioritizedTX(instructions, 0, altAccounts, payerAddress);
+  }
+
+  async newPrioritizedTX(
+    instructions: TransactionInstruction[],
+    priorityFee: number = 0,
+    altAccounts: AddressLookupTableAccount[] = [],
+    payerAddress?: PublicKey,
+  ): Promise<TransactionWithRecentBlock> {
+    const recentBlock = await this.provider.connection.getLatestBlockhash();
+
+    if (priorityFee) {
+      instructions.unshift(
+        ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: priorityFee,
+        }),
+      );
+    }
+
+    const tx = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: payerAddress || this.walletAddress,
+        recentBlockhash: recentBlock.blockhash,
+        instructions,
+      }).compileToV0Message(altAccounts),
+    );
+
+    return { tx, recentBlock };
+  }
+
   async newLegacyTX(
     instructions: TransactionInstruction[],
     payerAddress?: PublicKey,
@@ -63,24 +99,6 @@ export class WalletContext<T extends Provider = Provider> {
         recentBlockhash: recentBlock.blockhash,
         instructions,
       }).compileToLegacyMessage(),
-    );
-
-    return { tx, recentBlock };
-  }
-
-  async newTX(
-    instructions: TransactionInstruction[],
-    altAccounts: AddressLookupTableAccount[] = [],
-    payerAddress?: PublicKey,
-  ): Promise<TransactionWithRecentBlock> {
-    const recentBlock = await this.provider.connection.getLatestBlockhash();
-
-    const tx = new VersionedTransaction(
-      new TransactionMessage({
-        payerKey: payerAddress || this.walletAddress,
-        recentBlockhash: recentBlock.blockhash,
-        instructions,
-      }).compileToV0Message(altAccounts),
     );
 
     return { tx, recentBlock };

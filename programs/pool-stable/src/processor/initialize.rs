@@ -13,7 +13,7 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
         amp_target_factor: amp_factor,
         ramp_start_ts: 0,
         ramp_stop_ts: 0,
-        ramp_tick: 1,
+        ramp_tick: 60,
         swap_fee,
         is_active: true,
         authority_bump: ctx.bumps.pool_authority,
