@@ -24,7 +24,7 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
   }
 
   get amplification(): number {
-    if (this.data.ampInitialFactor >= this.data.ampTargetFactor) this.data.ampInitialFactor;
+    if (this.data.ampInitialFactor >= this.data.ampTargetFactor) return this.data.ampInitialFactor;
 
     const currentTs = new Date().getTime() / 1000;
 

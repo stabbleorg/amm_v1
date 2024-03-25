@@ -15,7 +15,7 @@ import {
   Amm,
   SafeNumber,
 } from "@stabbleorg/solana-sdk";
-import { stableVaultKP, weightedVaultKP, adminKP, daiMintKP, usdcMintKP, stbMintKP } from "./consts";
+import { stableVaultKP, weightedVaultKP, adminKP, daiMintKP, usdcMintKP, stbMintKP, usdtMintKP } from "./consts";
 
 describe("Swap", () => {
   const provider = AnchorProvider.env();
@@ -35,7 +35,7 @@ describe("Swap", () => {
       usdcMintKP.publicKey,
       await createAssociatedTokenAccount(provider.connection, adminKP, usdcMintKP.publicKey, provider.publicKey),
       adminKP,
-      BigInt("10000000000"), // 10K
+      BigInt("30000000000"), // 30K
     );
 
     amm = new Amm(
@@ -76,7 +76,7 @@ describe("Swap", () => {
   it("should swap USDC for DAI", async () => {
     const mintInAddress = usdcMintKP.publicKey;
     const mintOutAddress = daiMintKP.publicKey;
-    const amountIn = 1000;
+    const amountIn = 10000;
 
     // select the best route
     const pool = pools.sort(
@@ -113,12 +113,52 @@ describe("Swap", () => {
     console.log("DAI out:", balance.uiAmountString);
   });
 
+  it("should swap USDC for USDT", async () => {
+    const mintInAddress = usdcMintKP.publicKey;
+    const mintOutAddress = usdtMintKP.publicKey;
+    const amountIn = 10000;
+
+    // select the best route
+    const pool = pools.sort(
+      (a, b) =>
+        b.getEstAmountOut(mintInAddress, mintOutAddress, amountIn) -
+        a.getEstAmountOut(mintInAddress, mintOutAddress, amountIn),
+    )[0];
+    if (!pool) {
+      console.log("No route found");
+      return;
+    }
+    console.log("Swap @", pool.address.toBase58());
+
+    const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
+    console.log("Estimated out:", estAmountOut);
+    console.log("1 USDC =", estAmountOut / amountIn, "USDT");
+    console.log("1 USDT =", amountIn / estAmountOut, "USDC");
+    if (estAmountOut === 0) return;
+    // slippage tolarance 0.3% (0.003)
+    const minimumAmountOut = estAmountOut * (1 - 0.003);
+
+    const { tx } = await amm.swap({
+      pool,
+      mintInAddress,
+      mintOutAddress,
+      amountIn,
+      minimumAmountOut,
+    });
+    await provider.sendAndConfirm(tx);
+
+    const { value: balance } = await provider.connection.getTokenAccountBalance(
+      getAssociatedTokenAddressSync(usdtMintKP.publicKey, provider.publicKey),
+    );
+    console.log("USDT out:", balance.uiAmountString);
+  });
+
   it("should swap USDC for STB", async () => {
     const mintInAddress = usdcMintKP.publicKey;
     const mintOutAddress = stbMintKP.publicKey;
     const amountIn = 1000;
 
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 10; i++) {
       // select the best route
       const pool = pools.sort(
         (a, b) =>

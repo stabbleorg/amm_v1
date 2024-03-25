@@ -22,6 +22,7 @@ import {
   usdcMintKP,
   usdtMintKP,
   daiMintKP,
+  stableN2PoolKP,
 } from "./consts";
 
 describe("Pool", () => {
@@ -499,6 +500,33 @@ describe("Pool", () => {
         "USDC out:",
         SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
       );
+    });
+  });
+
+  describe("USDT-USDC", () => {
+    it("should create stable pool", async () => {
+      const { tx: createTX, address: poolAddress } = await amm.createStablePoolAndAddress({
+        vaultAddress: stableVaultKP.publicKey,
+        mintAddresses: [usdtMintKP.publicKey, usdcMintKP.publicKey],
+        amp: 5000,
+        swapFee: "0.0001", // 0.1%
+        poolKP: stableN2PoolKP, // can omit in dapp
+      });
+      await ctxStable.provider.sendAndConfirm(createTX);
+
+      // add initial liquidity
+      const pool = await ctxStable.findOne(poolAddress);
+      const { tx } = await amm.deposit({
+        pool,
+        mintAddresses: pool.tokens.map((token) => token.mintAddress),
+        amounts: [1391616, 1978200],
+      });
+      await ctxStable.provider.sendAndConfirm(tx);
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        ctxStable.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      console.log("LP out:", balance.uiAmountString!);
     });
   });
 });
