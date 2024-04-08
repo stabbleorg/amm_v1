@@ -67,12 +67,7 @@ export class WalletContext<T extends Provider = Provider> {
     payerAddress?: PublicKey,
   ): Promise<TransactionWithRecentBlock> {
     const recentBlock = await this.provider.connection.getLatestBlockhash();
-
-    instructions.unshift(
-      ComputeBudgetProgram.setComputeUnitLimit({
-        units: 140000000,
-      }),
-    );
+    const payerKey = payerAddress || this.walletAddress;
 
     if (priorityFee) {
       instructions.unshift(
@@ -82,9 +77,35 @@ export class WalletContext<T extends Provider = Provider> {
       );
     }
 
+    try {
+      const sim = new VersionedTransaction(
+        new TransactionMessage({
+          payerKey,
+          recentBlockhash: recentBlock.blockhash,
+          instructions: [
+            ComputeBudgetProgram.setComputeUnitLimit({
+              units: 140000000,
+            }),
+            ...instructions,
+          ],
+        }).compileToV0Message(altAccounts),
+      );
+
+      const { value: simRes } = await this.provider.connection.simulateTransaction(sim);
+      console.debug("CU:", simRes.unitsConsumed);
+
+      if (simRes.unitsConsumed) {
+        instructions.unshift(
+          ComputeBudgetProgram.setComputeUnitLimit({
+            units: simRes.unitsConsumed,
+          }),
+        );
+      }
+    } catch (err) {}
+
     const tx = new VersionedTransaction(
       new TransactionMessage({
-        payerKey: payerAddress || this.walletAddress,
+        payerKey,
         recentBlockhash: recentBlock.blockhash,
         instructions,
       }).compileToV0Message(altAccounts),
