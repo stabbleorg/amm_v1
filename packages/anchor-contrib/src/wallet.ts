@@ -68,6 +68,12 @@ export class WalletContext<T extends Provider = Provider> {
   ): Promise<TransactionWithRecentBlock> {
     const recentBlock = await this.provider.connection.getLatestBlockhash();
 
+    instructions.unshift(
+      ComputeBudgetProgram.setComputeUnitLimit({
+        units: 140000000,
+      }),
+    );
+
     if (priorityFee) {
       instructions.unshift(
         ComputeBudgetProgram.setComputeUnitPrice({

@@ -7,7 +7,7 @@ pub struct Vault {
 
     /// PDA of pool programs seeded by vault address
     pub withdraw_authority: Pubkey, // immutable
-    /// bump seed of withdraw authority PDA
+    /// bump seed of withdraw_authority PDA
     pub withdraw_authority_bump: u8, // immutable
 
     pub beneficiary: Pubkey,
@@ -20,7 +20,7 @@ pub struct Vault {
 
 impl Vault {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"Vault Authority";
-    pub const WITHDRAW_AUTHORITY_PREFIX: &'static [u8] = b"Withdraw Authority";
+    pub const WITHDRAW_AUTHORITY_PREFIX: &'static [u8] = b"withdraw_authority";
 }
 
 pub trait VaultAuthority {

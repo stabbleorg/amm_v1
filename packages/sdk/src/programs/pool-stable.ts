@@ -22,7 +22,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
 
   findPoolAuthorityAddress(poolAddress: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
-      [Buffer.from("Stable Pool Authority"), poolAddress.toBuffer()],
+      [Buffer.from("pool_authority"), poolAddress.toBuffer()],
       this.program.programId,
     )[0];
   }
@@ -33,7 +33,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
 
   findWithdrawAuthorityAddressAndBump(vaultAddress: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
-      [Buffer.from("Withdraw Authority"), vaultAddress.toBuffer()],
+      [Buffer.from("withdraw_authority"), vaultAddress.toBuffer()],
       this.program.programId,
     );
   }
@@ -251,7 +251,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     amp: number;
     swapFee: number;
   }): Promise<TransactionInstruction[]> {
-    const poolAccountSize = this.program.account.pool.size + StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
+    const poolAccountSize = this.program.account.pool.size + StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4 + 32;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
 
     return [

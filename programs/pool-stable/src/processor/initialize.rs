@@ -1,59 +1,64 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
+use math::stable_math;
 use vault::state::Vault;
 
-pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u16) -> Result<()> {
+pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u32) -> Result<()> {
     ctx.accounts.pool.set_inner(Pool {
         owner: ctx.accounts.owner.key(),
         vault: ctx.accounts.vault.key(),
         mint: ctx.accounts.mint.key(),
-        invariant: 0,
+        authority_bump: ctx.bumps.pool_authority,
+        is_active: true,
         amp_initial_factor: amp_factor,
         amp_target_factor: amp_factor,
         ramp_start_ts: 0,
         ramp_stop_ts: 0,
-        ramp_tick: 60,
         swap_fee,
-        is_active: true,
-        authority_bump: ctx.bumps.pool_authority,
         tokens: vec![],
+        pending_owner: None,
     });
+
     for account in ctx.remaining_accounts.iter() {
         let mut buff: &[u8] = &account.try_borrow_data()?;
         let data = Mint::try_deserialize(&mut buff)?;
-        let decimals = data.decimals as u32;
-        assert!(decimals <= Pool::MAX_TOKEN_DECIMALS);
+        assert!(data.decimals <= Pool::MAX_TOKEN_DECIMALS);
+
         ctx.accounts.pool.tokens.push(PoolToken {
             mint: account.key(),
             decimals: data.decimals,
-            multiplier: 10u32.saturating_pow(decimals),
-            scaling_factor: 10u32.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(decimals)),
-            tick: 1,
+            scaling_factor: 10_u64
+                .checked_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(data.decimals) as u32)
+                .unwrap(),
             balance: 0,
         });
     }
+
     Ok(())
 }
 
 impl<'info> Initialize<'info> {
-    pub fn validate(ctx: &Context<Initialize>, amp_factor: u16, swap_fee: u16) -> Result<()> {
+    pub fn validate(ctx: &Context<Initialize>, amp_factor: u16, swap_fee: u32) -> Result<()> {
         assert!(ctx.accounts.vault.is_active);
-        // custom stable pool is not allowed yet
-        assert_eq!(ctx.accounts.owner.key(), ctx.accounts.vault.admin);
+
         assert_eq!(ctx.accounts.mint.supply, 0);
-        assert_eq!(ctx.accounts.mint.decimals, Pool::POOL_TOKEN_DECIMALS);
+        assert_eq!(ctx.accounts.mint.decimals, Pool::MAX_TOKEN_DECIMALS);
         assert_eq!(
             ctx.accounts.mint.mint_authority.unwrap(),
             ctx.accounts.pool_authority.key()
         );
         assert!(ctx.accounts.mint.freeze_authority.is_none());
-        assert!(ctx.remaining_accounts.len() >= Pool::MIN_TOKENS);
-        assert!(ctx.remaining_accounts.len() <= Pool::MAX_TOKENS);
-        assert!(amp_factor >= Pool::MIN_AMP);
-        assert!(amp_factor <= Pool::MAX_AMP);
+
+        assert!(amp_factor >= stable_math::MIN_AMP);
+        assert!(amp_factor <= stable_math::MAX_AMP);
+
         assert!(swap_fee >= Pool::MIN_SWAP_FEE);
         assert!(swap_fee <= Pool::MAX_SWAP_FEE);
+
+        assert!(ctx.remaining_accounts.len() >= stable_math::MIN_STABLE_TOKENS);
+        assert!(ctx.remaining_accounts.len() <= stable_math::MAX_STABLE_TOKENS);
+
         Ok(())
     }
 }
@@ -61,6 +66,7 @@ impl<'info> Initialize<'info> {
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     pub owner: Signer<'info>,
+
     pub mint: Account<'info, Mint>,
 
     #[account(zero, rent_exempt = enforce)]

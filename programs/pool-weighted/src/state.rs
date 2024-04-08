@@ -16,7 +16,7 @@ pub struct PoolToken {
     pub multiplier: u32,
     // immutable
     // 10**(9-decimals)
-    pub scaling_factor: u32,
+    pub scaling_factor: u64,
     // immutable
     pub tick: u64,
     // balance scaled up to 9 decimals
@@ -39,7 +39,7 @@ pub struct Pool {
 }
 
 impl Pool {
-    pub const AUTHORITY_PREFIX: &'static [u8] = b"Weighted Pool Authority";
+    pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
     pub const MIN_SWAP_FEE: u16 = 10; // 0.1%
     pub const MAX_SWAP_FEE: u16 = 250; // 2.5%

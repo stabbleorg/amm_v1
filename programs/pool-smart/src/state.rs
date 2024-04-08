@@ -20,7 +20,7 @@ pub struct Pool {
 }
 
 impl Pool {
-    pub const AUTHORITY_PREFIX: &'static [u8] = b"Smart Pool Authority";
+    pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
     pub fn calc_new_supply(&self, total_supply: u64, amount_in: u64) -> u64 {
         if total_supply == 0 {

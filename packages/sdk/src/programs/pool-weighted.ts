@@ -27,7 +27,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
 
   findPoolAuthorityAddress(poolAddress: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
-      [Buffer.from("Weighted Pool Authority"), poolAddress.toBuffer()],
+      [Buffer.from("pool_authority"), poolAddress.toBuffer()],
       this.program.programId,
     )[0];
   }
@@ -38,7 +38,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
 
   findWithdrawAuthorityAddressAndBump(vaultAddress: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
-      [Buffer.from("Withdraw Authority"), vaultAddress.toBuffer()],
+      [Buffer.from("withdraw_authority"), vaultAddress.toBuffer()],
       this.program.programId,
     );
   }

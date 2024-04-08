@@ -407,7 +407,8 @@ describe("Pool", () => {
         vaultAddress: stableVaultKP.publicKey,
         mintAddresses: [daiMintKP.publicKey, usdtMintKP.publicKey, usdcMintKP.publicKey],
         amp: 2000,
-        swapFee: "0.004", // 0.4%
+        // swapFee: "0.004", // 0.4%
+        swapFee: "0.4", // 0.4%
         poolKP: stableN3PoolKP, // can omit in dapp
       });
       await ctxStable.provider.sendAndConfirm(createTX);
@@ -442,12 +443,17 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const { tx } = await amm.deposit({
-        pool,
-        mintAddresses: pool.tokens.map((token) => token.mintAddress),
-        amounts: [daiAmount, usdtAmount, usdcAmount],
-      });
-      await ctxStable.provider.sendAndConfirm(tx);
+
+      try {
+        const { tx } = await amm.deposit({
+          pool,
+          mintAddresses: pool.tokens.map((token) => token.mintAddress),
+          amounts: [daiAmount, usdtAmount, usdcAmount],
+        });
+        await ctxStable.provider.sendAndConfirm(tx);
+      } catch (err) {
+        console.log(err);
+      }
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),

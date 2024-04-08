@@ -1,4 +1,4 @@
 import "./vault";
 import "./pool";
-import "./swap";
+// import "./swap";
 import "./slr";

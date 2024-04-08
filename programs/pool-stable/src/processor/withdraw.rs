@@ -1,9 +1,10 @@
-use crate::{math, state::*};
+use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{
     accessor::mint as get_token_mint,
     {burn, Burn, Mint, Token, TokenAccount},
 };
+use math::{base_pool_math, bn::*, stable_math, uint256};
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
     program::Vault as VaultProgram,
@@ -15,62 +16,62 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     amount: u64,
     minimum_amounts_out: Vec<u64>,
 ) -> Result<()> {
+    let pool_token_supply = uint256!(ctx.accounts.mint.supply);
     let amplification = ctx.accounts.pool.get_amplification();
     let balances = ctx.accounts.pool.get_balances();
-    let current_invariant = ctx.accounts.pool.get_invariant();
+    let scaling_factors = ctx.accounts.pool.get_scaling_factors();
+    let swap_fee = ctx.accounts.pool.get_swap_fee();
+    let current_invariant = stable_math::calc_invariant(amplification, balances.clone()).unwrap();
 
     let amounts_out = if ctx.remaining_accounts.len() == 2 {
         let mint = get_token_mint(&ctx.remaining_accounts[0])?;
-        let scaling_factor = ctx.accounts.pool.get_scaling_factor(mint);
-        let amount_out = math::calc_token_out_exact_in(
+        let token_index = ctx.accounts.pool.get_token_index(mint);
+        let balance_out = stable_math::calc_token_out_given_exact_pool_token_in(
             amplification,
             balances,
             ctx.accounts.pool.get_token_index(mint),
-            amount as u128,
-            ctx.accounts.mint.supply as u128,
+            uint256!(amount),
+            pool_token_supply,
             current_invariant,
-            ctx.accounts.pool.get_swap_fee(),
-        )?;
-        let amount_out = u64::try_from((amount_out.checked_div(scaling_factor).unwrap()) as u128).unwrap();
-        assert!(amount_out >= minimum_amounts_out[0]); // slippage
+            swap_fee,
+        )
+        .unwrap();
+
+        ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
+            .balance
+            .checked_sub(balance_out.as_u64())
+            .unwrap();
+
+        let amount_out = balance_out.div_down(scaling_factors[token_index]).unwrap().as_u64();
+        assert!(amount_out >= minimum_amounts_out[0]); // check slippage
         vec![amount_out]
     } else {
-        let amounts_out = math::calc_tokens_out_exact_in(balances, amount as u128, ctx.accounts.mint.supply as u128)?;
-        amounts_out
+        let balances_out =
+            base_pool_math::compute_proportional_amounts_out(balances, pool_token_supply, uint256!(amount));
+
+        for (token_index, user_account) in ctx.remaining_accounts[0..balances_out.len()].iter().enumerate() {
+            let mint = get_token_mint(&user_account)?;
+            assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
+
+            ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
+                .balance
+                .checked_sub(balances_out[token_index].as_u64())
+                .unwrap();
+        }
+
+        balances_out
             .iter()
             .enumerate()
-            .map(|(token_index, &amount_out)| {
-                let amount_out = u64::try_from(
-                    amount_out
-                        .checked_div(ctx.accounts.pool.tokens[token_index].scaling_factor as u128)
-                        .unwrap(),
-                )
-                .unwrap();
-                assert!(amount_out >= minimum_amounts_out[token_index]); // slippage
+            .map(|(token_index, &balance_out)| {
+                let amount_out = balance_out.div_down(scaling_factors[token_index]).unwrap().as_u64();
+                assert!(amount_out >= minimum_amounts_out[token_index]); // check slippage
                 amount_out
             })
             .collect()
     };
 
-    for (token_index, user_account) in ctx.remaining_accounts[0..amounts_out.len()].iter().enumerate() {
-        let mint = get_token_mint(&user_account)?;
-        let token_out_index = if ctx.remaining_accounts.len() > 2 {
-            // check token orders
-            assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
-            token_index
-        } else {
-            ctx.accounts.pool.get_token_index(mint)
-        };
-        // remove token balances
-        let balance_out = amounts_out[token_index]
-            .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u64)
-            .unwrap();
-        ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index]
-            .balance
-            .checked_sub(balance_out)
-            .unwrap();
-
-        let vault_account = &ctx.remaining_accounts[token_index + amounts_out.len()];
+    for (index, user_account) in ctx.remaining_accounts[0..amounts_out.len()].iter().enumerate() {
+        let vault_account = &ctx.remaining_accounts[index + amounts_out.len()];
         ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
             withdraw_vault(
                 CpiContext::new(
@@ -85,12 +86,11 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
                     },
                 )
                 .with_signer(&[signer_seed]),
-                amounts_out[token_index],
+                amounts_out[index],
             )
         })?;
     }
 
-    ctx.accounts.pool.refresh_invariant();
     ctx.accounts.pool.emit_updated_event();
     burn(
         CpiContext::new(
@@ -108,7 +108,9 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
 impl<'info> Withdraw<'info> {
     pub fn validate(ctx: &Context<Withdraw>) -> Result<()> {
         assert!(ctx.accounts.vault.is_active);
+
         assert!(ctx.accounts.pool.is_active);
+
         Ok(())
     }
 }
@@ -116,7 +118,6 @@ impl<'info> Withdraw<'info> {
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
     pub user: Signer<'info>,
-
     /// CHECK: OK
     #[account(mut)]
     pub user_pool_token: Account<'info, TokenAccount>,
@@ -124,7 +125,7 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub mint: Account<'info, Mint>,
 
-    #[account(mut, has_one = vault)]
+    #[account(mut, has_one = vault, has_one = mint)]
     pub pool: Account<'info, Pool>,
 
     /// CHECK: signer & account checked in vault.withdraw
@@ -134,6 +135,7 @@ pub struct Withdraw<'info> {
     /// CHECK: PDA checked in vault.withdraw
     pub vault_authority: UncheckedAccount<'info>,
 
-    pub token_program: Program<'info, Token>,
     pub vault_program: Program<'info, VaultProgram>,
+
+    pub token_program: Program<'info, Token>,
 }

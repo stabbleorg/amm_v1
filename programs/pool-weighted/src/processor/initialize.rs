@@ -25,7 +25,7 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<
             decimals: data.decimals,
             weight: weights[token_index],
             multiplier: 10u32.saturating_pow(decimals),
-            scaling_factor: 10u32.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(decimals)),
+            scaling_factor: 10_u64.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(decimals)),
             tick: ticks[token_index],
             balance: 0,
         });

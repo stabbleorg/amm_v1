@@ -4,7 +4,7 @@ import { StableMath, SafeNumber, BasicMath } from "../../utils";
 
 export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
   static POOL_TOKEN_DECIMALS = 9;
-  static POOL_TOKEN_SIZE = 32 + 1 + 4 + 4 + 8 + 8;
+  static POOL_TOKEN_SIZE = 32 + 8 + 8;
 
   constructor(
     readonly address: PublicKey,
@@ -28,10 +28,10 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
 
     const currentTs = new Date().getTime() / 1000;
 
-    if (currentTs >= this.data.rampStopTs.toNumber()) return this.data.ampTargetFactor;
+    if (currentTs >= this.data.rampStopTs) return this.data.ampTargetFactor;
 
-    const rampElapsed = currentTs - this.data.rampStartTs.toNumber();
-    const rampDuration = this.data.rampStopTs.toNumber() - this.data.rampStartTs.toNumber();
+    const rampElapsed = currentTs - this.data.rampStartTs;
+    const rampDuration = this.data.rampStopTs - this.data.rampStartTs;
     const ampOffset = ((this.data.ampTargetFactor - this.data.ampInitialFactor) * rampElapsed) / rampDuration;
     return this.data.ampInitialFactor + ampOffset;
   }
