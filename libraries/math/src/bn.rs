@@ -191,4 +191,20 @@ mod tests {
         assert_eq!(uint128!(0), U128::zero());
         assert_eq!(uint128!(u64::MAX).as_u64(), u64::MAX);
     }
+
+    #[test]
+    fn test_shift_for_div_by_2() {
+        assert_eq!(
+            uint256!(u128::MAX) >> 1,
+            uint256!(u128::MAX).checked_div(uint256!(2)).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_shift_for_mul_by_2() {
+        assert_eq!(
+            uint256!(u128::MAX) << 1,
+            uint256!(u128::MAX).checked_mul(uint256!(2)).unwrap()
+        );
+    }
 }

@@ -21,14 +21,14 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     let balances = ctx.accounts.pool.get_balances();
     let scaling_factors = ctx.accounts.pool.get_scaling_factors();
     let swap_fee = ctx.accounts.pool.get_swap_fee();
-    let current_invariant = stable_math::calc_invariant(amplification, balances.clone()).unwrap();
+    let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
     let amounts_out = if ctx.remaining_accounts.len() == 2 {
         let mint = get_token_mint(&ctx.remaining_accounts[0])?;
         let token_index = ctx.accounts.pool.get_token_index(mint);
         let balance_out = stable_math::calc_token_out_given_exact_pool_token_in(
             amplification,
-            balances,
+            &balances,
             ctx.accounts.pool.get_token_index(mint),
             uint256!(amount),
             pool_token_supply,
@@ -80,8 +80,8 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
                         withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
                         vault: ctx.accounts.vault.to_account_info(),
                         vault_authority: ctx.accounts.vault_authority.to_account_info(),
-                        vault_token: vault_account.clone(),
-                        dest_token: user_account.clone(),
+                        vault_token: vault_account.to_account_info(),
+                        dest_token: user_account.to_account_info(),
                         token_program: ctx.accounts.token_program.to_account_info(),
                     },
                 )
@@ -92,6 +92,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     }
 
     ctx.accounts.pool.emit_updated_event();
+
     burn(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),

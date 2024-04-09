@@ -48,11 +48,7 @@ describe("SLR", () => {
       pool,
       amount: 1000,
     });
-    try {
-      await sdk.ctxSmart.provider.sendAndConfirm!(tx);
-    } catch (err) {
-      console.error(err);
-    }
+    await sdk.ctxSmart.provider.sendAndConfirm!(tx);
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
       sdk.ctxSmart.getAssociatedTokenAddress(pool.quoteMintAddress),

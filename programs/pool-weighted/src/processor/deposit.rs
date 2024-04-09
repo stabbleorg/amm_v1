@@ -42,8 +42,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
-                    from: user_account.clone(),
-                    to: vault_account.clone(),
+                    from: user_account.to_account_info(),
+                    to: vault_account.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),

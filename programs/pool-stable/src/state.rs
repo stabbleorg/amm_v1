@@ -1,5 +1,5 @@
 use crate::located::*;
-use anchor_lang::{prelude::*, solana_program::clock::Clock};
+use anchor_lang::{prelude::*, solana_program::sysvar::clock::Clock};
 use math::{bn::*, stable_math, uint256};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy)]
@@ -15,7 +15,6 @@ pub struct PoolToken {
     pub balance: u64,
 }
 
-#[repr(C)]
 #[account]
 pub struct Pool {
     pub owner: Pubkey,
@@ -52,21 +51,32 @@ impl Pool {
         let current_ts = Clock::get().unwrap().unix_timestamp;
         let amp_initial_factor = uint256!(self.amp_initial_factor);
         let amp_target_factor = uint256!(self.amp_target_factor);
-        let amp_precision = uint256!(stable_math::AMP_PRECISION);
 
+        // No need to use checked arithmetic
         if current_ts <= self.ramp_start_ts {
-            U256::zero()
+            amp_initial_factor.saturating_mul(stable_math::get_amp_precision())
         } else if current_ts >= self.ramp_stop_ts {
-            amp_target_factor.checked_mul(amp_precision).unwrap()
+            amp_target_factor.saturating_mul(stable_math::get_amp_precision())
         } else {
             let ramp_elsapsed = uint256!(current_ts.saturating_sub(self.ramp_start_ts));
             let ramp_duration = uint256!(self.ramp_stop_ts.saturating_sub(self.ramp_start_ts));
-            let amp_offset = (amp_target_factor.saturating_sub(amp_initial_factor))
-                .checked_mul(amp_precision)
-                .unwrap()
-                .mul_div_down(ramp_elsapsed, ramp_duration)
-                .unwrap();
-            amp_initial_factor.saturating_add(amp_offset)
+            if amp_initial_factor <= amp_target_factor {
+                let amp_offset = (amp_target_factor.saturating_sub(amp_initial_factor))
+                    .saturating_mul(stable_math::get_amp_precision())
+                    .mul_div_down(ramp_elsapsed, ramp_duration)
+                    .unwrap();
+                amp_initial_factor
+                    .saturating_mul(stable_math::get_amp_precision())
+                    .saturating_add(amp_offset)
+            } else {
+                let amp_offset = (amp_initial_factor.saturating_sub(amp_target_factor))
+                    .saturating_mul(stable_math::get_amp_precision())
+                    .mul_div_down(ramp_elsapsed, ramp_duration)
+                    .unwrap();
+                amp_initial_factor
+                    .saturating_mul(stable_math::get_amp_precision())
+                    .saturating_sub(amp_offset)
+            }
         }
     }
 

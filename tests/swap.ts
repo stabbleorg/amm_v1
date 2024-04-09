@@ -91,9 +91,9 @@ describe("Swap", () => {
     console.log("Swap @", pool.address.toBase58());
 
     const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
-    console.log("Estimated out:", estAmountOut);
     console.log("1 USDC =", estAmountOut / amountIn, "DAI");
     console.log("1 DAI =", amountIn / estAmountOut, "USDC");
+    console.log("Estimated out:", estAmountOut);
     if (estAmountOut === 0) return;
     // slippage tolarance 0.3% (0.003)
     const minimumAmountOut = estAmountOut * (1 - 0.003);
@@ -131,9 +131,9 @@ describe("Swap", () => {
     console.log("Swap @", pool.address.toBase58());
 
     const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
-    console.log("Estimated out:", estAmountOut);
     console.log("1 USDC =", estAmountOut / amountIn, "USDT");
     console.log("1 USDT =", amountIn / estAmountOut, "USDC");
+    console.log("Estimated out:", estAmountOut);
     if (estAmountOut === 0) return;
     // slippage tolarance 0.3% (0.003)
     const minimumAmountOut = estAmountOut * (1 - 0.003);
@@ -172,9 +172,9 @@ describe("Swap", () => {
   //     console.log("Swap @", pool.address.toBase58());
 
   //     const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
-  //     console.log("Estimated out:", estAmountOut);
   //     console.log("1 USDC =", estAmountOut / amountIn, "STB");
   //     console.log("1 STB =", amountIn / estAmountOut, "USDC");
+  //     console.log("Estimated out:", estAmountOut);
   //     if (estAmountOut === 0) return;
   //     // slippage tolarance 0.3% (0.003)
   //     const minimumAmountOut = estAmountOut * (1 - 0.003);

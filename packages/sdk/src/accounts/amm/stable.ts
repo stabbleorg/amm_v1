@@ -24,16 +24,20 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
   }
 
   get amplification(): number {
-    if (this.data.ampInitialFactor >= this.data.ampTargetFactor) return this.data.ampInitialFactor;
-
     const currentTs = new Date().getTime() / 1000;
 
+    if (currentTs <= this.data.rampStartTs.toNumber()) return this.data.ampInitialFactor;
     if (currentTs >= this.data.rampStopTs.toNumber()) return this.data.ampTargetFactor;
 
     const rampElapsed = currentTs - this.data.rampStartTs.toNumber();
     const rampDuration = this.data.rampStopTs.toNumber() - this.data.rampStartTs.toNumber();
-    const ampOffset = ((this.data.ampTargetFactor - this.data.ampInitialFactor) * rampElapsed) / rampDuration;
-    return this.data.ampInitialFactor + ampOffset;
+    if (this.data.ampInitialFactor <= this.data.ampTargetFactor) {
+      const ampOffset = ((this.data.ampTargetFactor - this.data.ampInitialFactor) * rampElapsed) / rampDuration;
+      return this.data.ampInitialFactor + ampOffset;
+    } else {
+      const ampOffset = ((this.data.ampInitialFactor - this.data.ampTargetFactor) * rampElapsed) / rampDuration;
+      return this.data.ampInitialFactor - ampOffset;
+    }
   }
 
   get swapFee(): number {

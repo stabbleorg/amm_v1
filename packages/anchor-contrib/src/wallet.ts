@@ -78,7 +78,7 @@ export class WalletContext<T extends Provider = Provider> {
     }
 
     try {
-      const sim = new VersionedTransaction(
+      const txSim = new VersionedTransaction(
         new TransactionMessage({
           payerKey,
           recentBlockhash: recentBlock.blockhash,
@@ -91,13 +91,14 @@ export class WalletContext<T extends Provider = Provider> {
         }).compileToV0Message(altAccounts),
       );
 
-      const { value: simRes } = await this.provider.connection.simulateTransaction(sim);
-      console.debug("CU:", simRes.unitsConsumed);
+      const { value: sim } = await this.provider.connection.simulateTransaction(txSim);
+      // console.debug(sim.logs?.join("\n"));
+      // console.debug("CU:", sim.unitsConsumed);
 
-      if (simRes.unitsConsumed) {
+      if (sim.unitsConsumed) {
         instructions.unshift(
           ComputeBudgetProgram.setComputeUnitLimit({
-            units: simRes.unitsConsumed,
+            units: sim.unitsConsumed,
           }),
         );
       }

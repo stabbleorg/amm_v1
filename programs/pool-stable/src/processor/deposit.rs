@@ -23,7 +23,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         // initial liquidity
         stable_math::calc_invariant(
             amplification,
-            amounts
+            &amounts
                 .iter()
                 .enumerate()
                 .map(|(token_index, &amount)| uint256!(amount).checked_mul(scaling_factors[token_index]).unwrap())
@@ -33,7 +33,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     } else {
         let balances = ctx.accounts.pool.get_balances();
         let swap_fee = ctx.accounts.pool.get_swap_fee();
-        let current_invariant = stable_math::calc_invariant(amplification, balances.clone()).unwrap();
+        let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
         // do_join
         if num_tokens == 1 {
@@ -41,7 +41,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             let token_index = ctx.accounts.pool.get_token_index(mint);
             stable_math::calc_pool_token_out_given_exact_tokens_in(
                 amplification,
-                balances,
+                &balances,
                 ctx.accounts
                     .pool
                     .tokens
@@ -65,7 +65,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         } else {
             stable_math::calc_pool_token_out_given_exact_tokens_in(
                 amplification,
-                balances.clone(),
+                &balances,
                 amounts
                     .iter()
                     .enumerate()
@@ -108,8 +108,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
-                    from: user_account.clone(),
-                    to: vault_account.clone(),
+                    from: user_account.to_account_info(),
+                    to: vault_account.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
@@ -118,6 +118,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     }
 
     ctx.accounts.pool.emit_updated_event();
+
     ctx.accounts.pool.authority_seeds(|signer_seed| {
         mint_to(
             CpiContext::new(

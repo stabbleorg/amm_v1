@@ -443,16 +443,12 @@ describe("Pool", () => {
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
       );
 
-      try {
-        const { tx } = await amm.deposit({
-          pool,
-          mintAddresses: pool.tokens.map((token) => token.mintAddress),
-          amounts: [daiAmount, usdtAmount, usdcAmount],
-        });
-        await ctxStable.provider.sendAndConfirm(tx);
-      } catch (err) {
-        console.log(err);
-      }
+      const { tx } = await amm.deposit({
+        pool,
+        mintAddresses: pool.tokens.map((token) => token.mintAddress),
+        amounts: [daiAmount, usdtAmount, usdcAmount],
+      });
+      await ctxStable.provider.sendAndConfirm(tx);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),

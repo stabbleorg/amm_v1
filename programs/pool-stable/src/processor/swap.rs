@@ -24,7 +24,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
     let amplification = ctx.accounts.pool.get_amplification();
     let balances = ctx.accounts.pool.get_balances();
     let scaling_factors = ctx.accounts.pool.get_scaling_factors();
-    let current_invariant = stable_math::calc_invariant(amplification, balances.clone()).unwrap();
+    let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
     let token_out_index = ctx
@@ -36,7 +36,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
         .unwrap();
     let balance_out_without_fee = stable_math::calc_out_given_in(
         amplification,
-        balances,
+        &balances,
         token_in_index,
         token_out_index,
         balance_in,
@@ -48,8 +48,13 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
         .div_down(scaling_factors[token_out_index])
         .unwrap()
         .as_u64();
-    let amount_out = (stable_math::FEE_PRECISION.saturating_sub(ctx.accounts.pool.swap_fee))
-        .mul_div_down(amount_out_without_fee, stable_math::FEE_PRECISION)
+    let amount_out = amount_out_without_fee
+        .mul_div_down(
+            stable_math::FEE_PRECISION
+                .checked_sub(ctx.accounts.pool.swap_fee)
+                .unwrap(),
+            stable_math::FEE_PRECISION,
+        )
         .unwrap();
     assert!(amount_out >= minimum_amount_out); // check slippage
 
