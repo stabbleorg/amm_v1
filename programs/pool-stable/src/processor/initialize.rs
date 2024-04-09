@@ -4,7 +4,7 @@ use anchor_spl::token::Mint;
 use math::stable_math;
 use vault::state::Vault;
 
-pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u32) -> Result<()> {
+pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64) -> Result<()> {
     ctx.accounts.pool.set_inner(Pool {
         owner: ctx.accounts.owner.key(),
         vault: ctx.accounts.vault.key(),
@@ -39,7 +39,7 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
 }
 
 impl<'info> Initialize<'info> {
-    pub fn validate(ctx: &Context<Initialize>, amp_factor: u16, swap_fee: u32) -> Result<()> {
+    pub fn validate(ctx: &Context<Initialize>, amp_factor: u16, swap_fee: u64) -> Result<()> {
         assert!(ctx.accounts.vault.is_active);
 
         assert_eq!(ctx.accounts.mint.supply, 0);

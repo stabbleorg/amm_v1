@@ -11,7 +11,7 @@ pub struct Vault {
     pub withdraw_authority_bump: u8, // immutable
 
     pub beneficiary: Pubkey,
-    pub beneficiary_fee: u16,
+    pub beneficiary_fee: u64,
 
     /// bump seed of vault authority PDA
     pub authority_bump: u8, // immutable
@@ -59,7 +59,7 @@ where
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct VaultUpdatedData {
-    pub beneficiary_fee: u16,
+    pub beneficiary_fee: u64,
     pub is_active: bool,
 }
 

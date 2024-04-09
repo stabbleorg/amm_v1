@@ -28,10 +28,10 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
 
     const currentTs = new Date().getTime() / 1000;
 
-    if (currentTs >= this.data.rampStopTs) return this.data.ampTargetFactor;
+    if (currentTs >= this.data.rampStopTs.toNumber()) return this.data.ampTargetFactor;
 
-    const rampElapsed = currentTs - this.data.rampStartTs;
-    const rampDuration = this.data.rampStopTs - this.data.rampStartTs;
+    const rampElapsed = currentTs - this.data.rampStartTs.toNumber();
+    const rampDuration = this.data.rampStopTs.toNumber() - this.data.rampStartTs.toNumber();
     const ampOffset = ((this.data.ampTargetFactor - this.data.ampInitialFactor) * rampElapsed) / rampDuration;
     return this.data.ampInitialFactor + ampOffset;
   }

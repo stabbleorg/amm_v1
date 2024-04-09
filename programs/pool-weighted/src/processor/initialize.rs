@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 use vault::state::Vault;
 
-pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<u16>, ticks: Vec<u64>) -> Result<()> {
+pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<u64>, ticks: Vec<u64>) -> Result<()> {
     ctx.accounts.pool.set_inner(Pool {
         owner: ctx.accounts.owner.key(),
         vault: ctx.accounts.vault.key(),
@@ -34,7 +34,7 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<
 }
 
 impl<'info> Initialize<'info> {
-    pub fn validate(ctx: &Context<Initialize>, swap_fee: u16, weights: &Vec<u16>) -> Result<()> {
+    pub fn validate(ctx: &Context<Initialize>, swap_fee: u64, weights: &Vec<u64>) -> Result<()> {
         assert!(ctx.accounts.vault.is_active);
         assert_eq!(ctx.accounts.mint.supply, 0);
         assert_eq!(ctx.accounts.mint.decimals, Pool::POOL_TOKEN_DECIMALS);
@@ -43,8 +43,8 @@ impl<'info> Initialize<'info> {
             ctx.accounts.pool_authority.key()
         );
         assert!(ctx.accounts.mint.freeze_authority.is_none());
-        let sum_weights: u16 = weights.iter().sum();
-        assert_eq!(sum_weights, Pool::WEIGHT_PRECISION as u16);
+        let sum_weights: u64 = weights.iter().sum();
+        assert_eq!(sum_weights, Pool::WEIGHT_PRECISION as u64);
         assert_eq!(ctx.remaining_accounts.len(), weights.len());
         assert!(weights.len() >= Pool::MIN_TOKENS);
         assert!(weights.len() <= Pool::MAX_TOKENS);

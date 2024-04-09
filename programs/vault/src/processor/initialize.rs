@@ -6,7 +6,7 @@ pub fn process_initialize(
     withdraw_authority: Pubkey,
     withdraw_authority_bump: u8,
     beneficiary: Pubkey,
-    beneficiary_fee: u16,
+    beneficiary_fee: u64,
 ) -> Result<()> {
     ctx.accounts.vault.set_inner(Vault {
         admin: ctx.accounts.admin.key(),

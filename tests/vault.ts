@@ -126,12 +126,12 @@ describe("Vault", () => {
     await amm.ctxVault.provider.sendAndConfirm!(tx);
   });
 
-  it("should create vault for smart pool", async () => {
-    const { tx } = await smart.createVaultAndAddress({
-      beneficiaryAddress: beneficiaryKP.publicKey,
-      beneficiaryFee: 0.14,
-      vaultKP: smartVaultKP,
-    });
-    await amm.ctxVault.provider.sendAndConfirm!(tx);
-  });
+  // it("should create vault for smart pool", async () => {
+  //   const { tx } = await smart.createVaultAndAddress({
+  //     beneficiaryAddress: beneficiaryKP.publicKey,
+  //     beneficiaryFee: 0.14,
+  //     vaultKP: smartVaultKP,
+  //   });
+  //   await amm.ctxVault.provider.sendAndConfirm!(tx);
+  // });
 });

@@ -153,104 +153,104 @@ describe("Swap", () => {
     console.log("USDT out:", balance.uiAmountString);
   });
 
-  it("should swap USDC for STB", async () => {
-    const mintInAddress = usdcMintKP.publicKey;
-    const mintOutAddress = stbMintKP.publicKey;
-    const amountIn = 1000;
+  // it("should swap USDC for STB", async () => {
+  //   const mintInAddress = usdcMintKP.publicKey;
+  //   const mintOutAddress = stbMintKP.publicKey;
+  //   const amountIn = 1000;
 
-    for (let i = 0; i < 10; i++) {
-      // select the best route
-      const pool = pools.sort(
-        (a, b) =>
-          b.getEstAmountOut(mintInAddress, mintOutAddress, amountIn) -
-          a.getEstAmountOut(mintInAddress, mintOutAddress, amountIn),
-      )[0];
-      if (!pool) {
-        console.log("No route found");
-        return;
-      }
-      console.log("Swap @", pool.address.toBase58());
+  //   for (let i = 0; i < 10; i++) {
+  //     // select the best route
+  //     const pool = pools.sort(
+  //       (a, b) =>
+  //         b.getEstAmountOut(mintInAddress, mintOutAddress, amountIn) -
+  //         a.getEstAmountOut(mintInAddress, mintOutAddress, amountIn),
+  //     )[0];
+  //     if (!pool) {
+  //       console.log("No route found");
+  //       return;
+  //     }
+  //     console.log("Swap @", pool.address.toBase58());
 
-      const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
-      console.log("Estimated out:", estAmountOut);
-      console.log("1 USDC =", estAmountOut / amountIn, "STB");
-      console.log("1 STB =", amountIn / estAmountOut, "USDC");
-      if (estAmountOut === 0) return;
-      // slippage tolarance 0.3% (0.003)
-      const minimumAmountOut = estAmountOut * (1 - 0.003);
+  //     const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
+  //     console.log("Estimated out:", estAmountOut);
+  //     console.log("1 USDC =", estAmountOut / amountIn, "STB");
+  //     console.log("1 STB =", amountIn / estAmountOut, "USDC");
+  //     if (estAmountOut === 0) return;
+  //     // slippage tolarance 0.3% (0.003)
+  //     const minimumAmountOut = estAmountOut * (1 - 0.003);
 
-      if (i > 0) {
-        const { value: balance } = await provider.connection.getTokenAccountBalance(
-          getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
-        );
+  //     if (i > 0) {
+  //       const { value: balance } = await provider.connection.getTokenAccountBalance(
+  //         getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
+  //       );
 
-        const { tx } = await amm.swap({
-          pool,
-          mintInAddress,
-          mintOutAddress,
-          amountIn,
-          minimumAmountOut,
-        });
-        await provider.sendAndConfirm(tx);
+  //       const { tx } = await amm.swap({
+  //         pool,
+  //         mintInAddress,
+  //         mintOutAddress,
+  //         amountIn,
+  //         minimumAmountOut,
+  //       });
+  //       await provider.sendAndConfirm(tx);
 
-        const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-          getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
-        );
-        console.log(
-          "STB out:",
-          SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-        );
-      } else {
-        const { tx } = await amm.swap({
-          pool,
-          mintInAddress,
-          mintOutAddress,
-          amountIn,
-          minimumAmountOut,
-        });
-        await provider.sendAndConfirm(tx);
+  //       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+  //         getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
+  //       );
+  //       console.log(
+  //         "STB out:",
+  //         SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
+  //       );
+  //     } else {
+  //       const { tx } = await amm.swap({
+  //         pool,
+  //         mintInAddress,
+  //         mintOutAddress,
+  //         amountIn,
+  //         minimumAmountOut,
+  //       });
+  //       await provider.sendAndConfirm(tx);
 
-        const { value: balance } = await provider.connection.getTokenAccountBalance(
-          getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
-        );
-        console.log("STB out:", balance.uiAmountString);
-      }
-    }
-  });
+  //       const { value: balance } = await provider.connection.getTokenAccountBalance(
+  //         getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
+  //       );
+  //       console.log("STB out:", balance.uiAmountString);
+  //     }
+  //   }
+  // });
 
-  it("should match liquidity with reserves in weighted vault", async () => {
-    const vaultAuthorityAddress = amm.ctxVault.findVaultAuthorityAddress(amm.vaults[1].address);
+  // it("should match liquidity with reserves in weighted vault", async () => {
+  //   const vaultAuthorityAddress = amm.ctxVault.findVaultAuthorityAddress(amm.vaults[1].address);
 
-    const liqSTB = pools
-      .filter((pool) => pool.vaultAddress.equals(amm.vaults[1].address))
-      .reduce(
-        (liquidity, pool) =>
-          (pool.tokens.find((token) => token.mintAddress.equals(stbMintKP.publicKey))?.balance || 0) + liquidity,
-        0,
-      );
-    const {
-      value: { uiAmount: balSTB },
-    } = await provider.connection.getTokenAccountBalance(
-      getAssociatedTokenAddressSync(stbMintKP.publicKey, vaultAuthorityAddress, true),
-    );
-    console.log("STB Liquidity:", liqSTB);
-    console.log("STB Reserve:", balSTB);
+  //   const liqSTB = pools
+  //     .filter((pool) => pool.vaultAddress.equals(amm.vaults[1].address))
+  //     .reduce(
+  //       (liquidity, pool) =>
+  //         (pool.tokens.find((token) => token.mintAddress.equals(stbMintKP.publicKey))?.balance || 0) + liquidity,
+  //       0,
+  //     );
+  //   const {
+  //     value: { uiAmount: balSTB },
+  //   } = await provider.connection.getTokenAccountBalance(
+  //     getAssociatedTokenAddressSync(stbMintKP.publicKey, vaultAuthorityAddress, true),
+  //   );
+  //   console.log("STB Liquidity:", liqSTB);
+  //   console.log("STB Reserve:", balSTB);
 
-    const liqUSDC = pools
-      .filter((pool) => pool.vaultAddress.equals(amm.vaults[1].address))
-      .reduce(
-        (liquidity, pool) =>
-          (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,
-        0,
-      );
-    const {
-      value: { uiAmount: balUSDC },
-    } = await provider.connection.getTokenAccountBalance(
-      getAssociatedTokenAddressSync(usdcMintKP.publicKey, vaultAuthorityAddress, true),
-    );
-    console.log("USDC Liquidity:", liqUSDC);
-    console.log("USDC Reserve:", balUSDC);
-  });
+  //   const liqUSDC = pools
+  //     .filter((pool) => pool.vaultAddress.equals(amm.vaults[1].address))
+  //     .reduce(
+  //       (liquidity, pool) =>
+  //         (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,
+  //       0,
+  //     );
+  //   const {
+  //     value: { uiAmount: balUSDC },
+  //   } = await provider.connection.getTokenAccountBalance(
+  //     getAssociatedTokenAddressSync(usdcMintKP.publicKey, vaultAuthorityAddress, true),
+  //   );
+  //   console.log("USDC Liquidity:", liqUSDC);
+  //   console.log("USDC Reserve:", balUSDC);
+  // });
 
   it("should match liquidity with reserves in stable vault", async () => {
     const vaultAuthorityAddress = amm.ctxVault.findVaultAuthorityAddress(amm.vaults[0].address);

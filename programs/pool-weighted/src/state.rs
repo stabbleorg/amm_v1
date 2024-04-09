@@ -10,7 +10,7 @@ pub struct PoolToken {
     pub decimals: u8,
     // immutable
     // normalized weight basis points scaled up to 4 decimals
-    pub weight: u16,
+    pub weight: u64,
     // immutable
     // 10**decimals
     pub multiplier: u32,
@@ -31,7 +31,7 @@ pub struct Pool {
     // immutable
     pub mint: Pubkey,
     pub invariant: u64,
-    pub swap_fee: u16,
+    pub swap_fee: u64,
     pub is_active: bool,
     // immutable
     pub authority_bump: u8,
@@ -41,8 +41,8 @@ pub struct Pool {
 impl Pool {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
-    pub const MIN_SWAP_FEE: u16 = 10; // 0.1%
-    pub const MAX_SWAP_FEE: u16 = 250; // 2.5%
+    pub const MIN_SWAP_FEE: u64 = 1000; // 0.1%
+    pub const MAX_SWAP_FEE: u64 = 25000; // 2.5%
 
     pub const MIN_TOKENS: usize = 2;
     pub const MAX_TOKENS: usize = 8;
@@ -51,8 +51,8 @@ impl Pool {
     pub const MAX_TOKEN_DECIMALS: u32 = 9;
 
     pub const BALANCE_PRECISION: f64 = 1e9;
-    pub const WEIGHT_PRECISION: f64 = 1e4;
-    pub const FEE_PRECISION: f64 = 1e4;
+    pub const WEIGHT_PRECISION: f64 = 1e6;
+    pub const FEE_PRECISION: f64 = 1e6;
 
     pub fn get_swap_fee(&self) -> f64 {
         self.swap_fee as f64 / Pool::FEE_PRECISION
@@ -111,8 +111,6 @@ where
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct PoolUpdatedData {
-    pub swap_fee: u16,
-    pub is_active: bool,
     pub tokens: Vec<PoolToken>,
 }
 
@@ -134,8 +132,6 @@ where
         emit!(PoolUpdatedEvent {
             pubkey: self.key(),
             data: PoolUpdatedData {
-                swap_fee: self.as_ref().swap_fee,
-                is_active: self.as_ref().is_active,
                 tokens: self.as_ref().tokens.clone(),
             },
         });

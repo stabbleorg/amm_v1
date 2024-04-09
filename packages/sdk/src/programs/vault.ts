@@ -1,4 +1,4 @@
-import { Program, Provider } from "@coral-xyz/anchor";
+import { BN, Program, Provider } from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/anchor-contrib";
 import { Vault, VaultData } from "../accounts";
@@ -52,7 +52,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     withdrawAuthorityAddress: PublicKey;
     withdrawAuthorityBump: number;
     beneficiaryAddress: PublicKey;
-    beneficiaryFee: number;
+    beneficiaryFee: BN;
   }): Promise<TransactionInstruction[]> {
     return [
       SystemProgram.createAccount({

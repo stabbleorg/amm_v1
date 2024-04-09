@@ -307,8 +307,8 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     poolAddress: PublicKey;
     poolMintAddress: PublicKey;
     mintAddresses: PublicKey[];
-    swapFee: number;
-    weights: number[];
+    swapFee: BN;
+    weights: BN[];
     ticks: BN[];
   }): Promise<TransactionInstruction[]> {
     const poolAccountSize = this.program.account.pool.size + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
@@ -366,7 +366,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     newSwapFee,
   }: {
     poolAddress: PublicKey;
-    newSwapFee: number;
+    newSwapFee: BN;
   }): Promise<TransactionInstruction[]> {
     return [
       await this.program.methods

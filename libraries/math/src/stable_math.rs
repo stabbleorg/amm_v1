@@ -1,14 +1,26 @@
 use crate::{bn::*, error::StableMathError, uint256};
 
+pub const AMP_PRECISION: u64 = 1_000;
+pub const FEE_PRECISION: u64 = 1_000_000;
+pub const INV_PRECISION: u64 = 1_000_000_000;
+
 pub const MIN_AMP: u16 = 1;
 pub const MAX_AMP: u16 = 5000;
 
-pub const AMP_PRECISION: u32 = 1_000;
-pub const FEE_PRECISION: u32 = 1_000_000;
-pub const INV_PRECISION: u32 = 1_000_000_000;
-
 pub const MIN_STABLE_TOKENS: usize = 2;
 pub const MAX_STABLE_TOKENS: usize = 5;
+
+pub fn get_amp_precision() -> U256 {
+    uint256!(AMP_PRECISION)
+}
+
+pub fn get_fee_precision() -> U256 {
+    uint256!(FEE_PRECISION)
+}
+
+pub fn get_inv_precision() -> U256 {
+    uint256!(INV_PRECISION)
+}
 
 // StableMath._calculateInvariant
 // Computes the invariant given the current balances, using the Newton-Raphson approximation.
@@ -36,7 +48,6 @@ pub fn calc_invariant(amplification: U256, balances: Vec<U256>) -> Result<U256, 
     let mut invariant = sum; // D in the Curve version
     let num_tokens = uint256!(balances.len());
     let amp_times_total = amplification.checked_mul(num_tokens).unwrap(); // Ann in the Curve version
-    let amp_precision = uint256!(AMP_PRECISION);
 
     for _ in 0..255 {
         let mut p = invariant;
@@ -51,7 +62,7 @@ pub fn calc_invariant(amplification: U256, balances: Vec<U256>) -> Result<U256, 
         prev_invariant = invariant;
 
         invariant = amp_times_total
-            .mul_div_down(sum, amp_precision)
+            .mul_div_down(sum, get_amp_precision())
             .unwrap()
             .checked_add(p.checked_mul(num_tokens).unwrap())
             .unwrap()
@@ -59,9 +70,9 @@ pub fn calc_invariant(amplification: U256, balances: Vec<U256>) -> Result<U256, 
             .unwrap()
             .div_down(
                 amp_times_total
-                    .checked_sub(amp_precision)
+                    .checked_sub(get_amp_precision())
                     .unwrap()
-                    .mul_div_down(invariant, amp_precision)
+                    .mul_div_down(invariant, get_amp_precision())
                     .unwrap()
                     .checked_add(num_tokens.checked_add(U256::one()).unwrap().checked_mul(p).unwrap())
                     .unwrap(),
@@ -189,8 +200,6 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
     swap_fee: U256,
 ) -> Result<U256, StableMathError> {
     // LP out, so we round down overall.
-    let inv_precision = uint256!(INV_PRECISION);
-    let fee_precision = uint256!(FEE_PRECISION);
 
     // First loop calculates the sum of all token balances, which will be used to calculate
     // the current weights of each token, relative to this sum
@@ -204,16 +213,16 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
     // The weighted sum of token balance ratios with fee
     let mut invariant_ratio_with_fees = U256::zero();
     for i in 0..balances.len() {
-        let current_weight = balances[i].mul_div_down(inv_precision, sum_balances).unwrap();
+        let current_weight = balances[i].mul_div_down(get_inv_precision(), sum_balances).unwrap();
         balance_ratios_with_fee.push(
             balances[i]
                 .checked_add(amounts_in[i])
                 .unwrap()
-                .mul_div_down(inv_precision, balances[i])
+                .mul_div_down(get_inv_precision(), balances[i])
                 .unwrap(),
         );
         invariant_ratio_with_fees = balance_ratios_with_fee[i]
-            .mul_div_down(current_weight, inv_precision)
+            .mul_div_down(current_weight, get_inv_precision())
             .unwrap()
             .checked_add(invariant_ratio_with_fees)
             .unwrap();
@@ -228,14 +237,14 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
         if balance_ratios_with_fee[i] > invariant_ratio_with_fees {
             let non_taxable_amount = balances[i]
                 .mul_div_down(
-                    invariant_ratio_with_fees.checked_sub(inv_precision).unwrap(),
-                    inv_precision,
+                    invariant_ratio_with_fees.checked_sub(get_inv_precision()).unwrap(),
+                    get_inv_precision(),
                 )
                 .unwrap();
             let taxable_amount = amounts_in[i].checked_sub(non_taxable_amount).unwrap();
             // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
             amount_in_without_fee = taxable_amount
-                .mul_div_down(fee_precision.saturating_sub(swap_fee), fee_precision)
+                .mul_div_down(get_fee_precision().saturating_sub(swap_fee), get_fee_precision())
                 .unwrap()
                 .checked_add(non_taxable_amount)
                 .unwrap();
@@ -247,12 +256,12 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
     }
 
     let new_invariant = calc_invariant(amplification, new_balances)?;
-    let invariant_ratio = new_invariant.mul_div_down(inv_precision, current_invariant).unwrap();
+    let invariant_ratio = new_invariant.mul_div_down(get_inv_precision(), current_invariant).unwrap();
 
     // If the invariant didn't increase for any reason, we simply don't mint LP
-    if invariant_ratio > inv_precision {
+    if invariant_ratio > get_inv_precision() {
         let amount_out = pool_token_supply
-            .mul_div_down(invariant_ratio.saturating_sub(inv_precision), inv_precision)
+            .mul_div_down(invariant_ratio.saturating_sub(get_inv_precision()), get_inv_precision())
             .unwrap();
         Ok(amount_out)
     } else {
@@ -271,8 +280,6 @@ pub fn calc_token_out_given_exact_pool_token_in(
     swap_fee: U256,
 ) -> Result<U256, StableMathError> {
     // Token out, so we round down overall.
-    let inv_precision = uint256!(INV_PRECISION);
-    let fee_precision = uint256!(FEE_PRECISION);
 
     let new_invariant = pool_token_supply
         .checked_sub(amount_in)
@@ -298,19 +305,19 @@ pub fn calc_token_out_given_exact_pool_token_in(
 
     // We can now compute how much excess balance is being withdrawn as a result of the virtual swaps, which result
     // in swap fees.
-    let current_weight = balances[token_index].mul_div_down(inv_precision, sum_balances).unwrap();
-    let taxable_percentage = inv_precision.saturating_sub(current_weight);
+    let current_weight = balances[token_index].mul_div_down(get_inv_precision(), sum_balances).unwrap();
+    let taxable_percentage = get_inv_precision().saturating_sub(current_weight);
 
     // Swap fees are typically charged on 'token in', but there is no 'token in' here, so we apply it
     // to 'token out'. This results in slightly larger price impact. Fees are rounded up.
     let taxable_amount = amount_out_without_fee
-        .mul_div_up(taxable_percentage, inv_precision)
+        .mul_div_up(taxable_percentage, get_inv_precision())
         .unwrap();
     let non_taxable_amount = amount_out_without_fee.checked_sub(taxable_amount).unwrap();
 
     // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
     let amount_out = taxable_amount
-        .mul_div_down(fee_precision.saturating_sub(swap_fee), fee_precision)
+        .mul_div_down(get_fee_precision().saturating_sub(swap_fee), get_fee_precision())
         .unwrap()
         .checked_add(non_taxable_amount)
         .unwrap();
@@ -327,7 +334,6 @@ fn get_token_balance_given_invariant_n_all_other_balances(
     token_index: usize,
 ) -> Result<U256, StableMathError> {
     // Rounds result up overall
-    let amp_precision = uint256!(AMP_PRECISION);
 
     let num_tokens = uint256!(balances.len());
     let amp_times_total = amplification.checked_mul(num_tokens).unwrap();
@@ -344,12 +350,12 @@ fn get_token_balance_given_invariant_n_all_other_balances(
     let invariant_2 = invariant.checked_mul(invariant).unwrap();
     // We remove the balance from c by multiplying it
     let c = invariant_2
-        .mul_div_up(amp_precision, amp_times_total.checked_mul(p).unwrap())
+        .mul_div_up(get_amp_precision(), amp_times_total.checked_mul(p).unwrap())
         .unwrap()
         .checked_mul(balances[token_index])
         .unwrap();
     let b = invariant
-        .mul_div_up(amp_precision, amp_times_total)
+        .mul_div_up(get_amp_precision(), amp_times_total)
         .unwrap()
         .checked_add(sum)
         .unwrap();

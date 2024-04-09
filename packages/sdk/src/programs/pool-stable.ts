@@ -249,7 +249,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     poolMintAddress: PublicKey;
     mintAddresses: PublicKey[];
     amp: number;
-    swapFee: number;
+    swapFee: BN;
   }): Promise<TransactionInstruction[]> {
     const poolAccountSize = this.program.account.pool.size + StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4 + 32;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
@@ -306,7 +306,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     newSwapFee,
   }: {
     poolAddress: PublicKey;
-    newSwapFee: number;
+    newSwapFee: BN;
   }): Promise<TransactionInstruction[]> {
     return [
       await this.program.methods

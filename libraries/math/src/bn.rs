@@ -43,13 +43,13 @@ pub trait MulDiv<RHS = Self> {
     /// result of the division.
     fn mul_div_down(self, num: RHS, denom: RHS) -> Option<Self::Output>;
 
-    /// Calculates `floor(val / denom)`, i.e. the largest integer less than or equal to the
-    /// result of the division.
-    fn div_down(self, denom: RHS) -> Option<Self::Output>;
-
     /// Calculates `ceil(val * num / denom)`, i.e. the the smallest integer greater than or equal to
     /// the result of the division.
     fn mul_div_up(self, num: RHS, denom: RHS) -> Option<Self::Output>;
+
+    /// Calculates `floor(val / denom)`, i.e. the largest integer less than or equal to the
+    /// result of the division.
+    fn div_down(self, denom: RHS) -> Option<Self::Output>;
 
     /// Calculates `ceil(val / denom)`, i.e. the the smallest integer greater than or equal to
     /// the result of the division.
@@ -92,9 +92,9 @@ impl MulDiv for u64 {
         }
     }
 
-    fn div_down(self, denom: Self) -> Option<Self::Output> {
+    fn mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, 0);
-        let r = uint128!(self) / uint128!(denom);
+        let r = (uint128!(self) * uint128!(num) + uint128!(denom - 1)) / uint128!(denom);
         if r > uint128!(u64::MAX) {
             None
         } else {
@@ -102,9 +102,9 @@ impl MulDiv for u64 {
         }
     }
 
-    fn mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
+    fn div_down(self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, 0);
-        let r = (uint128!(self) * uint128!(num) + uint128!(denom - 1)) / uint128!(denom);
+        let r = uint128!(self) / uint128!(denom);
         if r > uint128!(u64::MAX) {
             None
         } else {
@@ -140,9 +140,9 @@ impl MulDiv for U256 {
         }
     }
 
-    fn div_down(self, denom: Self) -> Option<Self::Output> {
+    fn mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
-        let r = self / denom;
+        let r = (self * num + (denom - 1)) / denom;
         if r > U128::MAX.as_u256() {
             None
         } else {
@@ -150,9 +150,9 @@ impl MulDiv for U256 {
         }
     }
 
-    fn mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
+    fn div_down(self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
-        let r = (self * num + (denom - 1)) / denom;
+        let r = self / denom;
         if r > U128::MAX.as_u256() {
             None
         } else {

@@ -11,7 +11,7 @@ pub fn process_unpause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
     Ok(())
 }
 
-pub fn process_change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary_fee: u16) -> Result<()> {
+pub fn process_change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary_fee: u64) -> Result<()> {
     ctx.accounts.vault.beneficiary_fee = new_beneficiary_fee;
     Ok(())
 }

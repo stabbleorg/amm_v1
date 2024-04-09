@@ -13,7 +13,7 @@ pub fn process_unpause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
     Ok(())
 }
 
-pub fn process_change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u16) -> Result<()> {
+pub fn process_change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u64) -> Result<()> {
     ctx.accounts.pool.swap_fee = new_swap_fee;
     ctx.accounts.pool.emit_updated_event();
     Ok(())

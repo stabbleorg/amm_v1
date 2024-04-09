@@ -14,7 +14,7 @@ pub mod pool_stable {
 
     /// initialize a pool
     #[access_control(Initialize::validate(&ctx, amp_factor, swap_fee))]
-    pub fn initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u32) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64) -> Result<()> {
         process_initialize(ctx, amp_factor, swap_fee)
     }
 
@@ -41,8 +41,7 @@ pub mod pool_stable {
     /// swap
     #[access_control(Swap::validate(&ctx))]
     pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Result<()> {
-        // process_swap(ctx, amount_in, minimum_amount_out)
-        Ok(())
+        process_swap(ctx, amount_in, minimum_amount_out)
     }
 
     pub fn pause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
@@ -53,7 +52,7 @@ pub mod pool_stable {
         process_unpause(ctx)
     }
 
-    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u32) -> Result<()> {
+    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u64) -> Result<()> {
         process_change_swap_fee(ctx, new_swap_fee)
     }
 

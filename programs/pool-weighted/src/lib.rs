@@ -20,7 +20,7 @@ pub mod pool_weighted {
 
     /// initialize a pool
     #[access_control(Initialize::validate(&ctx, swap_fee, &weights))]
-    pub fn initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<u16>, ticks: Vec<u64>) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<u64>, ticks: Vec<u64>) -> Result<()> {
         process_initialize(ctx, swap_fee, weights, ticks)
     }
 
@@ -62,7 +62,7 @@ pub mod pool_weighted {
         process_unpause(ctx)
     }
 
-    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u16) -> Result<()> {
+    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u64) -> Result<()> {
         process_change_swap_fee(ctx, new_swap_fee)
     }
 

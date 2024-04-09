@@ -30,10 +30,10 @@ pub struct Pool {
 
     pub amp_initial_factor: u16,
     pub amp_target_factor: u16,
-    pub ramp_start_ts: u32,
-    pub ramp_stop_ts: u32,
+    pub ramp_start_ts: i64,
+    pub ramp_stop_ts: i64,
 
-    pub swap_fee: u32,
+    pub swap_fee: u64,
 
     pub tokens: Vec<PoolToken>,
 
@@ -43,13 +43,13 @@ pub struct Pool {
 impl Pool {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
-    pub const MIN_SWAP_FEE: u32 = 1; // 0.0001%
-    pub const MAX_SWAP_FEE: u32 = 10_000; // 1.0000%
+    pub const MIN_SWAP_FEE: u64 = 1; // 0.0001%
+    pub const MAX_SWAP_FEE: u64 = 10_000; // 1.0000%
 
     pub const MAX_TOKEN_DECIMALS: u8 = 9;
 
     pub fn get_amplification(&self) -> U256 {
-        let current_ts = Clock::get().unwrap().unix_timestamp as u32;
+        let current_ts = Clock::get().unwrap().unix_timestamp;
         let amp_initial_factor = uint256!(self.amp_initial_factor);
         let amp_target_factor = uint256!(self.amp_target_factor);
         let amp_precision = uint256!(stable_math::AMP_PRECISION);
@@ -120,8 +120,8 @@ where
 pub struct PoolUpdatedData {
     pub amp_initial_factor: u16,
     pub amp_target_factor: u16,
-    pub ramp_start_ts: u32,
-    pub ramp_stop_ts: u32,
+    pub ramp_start_ts: i64,
+    pub ramp_stop_ts: i64,
 
     pub tokens: Vec<PoolToken>,
 }
