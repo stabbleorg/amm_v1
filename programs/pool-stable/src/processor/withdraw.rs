@@ -4,7 +4,8 @@ use anchor_spl::token::{
     accessor::mint as get_token_mint,
     {burn, Burn, Mint, Token, TokenAccount},
 };
-use math::{base_pool_math, bn::*, stable_math, uint256};
+use bn::{safe_math::MulDiv, uint256, U256};
+use math::{base_pool_math, stable_math};
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
     program::Vault as VaultProgram,
@@ -42,7 +43,10 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             .checked_sub(balance_out.as_u64())
             .unwrap();
 
-        let amount_out = balance_out.div_down(scaling_factors[token_index]).unwrap().as_u64();
+        let amount_out = balance_out
+            .checked_div_down(scaling_factors[token_index])
+            .unwrap()
+            .as_u64();
         assert!(amount_out >= minimum_amounts_out[0]); // check slippage
         vec![amount_out]
     } else {
@@ -63,7 +67,10 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             .iter()
             .enumerate()
             .map(|(token_index, &balance_out)| {
-                let amount_out = balance_out.div_down(scaling_factors[token_index]).unwrap().as_u64();
+                let amount_out = balance_out
+                    .checked_div_down(scaling_factors[token_index])
+                    .unwrap()
+                    .as_u64();
                 assert!(amount_out >= minimum_amounts_out[token_index]); // check slippage
                 amount_out
             })

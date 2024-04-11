@@ -1,6 +1,7 @@
 use crate::located::*;
 use anchor_lang::{prelude::*, solana_program::sysvar::clock::Clock};
-use math::{bn::*, stable_math, uint256};
+use bn::{safe_math::MulDiv, uint256, U256};
+use math::stable_math;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy)]
 pub struct PoolToken {
@@ -63,7 +64,7 @@ impl Pool {
             if amp_initial_factor <= amp_target_factor {
                 let amp_offset = (amp_target_factor.saturating_sub(amp_initial_factor))
                     .saturating_mul(stable_math::get_amp_precision())
-                    .mul_div_down(ramp_elsapsed, ramp_duration)
+                    .checked_mul_div_down(ramp_elsapsed, ramp_duration)
                     .unwrap();
                 amp_initial_factor
                     .saturating_mul(stable_math::get_amp_precision())
@@ -71,7 +72,7 @@ impl Pool {
             } else {
                 let amp_offset = (amp_initial_factor.saturating_sub(amp_target_factor))
                     .saturating_mul(stable_math::get_amp_precision())
-                    .mul_div_down(ramp_elsapsed, ramp_duration)
+                    .checked_mul_div_down(ramp_elsapsed, ramp_duration)
                     .unwrap();
                 amp_initial_factor
                     .saturating_mul(stable_math::get_amp_precision())

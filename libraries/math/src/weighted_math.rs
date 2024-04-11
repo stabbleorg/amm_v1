@@ -1,49 +1,55 @@
-use crate::{bn::*, error::WeightedMathError};
+use crate::error::WeightedMathError;
+
+pub const WEIGHT_PRECISION: u64 = 100; // centi
+pub const FEE_PRECISION: u64 = 1_000_000; // micro
+pub const INV_PRECISION: u64 = 1_000_000_000; // nano
 
 // A minimum normalized weight imposes a maximum weight ratio. We need this due to limitations in the
 // implementation of the power function, as these ratios are often exponents.
-pub const MIN_WEIGHT: u16 = 1;
-// Having a minimum normalized weight imposes a limit on the maximum number of tokens;
-// i.e., the largest possible pool is one where all tokens have exactly the minimum weight.
-pub const MAX_WEIGHTED_TOKENS: usize = 100;
+pub const MIN_WEIGHT: u8 = 1;
+pub const MAX_WEIGHT: u8 = 100;
+
+pub const MIN_STABLE_TOKENS: usize = 2;
+pub const MAX_STABLE_TOKENS: usize = 5;
 
 // Pool limits that arise from limitations in the fixed point power function (and the imposed 1:100 maximum weight ratio).
 
 // Swap limits: amounts swapped may not be larger than this percentage of total balance.
-pub const MAX_IN_RATIO: u64 = 300000000;
-pub const MAX_OUT_RATIO: u64 = 300000000;
+pub const MAX_IN_RATIO: u64 = 300_000_000;
+pub const MAX_OUT_RATIO: u64 = 300_000_000;
 
 // Invariant growth limit: non-proportional joins cannot cause the invariant to increase by more than this ratio.
-pub const MAX_INVARIANT_RATIO: u64 = 3000000000;
+pub const MAX_INVARIANT_RATIO: u64 = 3_000_000_000;
 // Invariant shrink limit: non-proportional exits cannot cause the invariant to decrease by less than this ratio.
-pub const MIN_INVARIANT_RATIO: u64 = 700000000;
+pub const MIN_INVARIANT_RATIO: u64 = 700_000_000;
 
 // Invariant is used to collect protocol swap fees by comparing its value between two times.
 // So we can round always to the same direction. It is also used to initiate the BPT amount
 // and, because there is a minimum BPT, we round down the invariant.
 // https://github.com/balancer/balancer-v2-monorepo/blob/master/pkg/pool-weighted/contracts/WeightedMath.sol#L56
-pub fn calc_invariant(normalized_weights: Vec<U256>, balances: Vec<U256>) -> Result<U256, WeightedMathError> {
-    /**********************************************************************************************
-    // invariant               _____                                                             //
-    // wi = weight index i      | |      wi                                                      //
-    // bi = balance index i     | |  bi ^   = i                                                  //
-    // i = invariant                                                                             //
-     **********************************************************************************************/
+// pub fn calc_invariant(normalized_weights: Vec<u32>, balances: Vec<u64>) -> Result<u64, WeightedMathError> {
+//     /**********************************************************************************************
+//     // invariant               _____                                                             //
+//     // wi = weight index i      | |      wi                                                      //
+//     // bi = balance index i     | |  bi ^   = i                                                  //
+//     // i = invariant                                                                             //
+//      **********************************************************************************************/
+//     for i in 0..balances.len() {
+//         invariant = invariant
+//             .checked_mul(
+//                 Nano::new(balances[i])
+//                     .checked_pow(Nano::new(normalized_weights[i]))
+//                     .unwrap(),
+//             )
+//             .unwrap();
+//     }
 
-    let mut invariant = U256::one();
-
-    for j in 0..balances.len() {
-        invariant = invariant
-            .checked_mul(balances[j].checked_pow(normalized_weights[j]).unwrap())
-            .unwrap();
-    }
-
-    if invariant > U256::zero() {
-        Ok(invariant)
-    } else {
-        Err(WeightedMathError::ZeroInvariant)
-    }
-}
+//     if invariant > U256::zero() {
+//         Ok(invariant)
+//     } else {
+//         Err(WeightedMathError::ZeroInvariant)
+//     }
+// }
 
 // // WeightedMath._calcOutGivenIn
 // // Computes how many tokens can be taken out of a pool if `amountIn` are sent, given the
@@ -330,18 +336,25 @@ pub fn calc_invariant(normalized_weights: Vec<U256>, balances: Vec<U256>) -> Res
 //     }
 // }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::uint256;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn test_calc_invariant() {
-//         let invariant = calc_invariant(
-//             vec![uint256!(4000u16), uint256!(6000u16)],
-//             vec![uint256!(100000_000000000u64), uint256!(10000_000000000u64)],
-//         )
-//         .unwrap();
-//         assert_eq!(uint256!(500000000u64), invariant);
-//     }
-// }
+    #[test]
+    fn test_calc_invariant() {
+        // let x = U32F32::from_bits(2_000_000_000);
+        // let y = U32F32::from_bits(900_000_000);
+        // let x1 = x.to_string();
+        // let y1 = y.to_string();
+        // let x2 = x.to_bits();
+        // let y2 = y.to_bits();
+        // let r = x.powf(y);
+
+        // let invariant = calc_invariant(
+        //     vec![uint256!(2), uint256!(3)],
+        //     vec![uint256!(100_000_000_000_000_000_u64), uint256!(1_000_000_000_000_000_u64)],
+        // )
+        // .unwrap();
+        // assert_eq!(uint256!(500000000u64), invariant);
+    }
+}

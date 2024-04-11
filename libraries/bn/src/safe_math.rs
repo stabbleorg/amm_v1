@@ -1,29 +1,4 @@
-///! 128 and 256 bit numbers
-///! U128 is more efficient than u128
-///! https://github.com/solana-labs/solana/issues/19549
-use uint::construct_uint;
-
-construct_uint! {
-    pub struct U128(2);
-}
-
-construct_uint! {
-    pub struct U256(4);
-}
-
-#[macro_export]
-macro_rules! uint128 {
-    ($value:expr) => {
-        U128::from($value)
-    };
-}
-
-#[macro_export]
-macro_rules! uint256 {
-    ($value:expr) => {
-        U256::from($value)
-    };
-}
+use crate::{uint128, U128, U256};
 
 /// Trait for calculating `val * num / denom` with different rounding modes and overflow
 /// protection.
@@ -41,27 +16,25 @@ pub trait MulDiv<RHS = Self> {
 
     /// Calculates `floor(val * num / denom)`, i.e. the largest integer less than or equal to the
     /// result of the division.
-    fn mul_div_down(self, num: RHS, denom: RHS) -> Option<Self::Output>;
+    fn checked_mul_div_down(self, num: RHS, denom: RHS) -> Option<Self::Output>;
 
     /// Calculates `ceil(val * num / denom)`, i.e. the the smallest integer greater than or equal to
     /// the result of the division.
-    fn mul_div_up(self, num: RHS, denom: RHS) -> Option<Self::Output>;
+    fn checked_mul_div_up(self, num: RHS, denom: RHS) -> Option<Self::Output>;
 
     /// Calculates `floor(val / denom)`, i.e. the largest integer less than or equal to the
     /// result of the division.
-    fn div_down(self, denom: RHS) -> Option<Self::Output>;
+    fn checked_div_down(self, denom: RHS) -> Option<Self::Output>;
 
     /// Calculates `ceil(val / denom)`, i.e. the the smallest integer greater than or equal to
     /// the result of the division.
-    fn div_up(self, denom: RHS) -> Option<Self::Output>;
-
-    /// Return u64 not out of bounds
-    fn to_underflow_u64(self) -> u64;
+    fn checked_div_up(self, denom: RHS) -> Option<Self::Output>;
 }
 
 pub trait Upcast {
     fn as_u256(self) -> U256;
 }
+
 impl Upcast for U128 {
     fn as_u256(self) -> U256 {
         U256([self.0[0], self.0[1], 0, 0])
@@ -73,6 +46,7 @@ pub trait Downcast {
     /// Bits beyond the 128th position are lost
     fn as_u128(self) -> U128;
 }
+
 impl Downcast for U256 {
     fn as_u128(self) -> U128 {
         U128([self.0[0], self.0[1]])
@@ -82,7 +56,7 @@ impl Downcast for U256 {
 impl MulDiv for u64 {
     type Output = u64;
 
-    fn mul_div_down(self, num: Self, denom: Self) -> Option<Self::Output> {
+    fn checked_mul_div_down(self, num: Self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, 0);
         let r = (uint128!(self) * uint128!(num)) / uint128!(denom);
         if r > uint128!(u64::MAX) {
@@ -92,7 +66,7 @@ impl MulDiv for u64 {
         }
     }
 
-    fn mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
+    fn checked_mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, 0);
         let r = (uint128!(self) * uint128!(num) + uint128!(denom - 1)) / uint128!(denom);
         if r > uint128!(u64::MAX) {
@@ -102,17 +76,12 @@ impl MulDiv for u64 {
         }
     }
 
-    fn div_down(self, denom: Self) -> Option<Self::Output> {
+    fn checked_div_down(self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, 0);
-        let r = uint128!(self) / uint128!(denom);
-        if r > uint128!(u64::MAX) {
-            None
-        } else {
-            Some(r.as_u64())
-        }
+        Some(self / denom)
     }
 
-    fn div_up(self, denom: Self) -> Option<Self::Output> {
+    fn checked_div_up(self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, 0);
         let r = (uint128!(self) + uint128!(denom - 1)) / uint128!(denom);
         if r > uint128!(u64::MAX) {
@@ -121,16 +90,51 @@ impl MulDiv for u64 {
             Some(r.as_u64())
         }
     }
+}
 
-    fn to_underflow_u64(self) -> u64 {
-        self
+impl MulDiv for U128 {
+    type Output = U128;
+
+    fn checked_mul_div_down(self, num: Self, denom: Self) -> Option<Self::Output> {
+        assert_ne!(denom, U128::default());
+        let r = ((self.as_u256()) * (num.as_u256())) / (denom.as_u256());
+        if r > U128::MAX.as_u256() {
+            None
+        } else {
+            Some(r.as_u128())
+        }
+    }
+
+    fn checked_mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
+        assert_ne!(denom, U128::default());
+        let r = (self.as_u256() * num.as_u256() + (denom - 1).as_u256()) / denom.as_u256();
+        if r > U128::MAX.as_u256() {
+            None
+        } else {
+            Some(uint128!(r.as_u128()))
+        }
+    }
+
+    fn checked_div_down(self, denom: Self) -> Option<Self::Output> {
+        assert_ne!(denom, U128::default());
+        Some(self / denom)
+    }
+
+    fn checked_div_up(self, denom: Self) -> Option<Self::Output> {
+        assert_ne!(denom, U128::default());
+        let r = (self.as_u256() + (denom - 1).as_u256()) / denom.as_u256();
+        if r > U128::MAX.as_u256() {
+            None
+        } else {
+            Some(r.as_u128())
+        }
     }
 }
 
 impl MulDiv for U256 {
     type Output = U256;
 
-    fn mul_div_down(self, num: Self, denom: Self) -> Option<Self::Output> {
+    fn checked_mul_div_down(self, num: Self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
         let r = (self * num) / denom;
         if r > U128::MAX.as_u256() {
@@ -140,7 +144,7 @@ impl MulDiv for U256 {
         }
     }
 
-    fn mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
+    fn checked_mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
         let r = (self * num + (denom - 1)) / denom;
         if r > U128::MAX.as_u256() {
@@ -150,7 +154,7 @@ impl MulDiv for U256 {
         }
     }
 
-    fn div_down(self, denom: Self) -> Option<Self::Output> {
+    fn checked_div_down(self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
         let r = self / denom;
         if r > U128::MAX.as_u256() {
@@ -160,7 +164,7 @@ impl MulDiv for U256 {
         }
     }
 
-    fn div_up(self, denom: Self) -> Option<Self::Output> {
+    fn checked_div_up(self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
         let r = (self + (denom - 1)) / denom;
         if r > U128::MAX.as_u256() {
@@ -168,43 +172,5 @@ impl MulDiv for U256 {
         } else {
             Some(r)
         }
-    }
-
-    fn to_underflow_u64(self) -> u64 {
-        if self < uint256!(u64::MAX) {
-            self.as_u64()
-        } else {
-            0
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_macros() {
-        assert_eq!(uint256!(0), U256::zero());
-        assert_eq!(uint256!(u64::MAX).as_u64(), u64::MAX);
-
-        assert_eq!(uint128!(0), U128::zero());
-        assert_eq!(uint128!(u64::MAX).as_u64(), u64::MAX);
-    }
-
-    #[test]
-    fn test_shift_for_div_by_2() {
-        assert_eq!(
-            uint256!(u128::MAX) >> 1,
-            uint256!(u128::MAX).checked_div(uint256!(2)).unwrap()
-        );
-    }
-
-    #[test]
-    fn test_shift_for_mul_by_2() {
-        assert_eq!(
-            uint256!(u128::MAX) << 1,
-            uint256!(u128::MAX).checked_mul(uint256!(2)).unwrap()
-        );
     }
 }

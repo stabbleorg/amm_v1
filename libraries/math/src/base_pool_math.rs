@@ -1,4 +1,4 @@
-use crate::bn::*;
+use bn::{safe_math::MulDiv, U256};
 
 // See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-utils/contracts/lib/BasePoolMath.sol#L22-L45
 pub fn compute_proportional_amounts_in(balances: Vec<U256>, pool_token_supply: U256, amount_out: U256) -> Vec<U256> {
@@ -16,7 +16,7 @@ pub fn compute_proportional_amounts_in(balances: Vec<U256>, pool_token_supply: U
 
     let mut amounts_in: Vec<U256> = vec![];
     for i in 0..balances.len() {
-        amounts_in.push(balances[i].mul_div_up(amount_out, pool_token_supply).unwrap());
+        amounts_in.push(balances[i].checked_mul_div_up(amount_out, pool_token_supply).unwrap());
     }
 
     amounts_in
@@ -38,7 +38,7 @@ pub fn compute_proportional_amounts_out(balances: Vec<U256>, pool_token_supply: 
 
     let mut amounts_out: Vec<U256> = vec![];
     for i in 0..balances.len() {
-        amounts_out.push(balances[i].mul_div_down(amount_in, pool_token_supply).unwrap());
+        amounts_out.push(balances[i].checked_mul_div_down(amount_in, pool_token_supply).unwrap());
     }
 
     amounts_out
@@ -47,7 +47,7 @@ pub fn compute_proportional_amounts_out(balances: Vec<U256>, pool_token_supply: 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::uint256;
+    use bn::uint256;
 
     #[test]
     fn test_compute_proportional_amounts_in() {

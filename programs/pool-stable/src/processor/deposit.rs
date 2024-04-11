@@ -4,7 +4,8 @@ use anchor_spl::token::{
     accessor::{authority as get_token_owner, mint as get_token_mint},
     mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer,
 };
-use math::{bn::*, stable_math, uint256};
+use bn::{uint256, U256};
+use math::stable_math;
 use vault::{state::Vault, ID as VAULT_PROGRAM_ID};
 
 pub fn process_deposit<'a, 'b, 'c, 'info>(

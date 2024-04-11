@@ -1,7 +1,8 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
-use math::{bn::*, stable_math, uint256};
+use bn::{safe_math::MulDiv, uint256, U256};
+use math::stable_math;
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
     program::Vault as VaultProgram,
@@ -31,6 +32,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
         .accounts
         .pool
         .get_token_index(ctx.accounts.beneficiary_token_out.mint);
+
     let balance_in = uint256!(amount_in)
         .checked_mul(scaling_factors[token_in_index])
         .unwrap();
@@ -45,11 +47,11 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
     .unwrap();
 
     let amount_out_without_fee = balance_out_without_fee
-        .div_down(scaling_factors[token_out_index])
+        .checked_div_down(scaling_factors[token_out_index])
         .unwrap()
         .as_u64();
     let amount_out = amount_out_without_fee
-        .mul_div_down(
+        .checked_mul_div_down(
             stable_math::FEE_PRECISION
                 .checked_sub(ctx.accounts.pool.swap_fee)
                 .unwrap(),
@@ -60,7 +62,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
 
     let swap_fee_amount = amount_out_without_fee.checked_sub(amount_out).unwrap();
     let beneficiary_fee_amount = (swap_fee_amount)
-        .mul_div_down(ctx.accounts.vault.beneficiary_fee, stable_math::FEE_PRECISION)
+        .checked_mul_div_down(ctx.accounts.vault.beneficiary_fee, stable_math::FEE_PRECISION)
         .unwrap();
 
     // add in token balance
