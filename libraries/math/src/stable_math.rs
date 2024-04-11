@@ -1,5 +1,8 @@
 use crate::error::StableMathError;
-use bn::{safe_math::MulDiv, uint256, U256};
+use bn::{
+    safe_math::{CheckedDivCeil, CheckedDivFloor, CheckedMulDiv},
+    uint256, U256,
+};
 
 pub const AMP_PRECISION: u64 = 1_000;
 pub const FEE_PRECISION: u64 = 1_000_000;
@@ -48,17 +51,14 @@ pub fn calc_invariant(amplification: U256, balances: &Vec<U256>) -> Result<U256,
     let mut prev_invariant; // Dprev in the Curve version
     let mut invariant = sum; // D in the Curve version
     let num_tokens = uint256!(balances.len());
-    // No need to use checked arithmetic
-    let amp_times_total = amplification.checked_mul(num_tokens).unwrap(); // Ann in the Curve version
+    let amp_times_total = amplification * num_tokens; // Ann in the Curve version
 
     for _ in 0..255 {
         let mut p = invariant;
 
         for i in 0..balances.len() {
             // (p * invariant) / (balances[i] * num_tokens)
-            p = p
-                .checked_mul_div_down(invariant, balances[i].checked_mul(num_tokens).unwrap())
-                .unwrap();
+            p = p.checked_mul_div_down(invariant, balances[i] * num_tokens).unwrap();
         }
 
         prev_invariant = invariant;
@@ -76,7 +76,7 @@ pub fn calc_invariant(amplification: U256, balances: &Vec<U256>) -> Result<U256,
                     .unwrap()
                     .checked_mul_div_down(invariant, get_amp_precision())
                     .unwrap()
-                    .checked_add(num_tokens.checked_add(U256::one()).unwrap().checked_mul(p).unwrap())
+                    .checked_add(num_tokens.saturating_add(U256::one()).checked_mul(p).unwrap())
                     .unwrap(),
             )
             .unwrap();
@@ -117,10 +117,11 @@ pub fn calc_out_given_in(
      **************************************************************************************************************/
 
     // Amount out, so we round down overall.
+
     let mut new_balances = vec![];
     for i in 0..balances.len() {
         if i == token_index_in {
-            new_balances.push(balances[i].checked_add(token_amount_in).unwrap());
+            new_balances.push(balances[i] + token_amount_in);
         } else {
             new_balances.push(balances[i]);
         }
@@ -133,11 +134,7 @@ pub fn calc_out_given_in(
         token_index_out,
     )?;
 
-    let token_amount_out = balances[token_index_out]
-        .checked_sub(final_balance_out)
-        .unwrap()
-        .checked_sub(U256::one())
-        .unwrap();
+    let token_amount_out = balances[token_index_out] - final_balance_out - 1;
 
     Ok(token_amount_out)
 }
@@ -183,11 +180,7 @@ pub fn calc_in_given_out(
         token_index_in,
     )?;
 
-    let token_amount_in = final_balance_in
-        .checked_sub(balances[token_index_in])
-        .unwrap()
-        .checked_add(U256::one())
-        .unwrap();
+    let token_amount_in = final_balance_in - balances[token_index_in] + 1;
 
     Ok(token_amount_in)
 }
@@ -207,7 +200,7 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
     // the current weights of each token, relative to this sum
     let mut sum_balances = balances[0];
     for i in 1..balances.len() {
-        sum_balances = sum_balances.checked_add(balances[i]).unwrap();
+        sum_balances = sum_balances + balances[i];
     }
 
     // Calculate the weighted balance ratio without considering fees

@@ -1,6 +1,3 @@
-///! 128 and 256 bit numbers
-///! U128 is more efficient than u128
-///! https://github.com/solana-labs/solana/issues/19549
 pub mod safe_math;
 
 use uint::construct_uint;
@@ -42,17 +39,11 @@ mod tests {
 
     #[test]
     fn test_shift_for_div_by_2() {
-        assert_eq!(
-            uint256!(u128::MAX) >> 1,
-            uint256!(u128::MAX).checked_div(uint256!(2)).unwrap()
-        );
+        assert_eq!(uint256!(u128::MAX) >> 1, uint256!(u128::MAX) / (uint256!(2)));
     }
 
     #[test]
     fn test_shift_for_mul_by_2() {
-        assert_eq!(
-            uint256!(u128::MAX) << 1,
-            uint256!(u128::MAX).checked_mul(uint256!(2)).unwrap()
-        );
+        assert_eq!(uint256!(u128::MAX) << 1, uint256!(u128::MAX) * uint256!(2));
     }
 }

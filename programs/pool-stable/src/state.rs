@@ -1,6 +1,6 @@
 use crate::located::*;
 use anchor_lang::{prelude::*, solana_program::sysvar::clock::Clock};
-use bn::{safe_math::MulDiv, uint256, U256};
+use bn::{safe_math::CheckedMulDiv, uint256, U256};
 use math::stable_math;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy)]

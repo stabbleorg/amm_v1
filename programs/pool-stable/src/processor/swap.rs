@@ -1,7 +1,7 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
-use bn::{safe_math::MulDiv, uint256, U256};
+use bn::{safe_math::CheckedMulDiv, uint256, U256};
 use math::stable_math;
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
@@ -24,7 +24,6 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
 
     let amplification = ctx.accounts.pool.get_amplification();
     let balances = ctx.accounts.pool.get_balances();
-    let scaling_factors = ctx.accounts.pool.get_scaling_factors();
     let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
@@ -33,53 +32,37 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
         .pool
         .get_token_index(ctx.accounts.beneficiary_token_out.mint);
 
-    let balance_in = uint256!(amount_in)
-        .checked_mul(scaling_factors[token_in_index])
-        .unwrap();
+    let balance_in = amount_in * ctx.accounts.pool.tokens[token_in_index].scaling_factor;
     let balance_out_without_fee = stable_math::calc_out_given_in(
         amplification,
         &balances,
         token_in_index,
         token_out_index,
-        balance_in,
+        uint256!(balance_in),
         current_invariant,
     )
-    .unwrap();
+    .unwrap()
+    .as_u64();
 
-    let amount_out_without_fee = balance_out_without_fee
-        .checked_div_down(scaling_factors[token_out_index])
-        .unwrap()
-        .as_u64();
+    let amount_out_without_fee = balance_out_without_fee / ctx.accounts.pool.tokens[token_out_index].scaling_factor;
     let amount_out = amount_out_without_fee
         .checked_mul_div_down(
-            stable_math::FEE_PRECISION
-                .checked_sub(ctx.accounts.pool.swap_fee)
-                .unwrap(),
+            stable_math::FEE_PRECISION.saturating_sub(ctx.accounts.pool.swap_fee),
             stable_math::FEE_PRECISION,
         )
         .unwrap();
     assert!(amount_out >= minimum_amount_out); // check slippage
 
-    let swap_fee_amount = amount_out_without_fee.checked_sub(amount_out).unwrap();
+    let swap_fee_amount = amount_out_without_fee.saturating_sub(amount_out);
     let beneficiary_fee_amount = (swap_fee_amount)
         .checked_mul_div_down(ctx.accounts.vault.beneficiary_fee, stable_math::FEE_PRECISION)
         .unwrap();
 
     // add in token balance
-    ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index]
-        .balance
-        .checked_add(balance_in.as_u64())
-        .unwrap();
+    ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
     // remove out token balance
-    let balance_out = amount_out
-        .checked_add(beneficiary_fee_amount)
-        .unwrap()
-        .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor)
-        .unwrap();
-    ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index]
-        .balance
-        .checked_sub(balance_out)
-        .unwrap();
+    let balance_out = (amount_out + beneficiary_fee_amount) * ctx.accounts.pool.tokens[token_out_index].scaling_factor;
+    ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index].balance - balance_out;
 
     ctx.accounts.pool.emit_updated_event();
 

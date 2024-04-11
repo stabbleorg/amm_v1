@@ -1,4 +1,4 @@
-use bn::{safe_math::MulDiv, U256};
+use bn::{safe_math::CheckedMulDiv, U256};
 
 // See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-utils/contracts/lib/BasePoolMath.sol#L22-L45
 pub fn compute_proportional_amounts_in(balances: Vec<U256>, pool_token_supply: U256, amount_out: U256) -> Vec<U256> {

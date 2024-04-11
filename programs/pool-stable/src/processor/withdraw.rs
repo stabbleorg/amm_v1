@@ -4,7 +4,7 @@ use anchor_spl::token::{
     accessor::mint as get_token_mint,
     {burn, Burn, Mint, Token, TokenAccount},
 };
-use bn::{safe_math::MulDiv, uint256, U256};
+use bn::{safe_math::CheckedDivFloor, uint256, U256};
 use math::{base_pool_math, stable_math};
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
