@@ -4,7 +4,8 @@ use anchor_spl::token::{mint_to, transfer, Mint, MintTo, Token, TokenAccount, Tr
 use vault::{state::Vault, ID as VAULT_PROGRAM_ID};
 
 pub fn process_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-    ctx.accounts.pool.liquidity = ctx.accounts.pool.liquidity.checked_add(amount).unwrap();
+    ctx.accounts.pool.liquidity = ctx.accounts.pool.liquidity + amount;
+
     require!(
         ctx.accounts.pool.liquidity <= ctx.accounts.pool.max_liquidity,
         CustomError::MaxLiquidityExceeded

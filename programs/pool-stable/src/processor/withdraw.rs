@@ -34,10 +34,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         )
         .unwrap();
 
-        ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
-            .balance
-            .checked_sub(balance_out)
-            .unwrap();
+        ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index].balance - balance_out;
 
         let amount_out = balance_out / ctx.accounts.pool.tokens[token_index].scaling_factor;
         assert!(amount_out >= minimum_amounts_out[0]); // check slippage

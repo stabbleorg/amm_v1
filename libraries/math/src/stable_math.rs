@@ -225,8 +225,7 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
                     FEE_PRECISION,
                 )
                 .unwrap()
-                .checked_add(non_taxable_amount)
-                .unwrap();
+                + non_taxable_amount;
         } else {
             amount_in_without_fee = amounts_in[i];
         }
@@ -326,7 +325,7 @@ fn get_token_balance_given_invariant_n_all_other_balances(
     sum = sum.saturating_sub(balances[token_index]);
     let sum = uint256!(sum);
 
-    let invariant_2 = invariant.checked_mul(invariant).unwrap();
+    let invariant_2 = invariant * invariant;
     // We remove the balance from c by multiplying it
     let c = invariant_2
         .checked_mul_div_up(amp_precision_u256(), amp_times_total * p)
@@ -346,18 +345,10 @@ fn get_token_balance_given_invariant_n_all_other_balances(
     for _ in 0..255 {
         prev_token_balance = token_balance;
 
-        token_balance = token_balance
-            .checked_mul(token_balance)
-            .unwrap()
-            .checked_add(c)
-            .unwrap()
+        token_balance = (token_balance * token_balance + c)
             .checked_div_up(
                 // No need to use checked arithmetic because max value of `token_balance` is u128::MAX
-                (token_balance << 1) // token_balance * 2
-                    .checked_add(b)
-                    .unwrap()
-                    .checked_sub(invariant)
-                    .unwrap(),
+                (token_balance << 1) + b - invariant, // token_balance * 2 + b - invariant
             )
             .unwrap();
 

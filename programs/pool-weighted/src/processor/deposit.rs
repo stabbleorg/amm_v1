@@ -30,10 +30,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor as u64)
             .unwrap();
         // add token balances
-        ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index]
-            .balance
-            .checked_add(balance_in)
-            .unwrap();
+        ctx.accounts.pool.tokens[token_in_index].balance =
+            ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
 
         let vault_account = &ctx.remaining_accounts[token_index + amounts.len()];
         // check vault token owner

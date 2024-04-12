@@ -21,7 +21,7 @@ pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     )?;
 
     let amount_out = ctx.accounts.pool.calc_amount_out(ctx.accounts.mint.supply, amount);
-    ctx.accounts.pool.liquidity = ctx.accounts.pool.liquidity.checked_sub(amount_out).unwrap();
+    ctx.accounts.pool.liquidity = ctx.accounts.pool.liquidity - amount_out;
     ctx.accounts.pool.emit_updated_event();
 
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {

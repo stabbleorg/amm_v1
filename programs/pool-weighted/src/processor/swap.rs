@@ -117,15 +117,10 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     let balance_in = ticks_in
         .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor as u64)
         .unwrap();
-    ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index]
-        .balance
-        .checked_add(balance_in)
-        .unwrap();
+    ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
     // remove out token balance
     let balance_out = u64::try_from(
-        ticks_out
-            .checked_add(beneficiary_fee_ticks)
-            .unwrap()
+        (ticks_out + beneficiary_fee_ticks)
             .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
             .unwrap(),
     )
