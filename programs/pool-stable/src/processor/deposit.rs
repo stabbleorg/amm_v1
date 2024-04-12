@@ -4,7 +4,6 @@ use anchor_spl::token::{
     accessor::{authority as get_token_owner, mint as get_token_mint},
     mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer,
 };
-use bn::{uint256, U256};
 use math::stable_math;
 use vault::{state::Vault, ID as VAULT_PROGRAM_ID};
 
@@ -13,12 +12,10 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     amounts: Vec<u64>,
     minimum_amount_out: u64,
 ) -> Result<()> {
-    let pool_token_supply = uint256!(ctx.accounts.mint.supply);
     let num_tokens = amounts.len();
-    let amplification = ctx.accounts.pool.get_amplification();
-    let scaling_factors = ctx.accounts.pool.get_scaling_factors();
+    let amplification = ctx.accounts.pool.get_amplification_();
 
-    let amount_out = if pool_token_supply == U256::zero() {
+    let amount_out = if ctx.accounts.mint.supply == 0 {
         assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
 
         // initial liquidity
@@ -27,13 +24,12 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             &amounts
                 .iter()
                 .enumerate()
-                .map(|(token_index, &amount)| uint256!(amount).checked_mul(scaling_factors[token_index]).unwrap())
+                .map(|(token_index, &amount)| amount * ctx.accounts.pool.tokens[token_index].scaling_factor)
                 .collect(),
         )
         .unwrap()
     } else {
-        let balances = ctx.accounts.pool.get_balances();
-        let swap_fee = ctx.accounts.pool.get_swap_fee();
+        let balances = ctx.accounts.pool.get_balances_();
         let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
         // do_join
@@ -50,17 +46,15 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     .enumerate()
                     .map(|(index, _)| {
                         if token_index == index {
-                            (uint256!(amounts[0]))
-                                .checked_mul(scaling_factors[token_index])
-                                .unwrap()
+                            amounts[0] * ctx.accounts.pool.tokens[token_index].scaling_factor
                         } else {
-                            U256::zero()
+                            0
                         }
                     })
                     .collect(),
-                pool_token_supply,
+                ctx.accounts.mint.supply,
                 current_invariant,
-                swap_fee,
+                ctx.accounts.pool.swap_fee,
             )
             .unwrap()
         } else {
@@ -70,17 +64,16 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                 amounts
                     .iter()
                     .enumerate()
-                    .map(|(token_index, &amount)| (uint256!(amount)).checked_mul(scaling_factors[token_index]).unwrap())
+                    .map(|(token_index, &amount)| amount * ctx.accounts.pool.tokens[token_index].scaling_factor)
                     .collect(),
-                pool_token_supply,
+                ctx.accounts.mint.supply,
                 current_invariant,
-                swap_fee,
+                ctx.accounts.pool.swap_fee,
             )
             .unwrap()
         }
     };
 
-    let amount_out = amount_out.as_u64();
     assert!(amount_out >= minimum_amount_out); // check slippage
 
     for (token_index, user_account) in ctx.remaining_accounts[0..num_tokens].iter().enumerate() {
@@ -93,14 +86,10 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             ctx.accounts.pool.get_token_index(mint)
         };
 
-        let balance_in = amounts[token_index]
-            .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor)
-            .unwrap();
+        let balance_in = amounts[token_index] * ctx.accounts.pool.tokens[token_in_index].scaling_factor;
         // add token balances
-        ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index]
-            .balance
-            .checked_add(balance_in)
-            .unwrap();
+        ctx.accounts.pool.tokens[token_in_index].balance =
+            ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
 
         let vault_account = &ctx.remaining_accounts[token_index + num_tokens];
         // check vault token owner

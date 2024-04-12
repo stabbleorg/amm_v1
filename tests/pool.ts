@@ -510,7 +510,7 @@ describe("Pool", () => {
         vaultAddress: stableVaultKP.publicKey,
         mintAddresses: [usdtMintKP.publicKey, usdcMintKP.publicKey],
         amp: 5000,
-        swapFee: "0.0001", // 0.1%
+        swapFee: "0.0001", // 0.01%
         poolKP: stableN2PoolKP, // can omit in dapp
       });
       await ctxStable.provider.sendAndConfirm(createTX);

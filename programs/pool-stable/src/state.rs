@@ -1,6 +1,6 @@
 use crate::located::*;
 use anchor_lang::{prelude::*, solana_program::sysvar::clock::Clock};
-use bn::{safe_math::CheckedMulDiv, uint256, U256};
+use bn::safe_math::CheckedMulDiv;
 use math::stable_math;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy)]
@@ -48,56 +48,41 @@ impl Pool {
 
     pub const MAX_TOKEN_DECIMALS: u8 = 9;
 
-    pub fn get_amplification(&self) -> U256 {
+    pub fn get_amplification_(&self) -> u64 {
         let current_ts = Clock::get().unwrap().unix_timestamp;
-        let amp_initial_factor = uint256!(self.amp_initial_factor);
-        let amp_target_factor = uint256!(self.amp_target_factor);
+        let amp_initial_factor = self.amp_initial_factor as u64;
+        let amp_target_factor = self.amp_target_factor as u64;
 
         // No need to use checked arithmetic
         if current_ts <= self.ramp_start_ts {
-            amp_initial_factor.saturating_mul(stable_math::get_amp_precision())
+            amp_initial_factor.saturating_mul(stable_math::AMP_PRECISION)
         } else if current_ts >= self.ramp_stop_ts {
-            amp_target_factor.saturating_mul(stable_math::get_amp_precision())
+            amp_target_factor.saturating_mul(stable_math::AMP_PRECISION)
         } else {
-            let ramp_elsapsed = uint256!(current_ts.saturating_sub(self.ramp_start_ts));
-            let ramp_duration = uint256!(self.ramp_stop_ts.saturating_sub(self.ramp_start_ts));
+            let ramp_elsapsed = current_ts.saturating_sub(self.ramp_start_ts) as u64;
+            let ramp_duration = self.ramp_stop_ts.saturating_sub(self.ramp_start_ts) as u64;
             if amp_initial_factor <= amp_target_factor {
                 let amp_offset = (amp_target_factor.saturating_sub(amp_initial_factor))
-                    .saturating_mul(stable_math::get_amp_precision())
+                    .saturating_mul(stable_math::AMP_PRECISION)
                     .checked_mul_div_down(ramp_elsapsed, ramp_duration)
                     .unwrap();
                 amp_initial_factor
-                    .saturating_mul(stable_math::get_amp_precision())
+                    .saturating_mul(stable_math::AMP_PRECISION)
                     .saturating_add(amp_offset)
             } else {
                 let amp_offset = (amp_initial_factor.saturating_sub(amp_target_factor))
-                    .saturating_mul(stable_math::get_amp_precision())
+                    .saturating_mul(stable_math::AMP_PRECISION)
                     .checked_mul_div_down(ramp_elsapsed, ramp_duration)
                     .unwrap();
                 amp_initial_factor
-                    .saturating_mul(stable_math::get_amp_precision())
+                    .saturating_mul(stable_math::AMP_PRECISION)
                     .saturating_sub(amp_offset)
             }
         }
     }
 
-    pub fn get_swap_fee(&self) -> U256 {
-        uint256!(self.swap_fee)
-    }
-
-    pub fn get_balances(&self) -> Vec<U256> {
-        self.tokens.iter().map(|token| uint256!(token.balance)).collect()
-    }
-
-    pub fn get_scaling_factors(&self) -> Vec<U256> {
-        self.tokens.iter().map(|token| uint256!(token.scaling_factor)).collect()
-    }
-
-    pub fn get_balances_n_scaling_factors(&self) -> Vec<(U256, U256)> {
-        self.tokens
-            .iter()
-            .map(|token| (uint256!(token.balance), uint256!(token.scaling_factor)))
-            .collect()
+    pub fn get_balances_(&self) -> Vec<u64> {
+        self.tokens.iter().map(|token| token.balance).collect()
     }
 
     pub fn get_token_index(&self, mint: Pubkey) -> usize {

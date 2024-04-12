@@ -1,7 +1,7 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
-use bn::{safe_math::CheckedMulDiv, uint256, U256};
+use bn::safe_math::CheckedMulDiv;
 use math::stable_math;
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
@@ -22,8 +22,8 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
         amount_in,
     )?;
 
-    let amplification = ctx.accounts.pool.get_amplification();
-    let balances = ctx.accounts.pool.get_balances();
+    let amplification = ctx.accounts.pool.get_amplification_();
+    let balances = ctx.accounts.pool.get_balances_();
     let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
@@ -38,11 +38,10 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
         &balances,
         token_in_index,
         token_out_index,
-        uint256!(balance_in),
+        balance_in,
         current_invariant,
     )
-    .unwrap()
-    .as_u64();
+    .unwrap();
 
     let amount_out_without_fee = balance_out_without_fee / ctx.accounts.pool.tokens[token_out_index].scaling_factor;
     let amount_out = amount_out_without_fee

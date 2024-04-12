@@ -4,7 +4,6 @@ use anchor_spl::token::{
     accessor::mint as get_token_mint,
     {burn, Burn, Mint, Token, TokenAccount},
 };
-use bn::{safe_math::CheckedDivFloor, uint256, U256};
 use math::{base_pool_math, stable_math};
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
@@ -17,11 +16,8 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     amount: u64,
     minimum_amounts_out: Vec<u64>,
 ) -> Result<()> {
-    let pool_token_supply = uint256!(ctx.accounts.mint.supply);
-    let amplification = ctx.accounts.pool.get_amplification();
-    let balances = ctx.accounts.pool.get_balances();
-    let scaling_factors = ctx.accounts.pool.get_scaling_factors();
-    let swap_fee = ctx.accounts.pool.get_swap_fee();
+    let amplification = ctx.accounts.pool.get_amplification_();
+    let balances = ctx.accounts.pool.get_balances_();
     let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
     let amounts_out = if ctx.remaining_accounts.len() == 2 {
@@ -31,46 +27,37 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             amplification,
             &balances,
             ctx.accounts.pool.get_token_index(mint),
-            uint256!(amount),
-            pool_token_supply,
+            amount,
+            ctx.accounts.mint.supply,
             current_invariant,
-            swap_fee,
+            ctx.accounts.pool.swap_fee,
         )
         .unwrap();
 
         ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
             .balance
-            .checked_sub(balance_out.as_u64())
+            .checked_sub(balance_out)
             .unwrap();
 
-        let amount_out = balance_out
-            .checked_div_down(scaling_factors[token_index])
-            .unwrap()
-            .as_u64();
+        let amount_out = balance_out / ctx.accounts.pool.tokens[token_index].scaling_factor;
         assert!(amount_out >= minimum_amounts_out[0]); // check slippage
         vec![amount_out]
     } else {
-        let balances_out =
-            base_pool_math::compute_proportional_amounts_out(balances, pool_token_supply, uint256!(amount));
+        let balances_out = base_pool_math::compute_proportional_amounts_out(balances, ctx.accounts.mint.supply, amount);
 
         for (token_index, user_account) in ctx.remaining_accounts[0..balances_out.len()].iter().enumerate() {
             let mint = get_token_mint(&user_account)?;
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
 
-            ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index]
-                .balance
-                .checked_sub(balances_out[token_index].as_u64())
-                .unwrap();
+            ctx.accounts.pool.tokens[token_index].balance =
+                ctx.accounts.pool.tokens[token_index].balance - balances_out[token_index];
         }
 
         balances_out
             .iter()
             .enumerate()
             .map(|(token_index, &balance_out)| {
-                let amount_out = balance_out
-                    .checked_div_down(scaling_factors[token_index])
-                    .unwrap()
-                    .as_u64();
+                let amount_out = balance_out / ctx.accounts.pool.tokens[token_index].scaling_factor;
                 assert!(amount_out >= minimum_amounts_out[token_index]); // check slippage
                 amount_out
             })
