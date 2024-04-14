@@ -1,4 +1,4 @@
-use crate::{math, state::*, ve_token};
+use crate::{math, state::*};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
 use vault::{
@@ -50,33 +50,6 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     )?;
     let ticks_out_without_fee =
         (amount_out_without_fee * ctx.accounts.pool.tokens[token_out_index].multiplier as f64) as u128;
-
-    // if ctx.accounts.user_ve_token.is_some() {
-    //     let user_ve_token = ctx.accounts.user_ve_token.as_ref().unwrap();
-    //     assert_eq!(user_ve_token.owner, ctx.accounts.user.key());
-    //     assert_eq!(user_ve_token.mint, ve_token::ID);
-    //     if user_ve_token.amount > 25_600_000_000000000 {
-
-    //     } else if user_ve_token.amount > 12_800_000_000000000 {
-
-    //     } else if user_ve_token.amount > 6_400_000_000000000 {
-
-    //     } else if user_ve_token.amount > 3_200_000_000000000 {
-
-    //     } else if user_ve_token.amount > 1_600_000_000000000 {
-
-    //     } else if user_ve_token.amount > 800_000_000000000 {
-
-    //     } else if user_ve_token.amount > 400_000_000000000 {
-
-    //     } else if user_ve_token.amount > 200_000_000000000 {
-
-    //     } else if user_ve_token.amount > 100_000_000000000 {
-
-    //     } else if user_ve_token.amount > 50_000_000000000 {
-
-    //     }
-    // }
 
     let ticks_out = (Pool::FEE_PRECISION as u128)
         .saturating_sub(ctx.accounts.pool.swap_fee as u128)
@@ -214,5 +187,4 @@ pub struct Swap<'info> {
 
     pub token_program: Program<'info, Token>,
     pub vault_program: Program<'info, VaultProgram>,
-    // pub user_ve_token: Option<Account<'info, TokenAccount>>,
 }

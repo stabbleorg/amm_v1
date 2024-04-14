@@ -8,11 +8,12 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<
         owner: ctx.accounts.owner.key(),
         vault: ctx.accounts.vault.key(),
         mint: ctx.accounts.mint.key(),
+        authority_bump: ctx.bumps.pool_authority,
+        is_active: true,
         invariant: 0,
         swap_fee,
-        is_active: true,
-        authority_bump: ctx.bumps.pool_authority,
         tokens: vec![],
+        pending_owner: None,
     });
     for (token_index, account) in ctx.remaining_accounts.iter().enumerate() {
         assert_ne!(weights[token_index], 0);

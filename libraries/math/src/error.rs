@@ -5,6 +5,12 @@ use thiserror::Error;
 pub enum WeightedMathError {
     #[error("Zero invariant")]
     ZeroInvariant,
+
+    #[error("MaxInRatio")]
+    MaxInRatio,
+
+    #[error("MaxOutRatio")]
+    MaxOutRatio,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Error, FromPrimitive)]

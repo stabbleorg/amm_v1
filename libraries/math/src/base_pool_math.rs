@@ -1,7 +1,7 @@
 use bn::safe_math::CheckedMulDiv;
 
 // See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-utils/contracts/lib/BasePoolMath.sol#L22-L45
-pub fn compute_proportional_amounts_in(balances: Vec<u64>, pool_token_supply: u64, amount_out: u64) -> Vec<u64> {
+pub fn compute_proportional_amounts_in(balances: &Vec<u64>, pool_token_supply: u64, amount_out: u64) -> Vec<u64> {
     /************************************************************************************
     // computeProportionalAmountsIn                                                    //
     // (per token)                                                                     //
@@ -23,7 +23,7 @@ pub fn compute_proportional_amounts_in(balances: Vec<u64>, pool_token_supply: u6
 }
 
 // See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-utils/contracts/lib/BasePoolMath.sol#L47-L70
-pub fn compute_proportional_amounts_out(balances: Vec<u64>, pool_token_supply: u64, amount_in: u64) -> Vec<u64> {
+pub fn compute_proportional_amounts_out(balances: &Vec<u64>, pool_token_supply: u64, amount_in: u64) -> Vec<u64> {
     /**********************************************************************************************
     // computeProportionalAmountsOut                                                             //
     // (per token)                                                                               //
@@ -49,24 +49,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_compute_proportional_amounts_in() {
-        let amounts_in = compute_proportional_amounts_in(
-            vec![5_000_000_000_u64, 3_000_000_000_u64],
-            1_000_000_000_u64,
-            100_000_000_u64,
-        );
-        assert_eq!(500_000_000_u64, amounts_in[0]);
-        assert_eq!(300_000_000_u64, amounts_in[1]);
-    }
+    fn test_compute_proportional_amounts() {
+        let balances = vec![5_000_000_000, 3_000_000_000];
+        let pool_token_supply = 1_000_000_000;
 
-    #[test]
-    fn test_compute_proportional_amounts_out() {
-        let amounts_out = compute_proportional_amounts_out(
-            vec![5_000_000_000_u64, 3_000_000_000_u64],
-            1_000_000_000_u64,
-            100_000_000_u64,
-        );
-        assert_eq!(500_000_000_u64, amounts_out[0]);
-        assert_eq!(300_000_000_u64, amounts_out[1]);
+        let amounts_in = compute_proportional_amounts_in(&balances, pool_token_supply, 100_000_000);
+        assert_eq!(amounts_in[0], 500000000);
+        assert_eq!(amounts_in[1], 300000000);
+
+        let amounts_out = compute_proportional_amounts_out(&balances, pool_token_supply, 100_000_000);
+        assert_eq!(amounts_out[0], 500000000);
+        assert_eq!(amounts_out[1], 300000000);
+
+        let amounts_in = compute_proportional_amounts_in(&balances, pool_token_supply, 333_333_333);
+        assert_eq!(amounts_in[0], 1666666665);
+        assert_eq!(amounts_in[1], 999999999);
+
+        let amounts_out = compute_proportional_amounts_out(&balances, pool_token_supply, 333_333_333);
+        assert_eq!(amounts_out[0], 1666666665);
+        assert_eq!(amounts_out[1], 999999999);
+
+        let amounts_in = compute_proportional_amounts_in(&balances, pool_token_supply, 777_777_777);
+        assert_eq!(amounts_in[0], 3888888885);
+        assert_eq!(amounts_in[1], 2333333331);
+
+        let amounts_out = compute_proportional_amounts_out(&balances, pool_token_supply, 777_777_777);
+        assert_eq!(amounts_out[0], 3888888885);
+        assert_eq!(amounts_out[1], 2333333331);
     }
 }

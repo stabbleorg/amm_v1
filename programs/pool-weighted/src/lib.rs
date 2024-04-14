@@ -9,11 +9,6 @@ use anchor_lang::prelude::*;
 
 declare_id!("MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy");
 
-pub mod ve_token {
-    use super::declare_id;
-    declare_id!("veSTB2CqekLUzVevEs9mx5mpdE9odxHhFHmcGtX1D9k");
-}
-
 #[program]
 pub mod pool_weighted {
     use super::*;

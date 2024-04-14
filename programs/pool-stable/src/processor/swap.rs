@@ -22,8 +22,8 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
         amount_in,
     )?;
 
-    let amplification = ctx.accounts.pool.get_amplification_();
-    let balances = ctx.accounts.pool.get_balances_();
+    let amplification = ctx.accounts.pool.get_amplification();
+    let balances = ctx.accounts.pool.get_balances();
     let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);

@@ -69,15 +69,15 @@ pub fn calc_invariant(amplification: u64, balances: &Vec<u64>) -> Result<u64, St
         )
         .unwrap();
 
-        let invariant_u64 = invariant.as_u64();
-        let prev_invariant_u64 = prev_invariant.as_u64();
+        let invariant = invariant.as_u64();
+        let prev_invariant = prev_invariant.as_u64();
 
-        if invariant_u64 > prev_invariant_u64 {
-            if invariant_u64.saturating_sub(prev_invariant_u64) <= 1 {
-                return Ok(invariant_u64);
+        if invariant > prev_invariant {
+            if invariant.saturating_sub(prev_invariant) <= 1 {
+                return Ok(invariant);
             }
-        } else if prev_invariant_u64.saturating_sub(invariant_u64) <= 1 {
-            return Ok(invariant.as_u64());
+        } else if prev_invariant.saturating_sub(invariant) <= 1 {
+            return Ok(invariant);
         }
     }
 
@@ -178,7 +178,7 @@ pub fn calc_in_given_out(
 pub fn calc_pool_token_out_given_exact_tokens_in(
     amplification: u64,
     balances: &Vec<u64>,
-    amounts_in: Vec<u64>,
+    amounts_in: &Vec<u64>,
     pool_token_supply: u64,
     current_invariant: u64,
     swap_fee: u64,
@@ -352,15 +352,15 @@ fn get_token_balance_given_invariant_n_all_other_balances(
             )
             .unwrap();
 
-        let token_balance_u64 = token_balance.as_u64();
-        let prev_token_balance_u64 = prev_token_balance.as_u64();
+        let token_balance = token_balance.as_u64();
+        let prev_token_balance = prev_token_balance.as_u64();
 
-        if token_balance_u64 > prev_token_balance_u64 {
-            if token_balance_u64.saturating_sub(prev_token_balance_u64) <= 1 {
-                return Ok(token_balance_u64);
+        if token_balance > prev_token_balance {
+            if token_balance.saturating_sub(prev_token_balance) <= 1 {
+                return Ok(token_balance);
             }
-        } else if prev_token_balance_u64.saturating_sub(token_balance_u64) <= 1 {
-            return Ok(token_balance_u64);
+        } else if prev_token_balance.saturating_sub(token_balance) <= 1 {
+            return Ok(token_balance);
         }
     }
 
@@ -374,61 +374,105 @@ mod tests {
     #[test]
     fn test_calc_out_given_in() {
         let amplification = 5_000_000;
-        let balances = vec![40_000_000_000_000_000_u64, 60_000_000_000_000_000_u64];
+        let balances = vec![40_000_000_000_000_000, 60_000_000_000_000_000];
         let invariant = calc_invariant(amplification, &balances).unwrap();
-        println!("Invariant: {}", invariant);
+        assert_eq!(invariant, 99999583421855646);
 
-        let token_amount_in = 100_000_000_000_000_u64;
+        let token_amount_in = 100_000_000_000_000;
         let token_a_out = calc_out_given_in(amplification, &balances, 1, 0, token_amount_in, invariant).unwrap();
         let token_b_out = calc_out_given_in(amplification, &balances, 0, 1, token_amount_in, invariant).unwrap();
-        println!("A-B out: {}", token_a_out);
-        println!("B-A out: {}", token_b_out);
+        assert_eq!(token_a_out, 99991271119068);
+        assert_eq!(token_b_out, 100008628389995);
 
         let amplification = 750_000;
-        let balances = vec![
-            40_000_000_000_000_000_u64,
-            50_000_000_000_000_000_u64,
-            60_000_000_000_000_000_u64,
-        ];
+        let balances = vec![40_000_000_000_000_000, 50_000_000_000_000_000, 60_000_000_000_000_000];
         let invariant = calc_invariant(amplification, &balances).unwrap();
-        println!("Invariant: {}", invariant);
+        assert_eq!(invariant, 149997226126050479);
 
         let amplification = 150_000;
         let balances = vec![
-            40_000_000_000_000_000_u64,
-            50_000_000_000_000_000_u64,
-            60_000_000_000_000_000_u64,
-            70_000_000_000_000_000_u64,
+            40_000_000_000_000_000,
+            50_000_000_000_000_000,
+            60_000_000_000_000_000,
+            70_000_000_000_000_000,
         ];
         let invariant = calc_invariant(amplification, &balances).unwrap();
-        println!("Invariant: {}", invariant);
+        assert_eq!(invariant, 219967475585041316);
 
-        // // snapshot of USDC-USDT
-        let amplification = 5_000_000_u64;
-        let balances = vec![894_520_800_000_000_u64, 467_581_800_000_000_u64];
+        let amplification = 5_000_000;
+        let balances = vec![894_520_800_000_000, 467_581_800_000_000];
         let invariant = calc_invariant(amplification, &balances).unwrap();
-        let token_amount_in = 1_000_000_000_000_u64;
-        let min_token_amount_out = 999_845_000_000_u64;
+
+        let token_amount_in = 1_000_000_000_000;
         let token_amount_out = calc_out_given_in(amplification, &balances, 0, 1, token_amount_in, invariant).unwrap();
-        assert!(token_amount_out > min_token_amount_out);
+        assert_eq!(token_amount_out, 999845351780);
+
+        let token_amount_in = 1_000_000_000;
+        let token_amount_out = calc_out_given_in(amplification, &balances, 0, 1, token_amount_in, invariant).unwrap();
+        assert_eq!(token_amount_out, 999845870);
+
+        let token_amount_in = 1_000_000;
+        let token_amount_out = calc_out_given_in(amplification, &balances, 0, 1, token_amount_in, invariant).unwrap();
+        assert_eq!(token_amount_out, 999846);
     }
 
     #[test]
     fn test_calc_pool_token_out_given_exact_tokens_in() {
-        // snapshot of USDC-USDT
-        let amplification = 5_000_000_u64;
-        let balances = vec![894_520_800_000_000_u64, 467_581_800_000_000_u64];
+        let amplification = 5_000_000;
+        let balances = vec![894_520_800_000_000, 467_581_800_000_000];
         let invariant = calc_invariant(amplification, &balances).unwrap();
-        let amounts_in = vec![1_000_000_000_000_000_u64, 1_000_000_000_000_000_u64];
-        let amount_out = calc_pool_token_out_given_exact_tokens_in(
-            amplification,
-            &balances,
-            amounts_in,
-            1_163_354_615_110_000_u64,
-            invariant,
-            100,
-        )
-        .unwrap();
-        println!("Amount out: {}", amount_out);
+
+        let amounts_in = vec![1_000_000_000_000_000, 1_000_000_000_000_000];
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
+                .unwrap();
+        assert_eq!(amount_out, 1999977982041509);
+
+        let amounts_in = vec![0, 2_000_000_000_000];
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
+                .unwrap();
+        assert_eq!(amount_out, 2000047447155);
+
+        let amounts_in = vec![1_000_000_000_000, 1_000_000_000_000];
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
+                .unwrap();
+        assert!(amount_out < 2000047447155);
+        assert_eq!(amount_out, 1999994325732);
+
+        let amounts_in = vec![2_000_000_000_000, 0];
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
+                .unwrap();
+        assert!(amount_out < 1999994325732);
+        assert_eq!(amount_out, 1999802271357);
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 150)
+                .unwrap();
+        assert!(amount_out < 1999802271357);
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 50)
+                .unwrap();
+        assert!(amount_out > 1999802271357);
+
+        // balanced deposit
+        let amounts_in = vec![1_313_441_146_063, 686_558_853_937];
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
+                .unwrap();
+        assert_eq!(amount_out, 1999977980679);
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 150)
+                .unwrap();
+        assert_eq!(amount_out, 1999977980679);
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 50)
+                .unwrap();
+        assert_eq!(amount_out, 1999977980679);
+        let amount_out =
+            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 300)
+                .unwrap();
+        assert_eq!(amount_out, 1999977980679);
     }
 }

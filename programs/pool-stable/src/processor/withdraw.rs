@@ -16,8 +16,8 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     amount: u64,
     minimum_amounts_out: Vec<u64>,
 ) -> Result<()> {
-    let amplification = ctx.accounts.pool.get_amplification_();
-    let balances = ctx.accounts.pool.get_balances_();
+    let amplification = ctx.accounts.pool.get_amplification();
+    let balances = ctx.accounts.pool.get_balances();
     let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
     let amounts_out = if ctx.remaining_accounts.len() == 2 {
@@ -40,7 +40,8 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         assert!(amount_out >= minimum_amounts_out[0]); // check slippage
         vec![amount_out]
     } else {
-        let balances_out = base_pool_math::compute_proportional_amounts_out(balances, ctx.accounts.mint.supply, amount);
+        let balances_out =
+            base_pool_math::compute_proportional_amounts_out(&balances, ctx.accounts.mint.supply, amount);
 
         for (token_index, user_account) in ctx.remaining_accounts[0..balances_out.len()].iter().enumerate() {
             let mint = get_token_mint(&user_account)?;

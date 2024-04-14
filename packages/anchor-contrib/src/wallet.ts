@@ -90,10 +90,11 @@ export class WalletContext<T extends Provider = Provider> {
           ],
         }).compileToV0Message(altAccounts),
       );
+      console.debug("Size:", txSim.serialize().length);
 
       const { value: sim } = await this.provider.connection.simulateTransaction(txSim);
       // console.debug(sim.logs?.join("\n"));
-      // console.debug("CU:", sim.unitsConsumed);
+      console.debug("CU:", sim.unitsConsumed);
 
       if (sim.unitsConsumed) {
         instructions.unshift(

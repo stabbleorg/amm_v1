@@ -10,16 +10,19 @@ pub struct Vault {
     /// bump seed of withdraw_authority PDA
     pub withdraw_authority_bump: u8, // immutable
 
+    /// bump seed of vault_authority PDA
+    pub authority_bump: u8, // immutable
+
+    pub is_active: bool,
+
     pub beneficiary: Pubkey,
     pub beneficiary_fee: u64,
 
-    /// bump seed of vault authority PDA
-    pub authority_bump: u8, // immutable
-    pub is_active: bool,
+    pub pending_admin: Option<Pubkey>,
 }
 
 impl Vault {
-    pub const AUTHORITY_PREFIX: &'static [u8] = b"Vault Authority";
+    pub const AUTHORITY_PREFIX: &'static [u8] = b"vault_authority";
     pub const WITHDRAW_AUTHORITY_PREFIX: &'static [u8] = b"withdraw_authority";
 }
 

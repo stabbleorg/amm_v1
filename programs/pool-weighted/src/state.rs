@@ -3,22 +3,22 @@ use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy)]
 pub struct PoolToken {
-    // immutable
-    pub mint: Pubkey,
-    // immutable
-    // support max 9 decimals
-    pub decimals: u8,
-    // immutable
-    // normalized weight basis points scaled up to 4 decimals
-    pub weight: u64,
+    pub mint: Pubkey, // immutable
+
+    pub decimals: u8, // immutable
+
+    // normalized weight
+    pub weight: u64, // immutable
+
     // immutable
     // 10**decimals
     pub multiplier: u32,
-    // immutable
-    // 10**(9-decimals)
-    pub scaling_factor: u64,
-    // immutable
-    pub tick: u64,
+
+    // 10^(9-decimals) / tick
+    pub scaling_factor: u64, // immutable
+
+    pub tick: u64, // immutable
+
     // balance scaled up to 9 decimals
     pub balance: u64,
 }
@@ -26,16 +26,22 @@ pub struct PoolToken {
 #[account]
 pub struct Pool {
     pub owner: Pubkey,
-    // immutable
-    pub vault: Pubkey,
-    // immutable
-    pub mint: Pubkey,
-    pub invariant: u64,
-    pub swap_fee: u64,
+
+    pub vault: Pubkey, // immutable
+
+    pub mint: Pubkey, // immutable
+
+    pub authority_bump: u8, // immutable
+
     pub is_active: bool,
-    // immutable
-    pub authority_bump: u8,
+
+    pub invariant: u64,
+
+    pub swap_fee: u64,
+
     pub tokens: Vec<PoolToken>,
+
+    pub pending_owner: Option<Pubkey>,
 }
 
 impl Pool {

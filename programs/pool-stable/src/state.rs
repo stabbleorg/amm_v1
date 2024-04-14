@@ -48,7 +48,7 @@ impl Pool {
 
     pub const MAX_TOKEN_DECIMALS: u8 = 9;
 
-    pub fn get_amplification_(&self) -> u64 {
+    pub fn get_amplification(&self) -> u64 {
         let current_ts = Clock::get().unwrap().unix_timestamp;
         let amp_initial_factor = self.amp_initial_factor as u64;
         let amp_target_factor = self.amp_target_factor as u64;
@@ -81,7 +81,7 @@ impl Pool {
         }
     }
 
-    pub fn get_balances_(&self) -> Vec<u64> {
+    pub fn get_balances(&self) -> Vec<u64> {
         self.tokens.iter().map(|token| token.balance).collect()
     }
 

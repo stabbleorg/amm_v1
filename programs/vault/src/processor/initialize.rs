@@ -12,10 +12,11 @@ pub fn process_initialize(
         admin: ctx.accounts.admin.key(),
         withdraw_authority,
         withdraw_authority_bump,
-        beneficiary,
-        beneficiary_fee,
         authority_bump: ctx.bumps.vault_authority,
         is_active: true,
+        beneficiary,
+        beneficiary_fee,
+        pending_admin: None,
     });
     Ok(())
 }

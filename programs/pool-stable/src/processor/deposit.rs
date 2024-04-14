@@ -13,7 +13,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     minimum_amount_out: u64,
 ) -> Result<()> {
     let num_tokens = amounts.len();
-    let amplification = ctx.accounts.pool.get_amplification_();
+    let amplification = ctx.accounts.pool.get_amplification();
 
     let amount_out = if ctx.accounts.mint.supply == 0 {
         assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
@@ -29,7 +29,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         )
         .unwrap()
     } else {
-        let balances = ctx.accounts.pool.get_balances_();
+        let balances = ctx.accounts.pool.get_balances();
         let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
         // do_join
@@ -39,7 +39,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             stable_math::calc_pool_token_out_given_exact_tokens_in(
                 amplification,
                 &balances,
-                ctx.accounts
+                &ctx.accounts
                     .pool
                     .tokens
                     .iter()
@@ -61,7 +61,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             stable_math::calc_pool_token_out_given_exact_tokens_in(
                 amplification,
                 &balances,
-                amounts
+                &amounts
                     .iter()
                     .enumerate()
                     .map(|(token_index, &amount)| amount * ctx.accounts.pool.tokens[token_index].scaling_factor)
