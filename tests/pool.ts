@@ -27,9 +27,9 @@ import {
 
 describe("Pool", () => {
   const provider = AnchorProvider.env();
-  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
   const amm = new Amm({
     vault: ctxVault,
     weighted: ctxWeighted,
@@ -409,17 +409,19 @@ describe("Pool", () => {
         amp: 2000,
         swapFee: "0.004", // 0.4%
         poolKP: stableN3PoolKP, // can omit in dapp
+        amounts: [40000, 30000, 20000],
+        decimals: [8, 6, 6],
       });
       await ctxStable.provider.sendAndConfirm(createTX);
 
       // add initial liquidity
       const pool = await ctxStable.findOne(poolAddress);
-      const { tx } = await amm.deposit({
-        pool,
-        mintAddresses: pool.tokens.map((token) => token.mintAddress),
-        amounts: [40000, 30000, 20000],
-      });
-      await ctxStable.provider.sendAndConfirm(tx);
+      // const { tx } = await amm.deposit({
+      //   pool,
+      //   mintAddresses: pool.tokens.map((token) => token.mintAddress),
+      //   amounts: [40000, 30000, 20000],
+      // });
+      // await ctxStable.provider.sendAndConfirm(tx);
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
@@ -512,17 +514,19 @@ describe("Pool", () => {
         amp: 5000,
         swapFee: "0.0001", // 0.01%
         poolKP: stableN2PoolKP, // can omit in dapp
+        amounts: [1391616, 1978200],
+        decimals: [6, 6],
       });
       await ctxStable.provider.sendAndConfirm(createTX);
 
       // add initial liquidity
       const pool = await ctxStable.findOne(poolAddress);
-      const { tx } = await amm.deposit({
-        pool,
-        mintAddresses: pool.tokens.map((token) => token.mintAddress),
-        amounts: [1391616, 1978200],
-      });
-      await ctxStable.provider.sendAndConfirm(tx);
+      // const { tx } = await amm.deposit({
+      //   pool,
+      //   mintAddresses: pool.tokens.map((token) => token.mintAddress),
+      //   amounts: [1391616, 1978200],
+      // });
+      // await ctxStable.provider.sendAndConfirm(tx);
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),

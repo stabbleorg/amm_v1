@@ -5,8 +5,8 @@ import { adminKP, smartVaultKP, usdcMintKP, usdcPoolKP } from "./consts";
 
 describe("SLR", () => {
   const provider = AnchorProvider.env();
-  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxSmart = new SmartPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxSmart = new SmartPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
   const sdk = new Smart({
     vault: ctxVault,
     smart: ctxSmart,

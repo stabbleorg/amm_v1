@@ -4,20 +4,15 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/anchor-contrib";
 import { SmartPool, SmartPoolData } from "../accounts";
-import { type PoolSmart as IDLType, IDL } from "../generated/pool_smart";
-
-export type SmartPoolProgram = Program<IDLType>;
+import { type PoolSmart as IDLType } from "../generated/pool_smart";
+import IDL from "../generated/idl/pool_smart.json";
 
 export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
-  readonly program: SmartPoolProgram;
+  readonly program: Program<IDLType>;
 
-  constructor(provider: T, programId?: PublicKey) {
+  constructor(provider: T) {
     super(provider);
-    this.program = new Program(
-      IDL,
-      programId || new PublicKey("smpDKqHRt79KZPjWNC1UK5UWrrRv5avn9NqU6y2HJPT"),
-      provider,
-    );
+    this.program = new Program(IDL as any, provider);
   }
 
   findPoolAuthorityAddress(poolAddress: PublicKey): PublicKey {
@@ -76,7 +71,7 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
     instructions.push(
       await this.program.methods
         .deposit(amount)
-        .accounts({
+        .accountsPartial({
           user: this.walletAddress,
           userPoolToken: userPoolTokenAddress,
           userQuoteToken: this.getAssociatedTokenAddress(quoteMintAddress),
@@ -120,7 +115,7 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
     instructions.push(
       await this.program.methods
         .withdraw(amount)
-        .accounts({
+        .accountsPartial({
           user: this.walletAddress,
           userPoolToken: this.getAssociatedTokenAddress(poolMintAddress),
           userQuoteToken: userQuoteTokenAddress,
@@ -165,7 +160,7 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
       }),
       await this.program.methods
         .initialize(maxLiquidity)
-        .accounts({
+        .accountsPartial({
           admin: this.walletAddress,
           mint: poolMintAddress,
           quoteMint: quoteMintAddress,
@@ -184,7 +179,7 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
     return [
       await this.program.methods
         .pause()
-        .accounts({
+        .accountsPartial({
           admin: this.walletAddress,
           pool: poolAddress,
         })
@@ -196,7 +191,7 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
     return [
       await this.program.methods
         .unpause()
-        .accounts({
+        .accountsPartial({
           admin: this.walletAddress,
           pool: poolAddress,
         })
@@ -214,7 +209,7 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
     const instructions = [
       await this.program.methods
         .close()
-        .accounts({
+        .accountsPartial({
           admin: this.walletAddress,
           pool: poolAddress,
           vault: vaultAddress,
@@ -236,12 +231,12 @@ export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
 export class SmartPoolListener {
   private _listener?: number;
 
-  constructor(readonly program: SmartPoolProgram) {}
+  constructor(readonly program: Program<IDLType>) {}
 
   addPoolListener(callback: (event: DataUpdatedEvent<Partial<SmartPoolData>>) => void) {
     this.removePoolListener();
     this._listener = this.program.addEventListener(
-      "PoolUpdatedEvent",
+      "poolUpdatedEvent",
       (event: DataUpdatedEvent<Partial<SmartPoolData>>, _slot: number, signature: TransactionSignature) => {
         if (signature !== SIMULATED_SIGNATURE) {
           callback(event);

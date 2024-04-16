@@ -39,7 +39,7 @@ program
         rpcEndpoint = url;
         break;
     }
-    const provider = new AnchorProvider(new Connection(rpcEndpoint), new Wallet(payer), {});
+    const provider = new AnchorProvider(new Connection(rpcEndpoint), new Wallet(payer));
 
     setContext({
       amm: new Amm({

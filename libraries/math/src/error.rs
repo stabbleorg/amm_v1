@@ -1,7 +1,6 @@
-use num_derive::FromPrimitive;
 use thiserror::Error;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Error, FromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum WeightedMathError {
     #[error("Zero invariant")]
     ZeroInvariant,
@@ -13,7 +12,7 @@ pub enum WeightedMathError {
     MaxOutRatio,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Error, FromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum StableMathError {
     #[error("Invariant didnt converge")]
     InvariantDidntConverge,

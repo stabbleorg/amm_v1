@@ -9,20 +9,15 @@ import {
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/anchor-contrib";
 import { WeightedPool, WeightedPoolData } from "../accounts";
-import { type PoolWeighted as IDLType, IDL } from "../generated/pool_weighted";
-
-export type WeightedPoolProgram = Program<IDLType>;
+import { type PoolWeighted as IDLType } from "../generated/pool_weighted";
+import IDL from "../generated/idl/pool_weighted.json";
 
 export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
-  readonly program: WeightedPoolProgram;
+  readonly program: Program<IDLType>;
 
-  constructor(provider: T, programId?: PublicKey) {
+  constructor(provider: T) {
     super(provider);
-    this.program = new Program(
-      IDL,
-      programId || new PublicKey("MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy"),
-      provider,
-    );
+    this.program = new Program(IDL as any, provider);
   }
 
   findPoolAuthorityAddress(poolAddress: PublicKey): PublicKey {
@@ -128,7 +123,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     instructions.push(
       await this.program.methods
         .swap(amountIn, minimumAmountOut)
-        .accounts({
+        .accountsPartial({
           user: this.walletAddress,
           userTokenIn: userTokenInAddress,
           userTokenOut: userTokenOutAddress,
@@ -207,7 +202,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     instructions.push(
       await this.program.methods
         .deposit(amounts, minimumAmountOut)
-        .accounts({
+        .accountsPartial({
           user: this.walletAddress,
           userPoolToken: userPoolTokenAddress,
           mint: poolMintAddress,
@@ -274,7 +269,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
             ? minimumAmountsOut
             : Array(mintAddresses.length).fill(new BN(0)),
         )
-        .accounts({
+        .accountsPartial({
           user: this.walletAddress,
           userPoolToken: userPoolTokenAddress,
           mint: poolMintAddress,
@@ -324,7 +319,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
       }),
       await this.program.methods
         .initialize(swapFee, weights, ticks)
-        .accounts({
+        .accountsPartial({
           owner: this.walletAddress,
           mint: poolMintAddress,
           pool: poolAddress,
@@ -341,7 +336,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     return [
       await this.program.methods
         .pause()
-        .accounts({
+        .accountsPartial({
           owner: this.walletAddress,
           pool: poolAddress,
         })
@@ -353,7 +348,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     return [
       await this.program.methods
         .unpause()
-        .accounts({
+        .accountsPartial({
           owner: this.walletAddress,
           pool: poolAddress,
         })
@@ -371,7 +366,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     return [
       await this.program.methods
         .changeSwapFee(newSwapFee)
-        .accounts({
+        .accountsPartial({
           owner: this.walletAddress,
           pool: poolAddress,
         })
@@ -383,12 +378,12 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
 export class WeightedPoolListener {
   private _listener?: number;
 
-  constructor(readonly program: WeightedPoolProgram) {}
+  constructor(readonly program: Program<IDLType>) {}
 
   addPoolListener(callback: (event: DataUpdatedEvent<Partial<WeightedPoolData>>) => void) {
     this.removePoolListener();
     this._listener = this.program.addEventListener(
-      "PoolUpdatedEvent",
+      "poolUpdatedEvent",
       (event: DataUpdatedEvent<Partial<WeightedPoolData>>, _slot: number, signature: TransactionSignature) => {
         if (signature !== SIMULATED_SIGNATURE) {
           callback(event);

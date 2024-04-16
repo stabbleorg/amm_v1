@@ -25,10 +25,10 @@ import {
 
 describe("Vault", () => {
   const provider = AnchorProvider.env();
-  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxSmart = new SmartPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxSmart = new SmartPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
 
   const amm = new Amm({
     vault: ctxVault,

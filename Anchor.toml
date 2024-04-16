@@ -1,11 +1,9 @@
 [toolchain]
-anchor_version = "0.29.0"
-# solana_version = "1.17.27"
-solana_version = "1.17.10"
-# solana_version = "1.14.24"
+anchor_version = "0.30.0"
+solana_version = "1.18.4"
 
 [features]
-seeds = false
+resolution = false
 skip-lint = false
 
 [programs.localnet]
