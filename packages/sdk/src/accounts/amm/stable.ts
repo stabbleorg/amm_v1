@@ -4,7 +4,7 @@ import { StableMath, SafeNumber, BasicMath } from "../../utils";
 
 export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
   static POOL_TOKEN_DECIMALS = 9;
-  static POOL_TOKEN_SIZE = 32 + 8 + 8;
+  static POOL_TOKEN_SIZE = 32 + 1 + 8 + 8;
 
   constructor(
     readonly address: PublicKey,
@@ -52,7 +52,7 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
     return this.data.tokens.map((token) => ({
       mintAddress: token.mint,
       decimals: token.decimals,
-      balance: SafeNumber.toUiAmount(token.balance, StablePool.POOL_TOKEN_DECIMALS),
+      balance: SafeNumber.toUiAmount(token.balance.div(token.scalingFactor), token.decimals),
     }));
   }
 

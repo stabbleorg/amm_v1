@@ -8,4 +8,5 @@ borsh = "0.9"
 num-derive = "0.3"
 num-traits = "0.2"
 thiserror = "1.0"
+rust_decimal = { version = "1.35.0", features = ["maths"] }
 bn = { path = "../bn" }

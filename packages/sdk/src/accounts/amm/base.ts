@@ -19,6 +19,7 @@ export interface BasePoolData {
   authorityBump: number;
   isActive: boolean;
   swapFee: BN;
+  pendingOwner: PublicKey | null;
 }
 
 export interface StablePoolToken extends PoolToken {}
@@ -29,18 +30,13 @@ export interface StablePoolData extends BasePoolData {
   rampStartTs: BN;
   rampStopTs: BN;
   tokens: StablePoolTokenData[];
-  pendingOwner: PublicKey | null;
 }
 
 export interface WeightedPoolToken extends PoolToken {
-  balanceT: number;
-  tick: number;
   weight: number; // percentage
 }
 export interface WeightedPoolTokenData extends PoolTokenData {
   weight: BN;
-  multiplier: number;
-  tick: BN;
 }
 export interface WeightedPoolData extends BasePoolData {
   invariant: BN;

@@ -7,20 +7,14 @@ pub struct PoolToken {
 
     pub decimals: u8, // immutable
 
-    // normalized weight
-    pub weight: u64, // immutable
-
-    // immutable
-    // 10**decimals
-    pub multiplier: u32,
-
     // 10^(9-decimals) / tick
     pub scaling_factor: u64, // immutable
 
-    pub tick: u64, // immutable
-
     // balance scaled up to 9 decimals
     pub balance: u64,
+
+    // normalized weight
+    pub weight: u64, // immutable
 }
 
 #[account]
@@ -47,45 +41,17 @@ pub struct Pool {
 impl Pool {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
-    pub const MIN_SWAP_FEE: u64 = 1000; // 0.1%
-    pub const MAX_SWAP_FEE: u64 = 25000; // 2.5%
+    pub const MIN_SWAP_FEE: u64 = 1_000; // 0.1%
+    pub const MAX_SWAP_FEE: u64 = 25_000; // 2.5%
 
-    pub const MIN_TOKENS: usize = 2;
-    pub const MAX_TOKENS: usize = 8;
+    pub const MAX_TOKEN_DECIMALS: u8 = 9;
 
-    pub const POOL_TOKEN_DECIMALS: u8 = 9;
-    pub const MAX_TOKEN_DECIMALS: u32 = 9;
-
-    pub const BALANCE_PRECISION: f64 = 1e9;
-    pub const WEIGHT_PRECISION: f64 = 1e6;
-    pub const FEE_PRECISION: f64 = 1e6;
-
-    pub fn get_swap_fee(&self) -> f64 {
-        self.swap_fee as f64 / Pool::FEE_PRECISION
+    pub fn get_balances(&self) -> Vec<u64> {
+        self.tokens.iter().map(|token| token.balance).collect()
     }
 
-    pub fn get_balances(&self) -> Vec<f64> {
-        self.tokens
-            .iter()
-            .map(|token| token.balance as f64 / Pool::BALANCE_PRECISION)
-            .collect()
-    }
-
-    pub fn get_normalized_weights(&self) -> Vec<f64> {
-        self.tokens
-            .iter()
-            .map(|token| token.weight as f64 / Pool::WEIGHT_PRECISION)
-            .collect()
-    }
-
-    pub fn get_balance(&self, mint: Pubkey) -> f64 {
-        let token = self.tokens.iter().find(|token| token.mint == mint).unwrap();
-        token.balance as f64 / Pool::BALANCE_PRECISION
-    }
-
-    pub fn get_normalized_weight(&self, mint: Pubkey) -> f64 {
-        let token = self.tokens.iter().find(|token| token.mint == mint).unwrap();
-        token.weight as f64 / Pool::WEIGHT_PRECISION
+    pub fn get_normalized_weights(&self) -> Vec<u64> {
+        self.tokens.iter().map(|token| token.weight).collect()
     }
 
     pub fn get_token_index(&self, mint: Pubkey) -> usize {

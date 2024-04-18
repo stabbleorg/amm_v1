@@ -1,6 +1,8 @@
-use crate::{math, state::*};
+use crate::state::*;
+use ::math::weighted_math;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
+use bn::safe_math::CheckedMulDiv;
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
     program::Vault as VaultProgram,
@@ -12,19 +14,6 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     amount_in: u64,
     minimum_amount_out: u64,
 ) -> Result<()> {
-    let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
-    let token_out_index = ctx
-        .accounts
-        .pool
-        .get_token_index(ctx.accounts.beneficiary_token_out.mint);
-
-    let ticks_in = amount_in
-        .checked_div(ctx.accounts.pool.tokens[token_in_index].tick)
-        .unwrap();
-    let amount_in = ticks_in
-        .checked_mul(ctx.accounts.pool.tokens[token_in_index].tick)
-        .unwrap();
-
     transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -37,75 +26,65 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
         amount_in,
     )?;
 
-    let amount_out_without_fee = math::calc_out_given_in(
-        ctx.accounts.pool.get_balance(ctx.accounts.vault_token_in.mint),
-        ctx.accounts
-            .pool
-            .get_normalized_weight(ctx.accounts.vault_token_in.mint),
-        ctx.accounts.pool.get_balance(ctx.accounts.beneficiary_token_out.mint),
-        ctx.accounts
-            .pool
-            .get_normalized_weight(ctx.accounts.beneficiary_token_out.mint),
-        ticks_in as f64 / ctx.accounts.pool.tokens[token_in_index].multiplier as f64,
-    )?;
-    let ticks_out_without_fee =
-        (amount_out_without_fee * ctx.accounts.pool.tokens[token_out_index].multiplier as f64) as u128;
+    let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
+    let token_out_index = ctx
+        .accounts
+        .pool
+        .get_token_index(ctx.accounts.beneficiary_token_out.mint);
 
-    let ticks_out = (Pool::FEE_PRECISION as u128)
-        .saturating_sub(ctx.accounts.pool.swap_fee as u128)
-        .checked_mul(ticks_out_without_fee as u128)
-        .unwrap()
-        .checked_div(Pool::FEE_PRECISION as u128)
-        .unwrap();
-    let amount_out = u64::try_from(
-        ticks_out
-            .checked_mul(ctx.accounts.pool.tokens[token_out_index].tick as u128)
-            .unwrap()
-            .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
-            .unwrap()
-            .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
-            .unwrap(),
+    let balance_in = amount_in * ctx.accounts.pool.tokens[token_in_index].scaling_factor;
+
+    let balance_out_without_fee = weighted_math::calc_out_given_in(
+        ctx.accounts.pool.tokens[token_in_index].balance,
+        ctx.accounts.pool.tokens[token_in_index].weight,
+        ctx.accounts.pool.tokens[token_out_index].balance,
+        ctx.accounts.pool.tokens[token_out_index].weight,
+        balance_in,
     )
     .unwrap();
-    assert!(amount_out >= minimum_amount_out); // slippage
 
-    let swap_fee_ticks = ticks_out_without_fee.checked_sub(ticks_out).unwrap();
-    let beneficiary_fee_ticks = (swap_fee_ticks as u128)
-        .checked_mul(ctx.accounts.vault.beneficiary_fee as u128)
-        .unwrap()
-        .checked_div(Pool::FEE_PRECISION as u128)
+    let amount_out_without_fee = balance_out_without_fee / ctx.accounts.pool.tokens[token_out_index].scaling_factor;
+    let amount_out = amount_out_without_fee
+        .checked_mul_div_down(
+            weighted_math::FEE_PRECISION.saturating_sub(ctx.accounts.pool.swap_fee),
+            weighted_math::FEE_PRECISION,
+        )
         .unwrap();
-    let beneficiary_fee_amount = u64::try_from(
-        beneficiary_fee_ticks
-            .checked_mul(ctx.accounts.pool.tokens[token_out_index].tick as u128)
-            .unwrap()
-            .checked_div(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
-            .unwrap()
-            .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
-            .unwrap(),
-    )
-    .unwrap();
+    assert!(amount_out >= minimum_amount_out); // check slippage
+
+    let swap_fee_amount = amount_out_without_fee.saturating_sub(amount_out);
+    let beneficiary_fee_amount = (swap_fee_amount)
+        .checked_mul_div_down(ctx.accounts.vault.beneficiary_fee, weighted_math::FEE_PRECISION)
+        .unwrap();
 
     // add in token balance
-    let balance_in = ticks_in
-        .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor as u64)
-        .unwrap();
     ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
     // remove out token balance
-    let balance_out = u64::try_from(
-        (ticks_out + beneficiary_fee_ticks)
-            .checked_mul(ctx.accounts.pool.tokens[token_out_index].scaling_factor as u128)
-            .unwrap(),
-    )
-    .unwrap();
-    ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index]
-        .balance
-        .checked_sub(balance_out)
-        .unwrap();
+    let balance_out = (amount_out + beneficiary_fee_amount) * ctx.accounts.pool.tokens[token_out_index].scaling_factor;
+    ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index].balance - balance_out;
 
     ctx.accounts.pool.emit_updated_event();
 
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
+        if beneficiary_fee_amount > 0 {
+            // transfer to beneficiary
+            withdraw_vault(
+                CpiContext::new(
+                    ctx.accounts.vault_program.to_account_info(),
+                    WithdrawVault {
+                        withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
+                        vault: ctx.accounts.vault.to_account_info(),
+                        vault_authority: ctx.accounts.vault_authority.to_account_info(),
+                        vault_token: ctx.accounts.vault_token_out.to_account_info(),
+                        dest_token: ctx.accounts.beneficiary_token_out.to_account_info(),
+                        token_program: ctx.accounts.token_program.to_account_info(),
+                    },
+                )
+                .with_signer(&[signer_seed]),
+                beneficiary_fee_amount,
+            )?;
+        }
+
         // transfer to user
         withdraw_vault(
             CpiContext::new(
@@ -121,23 +100,6 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
             )
             .with_signer(&[signer_seed]),
             amount_out,
-        )?;
-
-        // transfer to beneficiary
-        withdraw_vault(
-            CpiContext::new(
-                ctx.accounts.vault_program.to_account_info(),
-                WithdrawVault {
-                    withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
-                    vault: ctx.accounts.vault.to_account_info(),
-                    vault_authority: ctx.accounts.vault_authority.to_account_info(),
-                    vault_token: ctx.accounts.vault_token_out.to_account_info(),
-                    dest_token: ctx.accounts.beneficiary_token_out.to_account_info(),
-                    token_program: ctx.accounts.token_program.to_account_info(),
-                },
-            )
-            .with_signer(&[signer_seed]),
-            beneficiary_fee_amount,
         )
     })
 }
@@ -145,9 +107,12 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
 impl<'info> Swap<'info> {
     pub fn validate(ctx: &Context<Swap>) -> Result<()> {
         assert!(ctx.accounts.vault.is_active);
+
         assert!(ctx.accounts.pool.is_active);
+
         assert_eq!(ctx.accounts.vault_token_in.owner, ctx.accounts.vault_authority.key());
         assert_eq!(ctx.accounts.beneficiary_token_out.owner, ctx.accounts.vault.beneficiary);
+
         Ok(())
     }
 }
@@ -185,6 +150,7 @@ pub struct Swap<'info> {
     /// CHECK: checked in vault program
     pub vault_authority: UncheckedAccount<'info>,
 
-    pub token_program: Program<'info, Token>,
     pub vault_program: Program<'info, VaultProgram>,
+
+    pub token_program: Program<'info, Token>,
 }

@@ -30,19 +30,19 @@ startup_wait = 100000
 shutdown_wait = 2000
 upgradeable = false
 [test.validator]
-url = "https://api.devnet.solana.com"
+url = "https://api.mainnet-beta.solana.com"
 # mpl-token-metadata
 [[test.validator.clone]]
 address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-# quarry-merge-mine	
-[[test.validator.clone]]
-address = "QMMD16kjauP5knBwxNUJRZ1Z5o3deBuFrqVjBVmmqto"
-# quarry-mine
-[[test.validator.clone]]
-address = "QMNeHCGYnLVDn1icRAfQZpjPLBNkfGbSKRB83G5d8KB"
-# quarry-mint-wrapper
-[[test.validator.clone]]
-address = "QMWoBmAyJLAsA1Lh9ugMTw2gciTihncciphzdNzdZYV"
-# quarry-redeemer
-[[test.validator.clone]]
-address = "QRDxhMw1P2NEfiw5mYXG79bwfgHTdasY2xNP76XSea9"
+# # quarry-merge-mine	
+# [[test.validator.clone]]
+# address = "QMMD16kjauP5knBwxNUJRZ1Z5o3deBuFrqVjBVmmqto"
+# # quarry-mine
+# [[test.validator.clone]]
+# address = "QMNeHCGYnLVDn1icRAfQZpjPLBNkfGbSKRB83G5d8KB"
+# # quarry-mint-wrapper
+# [[test.validator.clone]]
+# address = "QMWoBmAyJLAsA1Lh9ugMTw2gciTihncciphzdNzdZYV"
+# # quarry-redeemer
+# [[test.validator.clone]]
+# address = "QRDxhMw1P2NEfiw5mYXG79bwfgHTdasY2xNP76XSea9"

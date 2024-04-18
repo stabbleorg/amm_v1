@@ -1,9 +1,10 @@
-use crate::{math, state::*};
+use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{
     accessor::{authority as get_token_owner, mint as get_token_mint},
     mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer,
 };
+use math::weighted_math;
 use vault::{state::Vault, ID as VAULT_PROGRAM_ID};
 
 pub fn process_deposit<'a, 'b, 'c, 'info>(
@@ -11,29 +12,71 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     amounts: Vec<u64>,
     minimum_amount_out: u64,
 ) -> Result<()> {
-    for (token_index, user_account) in ctx.remaining_accounts[0..amounts.len()].iter().enumerate() {
+    let num_tokens = amounts.len();
+
+    // LP amount
+    let amount_out = if ctx.accounts.pool.invariant == 0 {
+        assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
+
+        // initial liquidity
+        let invariant = weighted_math::calc_invariant(
+            &amounts
+                .iter()
+                .enumerate()
+                .map(|(token_index, &amount)| amount * ctx.accounts.pool.tokens[token_index].scaling_factor)
+                .collect(),
+            &ctx.accounts.pool.get_normalized_weights(),
+        )
+        .unwrap();
+        ctx.accounts.pool.invariant = invariant * num_tokens as u64;
+        ctx.accounts.pool.invariant
+    } else {
+        // do_join
+        if num_tokens == 1 {
+            let mint = get_token_mint(&ctx.remaining_accounts[0])?;
+            let token_index = ctx.accounts.pool.get_token_index(mint);
+            weighted_math::calc_pool_token_out_given_exact_token_in(
+                ctx.accounts.pool.tokens[token_index].balance,
+                ctx.accounts.pool.tokens[token_index].weight,
+                amounts[0] * ctx.accounts.pool.tokens[token_index].scaling_factor,
+                ctx.accounts.mint.supply,
+                ctx.accounts.pool.swap_fee,
+            )
+            .unwrap()
+        } else {
+            weighted_math::calc_pool_token_out_given_exact_tokens_in(
+                &ctx.accounts.pool.get_balances(),
+                &ctx.accounts.pool.get_normalized_weights(),
+                &amounts
+                    .iter()
+                    .enumerate()
+                    .map(|(token_index, &amount)| amount * ctx.accounts.pool.tokens[token_index].scaling_factor)
+                    .collect(),
+                ctx.accounts.mint.supply,
+                ctx.accounts.pool.swap_fee,
+            )
+            .unwrap()
+        }
+    };
+
+    assert!(amount_out >= minimum_amount_out); // check slippage
+
+    for (token_index, user_account) in ctx.remaining_accounts[0..num_tokens].iter().enumerate() {
         let mint = get_token_mint(&user_account)?;
-        let token_in_index = if amounts.len() > 1 {
+        let token_in_index = if num_tokens > 1 {
             // check token orders
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
             token_index
         } else {
             ctx.accounts.pool.get_token_index(mint)
         };
-        let ticks_in = amounts[token_index]
-            .checked_div(ctx.accounts.pool.tokens[token_in_index].tick)
-            .unwrap();
-        let amount_in = ticks_in
-            .checked_mul(ctx.accounts.pool.tokens[token_in_index].tick)
-            .unwrap();
-        let balance_in = ticks_in
-            .checked_mul(ctx.accounts.pool.tokens[token_in_index].scaling_factor as u64)
-            .unwrap();
+
+        let balance_in = amounts[token_index] * ctx.accounts.pool.tokens[token_in_index].scaling_factor;
         // add token balances
         ctx.accounts.pool.tokens[token_in_index].balance =
             ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
 
-        let vault_account = &ctx.remaining_accounts[token_index + amounts.len()];
+        let vault_account = &ctx.remaining_accounts[token_index + num_tokens];
         // check vault token owner
         assert_eq!(get_token_owner(vault_account)?, ctx.accounts.vault_authority.key());
         transfer(
@@ -45,58 +88,12 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
-            amount_in,
+            amounts[token_index],
         )?;
     }
 
-    // LP amount
-    let amount_out = if ctx.accounts.pool.invariant == 0 {
-        assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
-        // initial liquidity
-        let invariant = math::calc_invariant(
-            ctx.accounts.pool.get_balances(),
-            ctx.accounts.pool.get_normalized_weights(),
-        )?;
-        let invariant = u64::try_from((invariant * Pool::BALANCE_PRECISION) as u128).unwrap();
-        ctx.accounts.pool.invariant = invariant.checked_mul(amounts.len() as u64).unwrap();
-        ctx.accounts.pool.invariant
-    } else {
-        // do_join
-        if amounts.len() == 1 {
-            let mint = get_token_mint(&ctx.remaining_accounts[0])?;
-            let token_index = ctx.accounts.pool.get_token_index(mint);
-            let amount_out = math::calc_out_exact_token_in(
-                ctx.accounts.pool.get_balance(mint),
-                ctx.accounts.pool.get_normalized_weight(mint),
-                amounts[0]
-                    .checked_div(ctx.accounts.pool.tokens[token_index].tick)
-                    .unwrap() as f64
-                    / ctx.accounts.pool.tokens[token_index].multiplier as f64,
-                ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
-                ctx.accounts.pool.get_swap_fee(),
-            )?;
-            u64::try_from((amount_out * Pool::BALANCE_PRECISION) as u128).unwrap()
-        } else {
-            let amount_out = math::calc_out_exact_tokens_in(
-                ctx.accounts.pool.get_balances(),
-                ctx.accounts.pool.get_normalized_weights(),
-                amounts
-                    .iter()
-                    .enumerate()
-                    .map(|(token_index, &amount)| {
-                        amount.checked_div(ctx.accounts.pool.tokens[token_index].tick).unwrap() as f64
-                            / ctx.accounts.pool.tokens[token_index].multiplier as f64
-                    })
-                    .collect(),
-                ctx.accounts.mint.supply as f64 / Pool::BALANCE_PRECISION,
-                ctx.accounts.pool.get_swap_fee(),
-            )?;
-            u64::try_from((amount_out * Pool::BALANCE_PRECISION) as u128).unwrap()
-        }
-    };
-    assert!(amount_out >= minimum_amount_out); // slippage
-
     ctx.accounts.pool.emit_updated_event();
+
     ctx.accounts.pool.authority_seeds(|signer_seed| {
         mint_to(
             CpiContext::new(
@@ -116,13 +113,18 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
 impl<'info> Deposit<'info> {
     pub fn validate(ctx: &Context<Deposit>, amounts: &Vec<u64>) -> Result<()> {
         assert!(ctx.accounts.vault.is_active);
+
         assert!(ctx.accounts.pool.is_active);
-        assert_eq!(ctx.accounts.user_pool_token.owner, ctx.accounts.user.key());
-        assert_eq!(ctx.remaining_accounts.len(), amounts.len() << 1); // amounts.len() * 2
-        assert_ne!(amounts.len(), 0);
-        if amounts.len() > 1 {
-            assert_eq!(amounts.len(), ctx.accounts.pool.tokens.len());
+
+        let num_tokens = amounts.len();
+        assert_ne!(num_tokens, 0);
+        assert_eq!(ctx.remaining_accounts.len(), num_tokens << 1); // amounts.len() * 2
+        if num_tokens > 1 {
+            assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
         }
+
+        assert_eq!(ctx.accounts.user_pool_token.owner, ctx.accounts.user.key());
+
         Ok(())
     }
 }
@@ -130,7 +132,6 @@ impl<'info> Deposit<'info> {
 #[derive(Accounts)]
 pub struct Deposit<'info> {
     pub user: Signer<'info>,
-
     /// CHECK: OK
     #[account(mut)]
     pub user_pool_token: Account<'info, TokenAccount>,

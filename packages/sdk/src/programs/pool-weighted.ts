@@ -296,7 +296,6 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     mintAddresses,
     swapFee,
     weights,
-    ticks,
   }: {
     vaultAddress: PublicKey;
     poolAddress: PublicKey;
@@ -304,9 +303,8 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     mintAddresses: PublicKey[];
     swapFee: BN;
     weights: BN[];
-    ticks: BN[];
   }): Promise<TransactionInstruction[]> {
-    const poolAccountSize = this.program.account.pool.size + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
+    const poolAccountSize = this.program.account.pool.size + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4 + 32 + 1;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
 
     return [
@@ -318,7 +316,7 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
         programId: this.program.programId,
       }),
       await this.program.methods
-        .initialize(swapFee, weights, ticks)
+        .initialize(swapFee, weights)
         .accountsPartial({
           owner: this.walletAddress,
           mint: poolMintAddress,

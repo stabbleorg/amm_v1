@@ -1,7 +1,6 @@
 pub mod error;
 pub mod instructions;
 pub mod located;
-pub mod math;
 pub mod state;
 
 use crate::instructions::*;
@@ -15,8 +14,8 @@ pub mod pool_weighted {
 
     /// initialize a pool
     #[access_control(Initialize::validate(&ctx, swap_fee, &weights))]
-    pub fn initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<u64>, ticks: Vec<u64>) -> Result<()> {
-        process_initialize(ctx, swap_fee, weights, ticks)
+    pub fn initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<u64>) -> Result<()> {
+        process_initialize(ctx, swap_fee, weights)
     }
 
     /// add liquidity

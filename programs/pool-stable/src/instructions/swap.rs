@@ -149,6 +149,7 @@ pub struct Swap<'info> {
     /// CHECK: checked in vault program
     pub vault_authority: UncheckedAccount<'info>,
 
-    pub token_program: Program<'info, Token>,
     pub vault_program: Program<'info, VaultProgram>,
+
+    pub token_program: Program<'info, Token>,
 }

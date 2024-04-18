@@ -15,6 +15,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     let num_tokens = amounts.len();
     let amplification = ctx.accounts.pool.get_amplification();
 
+    // LP amount
     let amount_out = if ctx.accounts.mint.supply == 0 {
         assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
 

@@ -47,6 +47,8 @@ pub fn compute_proportional_amounts_out(balances: &Vec<u64>, pool_token_supply: 
 #[cfg(test)]
 mod tests {
     use super::*;
+    // use rust_decimal::prelude::*;
+    // use rust_decimal::MathematicalOps;
 
     #[test]
     fn test_compute_proportional_amounts() {
@@ -77,4 +79,27 @@ mod tests {
         assert_eq!(amounts_out[0], 3888888885);
         assert_eq!(amounts_out[1], 2333333331);
     }
+
+    // #[test]
+    // fn test_aaa() {
+    //     let res = Decimal::from_i128_with_scale(4000000_000000000000000000, 18)
+    //         .normalize()
+    //         .checked_powd(Decimal::from_i128_with_scale(500000000000000000, 18))
+    //         .unwrap();
+    //     println!("{}", res.round_dp(18).mantissa());
+
+    //     let res = Decimal::from_i128_with_scale(4000000_000000000, 9)
+    //         .normalize()
+    //         .checked_powd(Decimal::from_i128_with_scale(500000000, 9))
+    //         .unwrap();
+    //     println!("{}", res.round_dp(9).mantissa());
+    //     println!("{}", 4e6_f64.powf(0.5));
+
+    //     let res = Decimal::from_i128_with_scale(4000000_000000000, 9)
+    //         .normalize()
+    //         .checked_powd(Decimal::from_i128_with_scale(100000000, 9))
+    //         .unwrap();
+    //     println!("{}", res.round_dp(9).mantissa());
+    //     println!("{}", 4e6_f64.powf(0.1));
+    // }
 }

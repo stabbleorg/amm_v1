@@ -10,8 +10,8 @@ pub const INV_PRECISION: u64 = 1_000_000_000;
 pub const MIN_WEIGHT: u8 = 1;
 pub const MAX_WEIGHT: u8 = 100;
 
-pub const MIN_STABLE_TOKENS: usize = 2;
-pub const MAX_STABLE_TOKENS: usize = 5;
+pub const MIN_TOKENS: usize = 2;
+pub const MAX_TOKENS: usize = 6;
 
 // Pool limits that arise from limitations in the fixed point power function (and the imposed 1:100 maximum weight ratio).
 
