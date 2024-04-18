@@ -1,10 +1,10 @@
 pub mod error;
+pub mod instructions;
 pub mod located;
 pub mod math;
-pub mod processor;
 pub mod state;
 
-use crate::processor::*;
+use crate::instructions::*;
 use anchor_lang::prelude::*;
 
 declare_id!("MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy");

@@ -1,8 +1,8 @@
+pub mod instructions;
 pub mod located;
-pub mod processor;
 pub mod state;
 
-use crate::processor::*;
+use crate::instructions::*;
 use anchor_lang::prelude::*;
 
 declare_id!("6sTpp3Z7s4YSWgxuibjhE8tvcywhRc8a5FYfuv6vhuQA");

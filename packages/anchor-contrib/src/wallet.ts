@@ -75,35 +75,36 @@ export class WalletContext<T extends Provider = Provider> {
           microLamports: priorityFee,
         }),
       );
-    }
 
-    try {
-      const txSim = new VersionedTransaction(
-        new TransactionMessage({
-          payerKey,
-          recentBlockhash: recentBlock.blockhash,
-          instructions: [
-            ComputeBudgetProgram.setComputeUnitLimit({
-              units: 140000000,
-            }),
-            ...instructions,
-          ],
-        }).compileToV0Message(altAccounts),
-      );
-      console.debug("Size:", txSim.serialize().length);
-
-      const { value: sim } = await this.provider.connection.simulateTransaction(txSim);
-      // console.debug(sim.logs?.join("\n"));
-      console.debug("CU:", sim.unitsConsumed);
-
-      if (sim.unitsConsumed) {
-        instructions.unshift(
-          ComputeBudgetProgram.setComputeUnitLimit({
-            units: sim.unitsConsumed,
-          }),
+      try {
+        const txSim = new VersionedTransaction(
+          new TransactionMessage({
+            payerKey,
+            recentBlockhash: recentBlock.blockhash,
+            instructions: [
+              ComputeBudgetProgram.setComputeUnitLimit({
+                units: 140000000,
+              }),
+              ...instructions,
+            ],
+          }).compileToV0Message(altAccounts),
         );
-      }
-    } catch (err) {}
+        console.debug("Size:", txSim.serialize().length);
+
+        const { value: sim } = await this.provider.connection.simulateTransaction(txSim);
+        // console.debug(sim.logs?.join("\n"));
+        console.debug("CU:", sim.unitsConsumed);
+
+        if (sim.unitsConsumed) {
+          instructions.unshift(
+            ComputeBudgetProgram.setComputeUnitLimit({
+              // 150 CU
+              units: sim.unitsConsumed,
+            }),
+          );
+        }
+      } catch (err) {}
+    }
 
     const tx = new VersionedTransaction(
       new TransactionMessage({

@@ -10,6 +10,12 @@ pub enum WeightedMathError {
 
     #[error("MaxOutRatio")]
     MaxOutRatio,
+
+    #[error("MinInvariantRatio")]
+    MinInvariantRatio,
+
+    #[error("MaxInvariantRatio")]
+    MaxInvariantRatio,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]

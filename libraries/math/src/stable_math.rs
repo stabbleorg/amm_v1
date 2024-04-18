@@ -84,9 +84,9 @@ pub fn calc_invariant(amplification: u64, balances: &Vec<u64>) -> Result<u64, St
     Err(StableMathError::InvariantDidntConverge)
 }
 
-// // Computes how many tokens can be taken out of a pool if `token_amount_in` are sent, given the current balances.
-// // The amplification parameter equals: A n^(n-1)
-// // See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-stable/contracts/StableMath.sol#L124-L159
+// Computes how many tokens can be taken out of a pool if `token_amount_in` are sent, given the current balances.
+// The amplification parameter equals: A n^(n-1)
+// See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-stable/contracts/StableMath.sol#L124-L159
 pub fn calc_out_given_in(
     amplification: u64,
     balances: &Vec<u64>,
@@ -129,10 +129,10 @@ pub fn calc_out_given_in(
     Ok(token_amount_out)
 }
 
-// // Computes how many tokens must be sent to a pool if `token_amount_out` are sent given the
-// // current balances, using the Newton-Raphson approximation.
-// // The amplification parameter equals: A n^(n-1)
-// // See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-stable/contracts/StableMath.sol#L164-L199
+// Computes how many tokens must be sent to a pool if `token_amount_out` are sent given the
+// current balances, using the Newton-Raphson approximation.
+// The amplification parameter equals: A n^(n-1)
+// See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-stable/contracts/StableMath.sol#L164-L199
 pub fn calc_in_given_out(
     amplification: u64,
     balances: &Vec<u64>,
@@ -174,7 +174,7 @@ pub fn calc_in_given_out(
     Ok(token_amount_in)
 }
 
-// // See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-stable/contracts/StableMath.sol#L201-L255
+// See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-stable/contracts/StableMath.sol#L201-L255
 pub fn calc_pool_token_out_given_exact_tokens_in(
     amplification: u64,
     balances: &Vec<u64>,
@@ -249,7 +249,7 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
     }
 }
 
-// // See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-stable/contracts/StableMath.sol#L354-L395
+// See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-stable/contracts/StableMath.sol#L354-L395
 pub fn calc_token_out_given_exact_pool_token_in(
     amplification: u64,
     balances: &Vec<u64>,

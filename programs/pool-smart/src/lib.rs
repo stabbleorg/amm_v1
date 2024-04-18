@@ -1,9 +1,9 @@
 pub mod error;
+pub mod instructions;
 pub mod located;
-pub mod processor;
 pub mod state;
 
-pub use crate::processor::*;
+pub use crate::instructions::*;
 use anchor_lang::prelude::*;
 
 declare_id!("smpDKqHRt79KZPjWNC1UK5UWrrRv5avn9NqU6y2HJPT");
