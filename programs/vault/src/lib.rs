@@ -1,8 +1,8 @@
+pub mod instructions;
 pub mod located;
-pub mod processor;
 pub mod state;
 
-use crate::processor::*;
+use crate::instructions::*;
 use anchor_lang::prelude::*;
 
 declare_id!("6sTpp3Z7s4YSWgxuibjhE8tvcywhRc8a5FYfuv6vhuQA");
@@ -16,7 +16,7 @@ pub mod vault {
         withdraw_authority: Pubkey,
         withdraw_authority_bump: u8,
         beneficiary: Pubkey,
-        beneficiary_fee: u16,
+        beneficiary_fee: u64,
     ) -> Result<()> {
         process_initialize(
             ctx,
@@ -39,7 +39,7 @@ pub mod vault {
         process_unpause(ctx)
     }
 
-    pub fn change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary_fee: u16) -> Result<()> {
+    pub fn change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary_fee: u64) -> Result<()> {
         process_change_beneficiary_fee(ctx, new_beneficiary_fee)
     }
 

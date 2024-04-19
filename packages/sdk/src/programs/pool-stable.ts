@@ -4,25 +4,20 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/anchor-contrib";
 import { StablePool, StablePoolData } from "../accounts";
-import { type PoolStable as IDLType, IDL } from "../generated/pool_stable";
-
-export type StablePoolProgram = Program<IDLType>;
+import { type PoolStable as IDLType } from "../generated/pool_stable";
+import IDL from "../generated/idl/pool_stable.json";
 
 export class StablePoolContext<T extends Provider> extends WalletContext<T> {
-  readonly program: StablePoolProgram;
+  readonly program: Program<IDLType>;
 
-  constructor(provider: T, programId?: PublicKey) {
+  constructor(provider: T) {
     super(provider);
-    this.program = new Program(
-      IDL,
-      programId || new PublicKey("EeyyyuAXAzo3YuMv7REuHYtPzEssgK4oBeFYM8K9CoGM"),
-      provider,
-    );
+    this.program = new Program(IDL as any, provider);
   }
 
   findPoolAuthorityAddress(poolAddress: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
-      [Buffer.from("Stable Pool Authority"), poolAddress.toBuffer()],
+      [Buffer.from("pool_authority"), poolAddress.toBuffer()],
       this.program.programId,
     )[0];
   }
@@ -33,7 +28,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
 
   findWithdrawAuthorityAddressAndBump(vaultAddress: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
-      [Buffer.from("Withdraw Authority"), vaultAddress.toBuffer()],
+      [Buffer.from("withdraw_authority"), vaultAddress.toBuffer()],
       this.program.programId,
     );
   }
@@ -100,7 +95,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     instructions.push(
       await this.program.methods
         .swap(amountIn, minimumAmountOut)
-        .accounts({
+        .accountsPartial({
           user: this.walletAddress,
           userTokenIn: this.getAssociatedTokenAddress(mintInAddress),
           userTokenOut: userTokenOutAddress,
@@ -159,7 +154,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     instructions.push(
       await this.program.methods
         .deposit(amounts, minimumAmountOut)
-        .accounts({
+        .accountsPartial({
           user: this.walletAddress,
           userPoolToken: userPoolTokenAddress,
           mint: poolMintAddress,
@@ -218,7 +213,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
             ? minimumAmountsOut
             : Array(mintAddresses.length).fill(new BN(0)),
         )
-        .accounts({
+        .accountsPartial({
           user: this.walletAddress,
           userPoolToken: userPoolTokenAddress,
           mint: poolMintAddress,
@@ -249,9 +244,9 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     poolMintAddress: PublicKey;
     mintAddresses: PublicKey[];
     amp: number;
-    swapFee: number;
+    swapFee: BN;
   }): Promise<TransactionInstruction[]> {
-    const poolAccountSize = this.program.account.pool.size + StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4;
+    const poolAccountSize = this.program.account.pool.size + StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4 + 32 + 1;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
 
     return [
@@ -264,7 +259,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
       }),
       await this.program.methods
         .initialize(amp, swapFee)
-        .accounts({
+        .accountsPartial({
           owner: this.walletAddress,
           mint: poolMintAddress,
           pool: poolAddress,
@@ -281,7 +276,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     return [
       await this.program.methods
         .pause()
-        .accounts({
+        .accountsPartial({
           owner: this.walletAddress,
           pool: poolAddress,
         })
@@ -293,7 +288,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     return [
       await this.program.methods
         .unpause()
-        .accounts({
+        .accountsPartial({
           owner: this.walletAddress,
           pool: poolAddress,
         })
@@ -306,12 +301,12 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     newSwapFee,
   }: {
     poolAddress: PublicKey;
-    newSwapFee: number;
+    newSwapFee: BN;
   }): Promise<TransactionInstruction[]> {
     return [
       await this.program.methods
         .changeSwapFee(newSwapFee)
-        .accounts({
+        .accountsPartial({
           owner: this.walletAddress,
           pool: poolAddress,
         })
@@ -323,12 +318,12 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
 export class StablePoolListener {
   private _listener?: number;
 
-  constructor(readonly program: StablePoolProgram) {}
+  constructor(readonly program: Program<IDLType>) {}
 
   addPoolListener(callback: (event: DataUpdatedEvent<Partial<StablePoolData>>) => void) {
     this.removePoolListener();
     this._listener = this.program.addEventListener(
-      "PoolUpdatedEvent",
+      "poolUpdatedEvent",
       (event: DataUpdatedEvent<Partial<StablePoolData>>, _slot: number, signature: TransactionSignature) => {
         if (signature !== SIMULATED_SIGNATURE) {
           callback(event);

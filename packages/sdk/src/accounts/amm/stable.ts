@@ -4,7 +4,7 @@ import { StableMath, SafeNumber, BasicMath } from "../../utils";
 
 export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
   static POOL_TOKEN_DECIMALS = 9;
-  static POOL_TOKEN_SIZE = 32 + 1 + 4 + 4 + 8 + 8;
+  static POOL_TOKEN_SIZE = 32 + 1 + 8 + 8;
 
   constructor(
     readonly address: PublicKey,
@@ -24,16 +24,20 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
   }
 
   get amplification(): number {
-    if (this.data.ampInitialFactor >= this.data.ampTargetFactor) return this.data.ampInitialFactor;
-
     const currentTs = new Date().getTime() / 1000;
 
+    if (currentTs <= this.data.rampStartTs.toNumber()) return this.data.ampInitialFactor;
     if (currentTs >= this.data.rampStopTs.toNumber()) return this.data.ampTargetFactor;
 
     const rampElapsed = currentTs - this.data.rampStartTs.toNumber();
     const rampDuration = this.data.rampStopTs.toNumber() - this.data.rampStartTs.toNumber();
-    const ampOffset = ((this.data.ampTargetFactor - this.data.ampInitialFactor) * rampElapsed) / rampDuration;
-    return this.data.ampInitialFactor + ampOffset;
+    if (this.data.ampInitialFactor <= this.data.ampTargetFactor) {
+      const ampOffset = ((this.data.ampTargetFactor - this.data.ampInitialFactor) * rampElapsed) / rampDuration;
+      return this.data.ampInitialFactor + ampOffset;
+    } else {
+      const ampOffset = ((this.data.ampInitialFactor - this.data.ampTargetFactor) * rampElapsed) / rampDuration;
+      return this.data.ampInitialFactor - ampOffset;
+    }
   }
 
   get swapFee(): number {
@@ -48,7 +52,7 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
     return this.data.tokens.map((token) => ({
       mintAddress: token.mint,
       decimals: token.decimals,
-      balance: SafeNumber.toUiAmount(token.balance, StablePool.POOL_TOKEN_DECIMALS),
+      balance: SafeNumber.toUiAmount(token.balance.div(token.scalingFactor), token.decimals),
     }));
   }
 

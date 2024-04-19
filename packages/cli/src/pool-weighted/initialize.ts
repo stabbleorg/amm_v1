@@ -11,7 +11,6 @@ export function initialize(program: Command) {
     .requiredOption("--mints <strings...>", "mint keys")
     .requiredOption("--weights <strings...>", "weights")
     .requiredOption("--swap-fee <string>", "swap fee")
-    .option("--ticks <string...>", "tick sizes")
     .option("--pool-k-p <string>", "pool keypair", parseKeypair)
     .option("--pool-mint-k-p <string>", "pool mint keypair", parseKeypair)
     .action(
@@ -20,7 +19,6 @@ export function initialize(program: Command) {
         mints,
         weights,
         swapFee,
-        ticks,
         poolKP,
         poolMintKP,
       }: {
@@ -39,7 +37,6 @@ export function initialize(program: Command) {
           swapFee,
           weights,
           mintAddresses: mints.map((pubkey) => new PublicKey(pubkey)),
-          ticks,
           poolKP,
           poolMintKP,
         });

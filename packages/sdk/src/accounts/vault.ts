@@ -1,3 +1,4 @@
+import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { SafeNumber } from "../utils";
 
@@ -6,7 +7,7 @@ export type VaultData = {
   withdrawAuthority: PublicKey;
   withdrawAuthorityBump: number;
   beneficiary: PublicKey;
-  beneficiaryFee: number;
+  beneficiaryFee: BN;
   authorityBump: number;
   isActive: boolean;
 };

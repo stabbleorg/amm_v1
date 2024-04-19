@@ -27,9 +27,9 @@ import {
 
 describe("Pool", () => {
   const provider = AnchorProvider.env();
-  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
   const amm = new Amm({
     vault: ctxVault,
     weighted: ctxWeighted,
@@ -167,7 +167,6 @@ describe("Pool", () => {
         mintAddresses,
         swapFee: 0.01, // 1%
         weights: ["0.6", "0.4"], // either in string or in number
-        ticks: [0.00025, "0.000001"],
         poolKP: weightedN2PoolKP, // can omit in dapp
       });
       await ctxWeighted.provider.sendAndConfirm(createTX);
@@ -312,13 +311,12 @@ describe("Pool", () => {
   //       mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
   //       swapFee: 0.001, // 0.1%
   //       weights: ["0.5", 0.3, 0.2], // either in string or in number
-  //       ticks: [1, "0.000000001", 0.000001],
   //     });
   //     await ctxWeighted.provider.sendAndConfirm(createTX);
 
   //     // add initial liquidity
   //     const pool = await ctxWeighted.findOne(poolAddress);
-  //     const {tx} = await amm.deposit({
+  //     const { tx } = await amm.deposit({
   //       pool,
   //       mintAddresses: pool.tokens.map((token) => token.mintAddress),
   //       amounts: [bonkAmount, stbAmount, usdcAmount],
@@ -330,18 +328,18 @@ describe("Pool", () => {
   //     );
   //     console.log("LP out:", balance.uiAmountString);
 
-  //     {
-  //       const pool = await ctxWeighted.findOne(poolAddress);
-  //       console.log("Bonk balance (ticks):", pool.tokens[0].balance);
-  //       console.log("Bonk balance (amount):", pool.tokens[0].amount);
-  //     }
+  //     // {
+  //     //   const pool = await ctxWeighted.findOne(poolAddress);
+  //     //   console.log("Bonk balance (ticks):", pool.tokens[0].balance);
+  //     //   console.log("Bonk balance (amount):", pool.tokens[0].amount);
+  //     // }
 
   //     {
   //       const pool = await ctxWeighted.findOne(poolAddress);
   //       const { value: balance } = await provider.connection.getTokenAccountBalance(
   //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
   //       );
-  //       const {tx} = await amm.withdraw({
+  //       const { tx } = await amm.withdraw({
   //         pool,
   //         mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
   //         amount: 86350325.209763808,
@@ -362,7 +360,7 @@ describe("Pool", () => {
   //       const { value: balance } = await provider.connection.getTokenAccountBalance(
   //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
   //       );
-  //       const {tx} = await amm.withdraw({
+  //       const { tx } = await amm.withdraw({
   //         pool,
   //         mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
   //         amount: 8635032.520976381,
@@ -383,7 +381,7 @@ describe("Pool", () => {
   //       const { value: balance } = await provider.connection.getTokenAccountBalance(
   //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
   //       );
-  //       const {tx} = await amm.withdraw({
+  //       const { tx } = await amm.withdraw({
   //         pool,
   //         mintAddresses: [bonkMintKP.publicKey],
   //         amount: 8635032.520976381,
@@ -442,6 +440,7 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
       );
+
       const { tx } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
@@ -509,7 +508,7 @@ describe("Pool", () => {
         vaultAddress: stableVaultKP.publicKey,
         mintAddresses: [usdtMintKP.publicKey, usdcMintKP.publicKey],
         amp: 5000,
-        swapFee: "0.0001", // 0.1%
+        swapFee: "0.0001", // 0.01%
         poolKP: stableN2PoolKP, // can omit in dapp
       });
       await ctxStable.provider.sendAndConfirm(createTX);

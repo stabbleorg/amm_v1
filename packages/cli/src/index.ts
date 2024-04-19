@@ -15,6 +15,7 @@ import { setupVaultProgram } from "./vault";
 import { setupWeightedPoolProgram } from "./pool-weighted";
 import { setupStablePoolProgram } from "./pool-stable";
 import { setupSmartPoolProgram } from "./pool-smart";
+import { setupTokenProgram } from "./token";
 import { parseKeypair } from "./utils";
 
 program
@@ -22,6 +23,7 @@ program
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
   .option("-s, --simulate", "simulate transaction")
+  .option("--helius-key <string>")
   .hook("preAction", async (cmd: Command) => {
     const { keypair, url, simulate } = cmd.opts();
     const payer = keypair || Keypair.generate();
@@ -37,7 +39,7 @@ program
         rpcEndpoint = url;
         break;
     }
-    const provider = new AnchorProvider(new Connection(rpcEndpoint), new Wallet(payer), {});
+    const provider = new AnchorProvider(new Connection(rpcEndpoint), new Wallet(payer));
 
     setContext({
       amm: new Amm({
@@ -58,6 +60,7 @@ setupVaultProgram(program);
 setupWeightedPoolProgram(program);
 setupStablePoolProgram(program);
 setupSmartPoolProgram(program);
+setupTokenProgram(program);
 
 program
   .parseAsync(process.argv)

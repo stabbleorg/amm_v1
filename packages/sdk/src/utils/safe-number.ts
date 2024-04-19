@@ -25,25 +25,11 @@ export class SafeNumber {
     return Number(this.toUiAmountString(amount, decimals));
   }
 
-  static toBasisPoints(pct: FloatLike): number {
-    return this.toBigAmount(pct, 4).toNumber();
+  static toBasisPoints(pct: FloatLike): BN {
+    return this.toBigAmount(pct, 6);
   }
 
   static toPercentage(bps: IntegerLike): number {
-    return this.toUiAmount(bps, 4);
-  }
-
-  /**
-   * @deprecated use `toBasisPoints` instead
-   */
-  static toBps(uiBps: FloatLike): number {
-    return this.toBasisPoints(uiBps);
-  }
-
-  /**
-   * @deprecated use `toPercentage` instead
-   */
-  static toUiBps(bps: IntegerLike): number {
-    return this.toPercentage(bps);
+    return this.toUiAmount(bps, 6);
   }
 }

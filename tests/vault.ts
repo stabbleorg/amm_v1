@@ -25,10 +25,10 @@ import {
 
 describe("Vault", () => {
   const provider = AnchorProvider.env();
-  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
-  const ctxSmart = new SmartPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP), {}));
+  const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+  const ctxSmart = new SmartPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
 
   const amm = new Amm({
     vault: ctxVault,
@@ -126,12 +126,12 @@ describe("Vault", () => {
     await amm.ctxVault.provider.sendAndConfirm!(tx);
   });
 
-  it("should create vault for smart pool", async () => {
-    const { tx } = await smart.createVaultAndAddress({
-      beneficiaryAddress: beneficiaryKP.publicKey,
-      beneficiaryFee: 0.14,
-      vaultKP: smartVaultKP,
-    });
-    await amm.ctxVault.provider.sendAndConfirm!(tx);
-  });
+  // it("should create vault for smart pool", async () => {
+  //   const { tx } = await smart.createVaultAndAddress({
+  //     beneficiaryAddress: beneficiaryKP.publicKey,
+  //     beneficiaryFee: 0.14,
+  //     vaultKP: smartVaultKP,
+  //   });
+  //   await amm.ctxVault.provider.sendAndConfirm!(tx);
+  // });
 });

@@ -8,20 +8,18 @@ export interface PoolToken {
 }
 export interface PoolTokenData {
   mint: PublicKey;
-  decimals: number; // u8
-  multiplier: number; // u32
-  scalingFactor: number; // u32
-  tick: BN; // u64
+  decimals: number;
+  scalingFactor: BN; // u64
   balance: BN; // u64
 }
 export interface BasePoolData {
   owner: PublicKey;
   vault: PublicKey;
   mint: PublicKey;
-  invariant: BN;
-  swapFee: number;
-  isActive: boolean;
   authorityBump: number;
+  isActive: boolean;
+  swapFee: BN;
+  pendingOwner: PublicKey | null;
 }
 
 export interface StablePoolToken extends PoolToken {}
@@ -31,19 +29,17 @@ export interface StablePoolData extends BasePoolData {
   ampTargetFactor: number;
   rampStartTs: BN;
   rampStopTs: BN;
-  rampTick: number;
   tokens: StablePoolTokenData[];
 }
 
 export interface WeightedPoolToken extends PoolToken {
-  balanceT: number;
-  tick: number;
   weight: number; // percentage
 }
 export interface WeightedPoolTokenData extends PoolTokenData {
-  weight: number; // u16, basis points
+  weight: BN;
 }
 export interface WeightedPoolData extends BasePoolData {
+  invariant: BN;
   tokens: WeightedPoolTokenData[];
 }
 

@@ -57,7 +57,7 @@ export class WalletContext<T extends Provider = Provider> {
     altAccounts: AddressLookupTableAccount[] = [],
     payerAddress?: PublicKey,
   ): Promise<TransactionWithRecentBlock> {
-    return this.newPrioritizedTX(instructions, 0, altAccounts, payerAddress);
+    return this.newPrioritizedTX(instructions, 1, altAccounts, payerAddress);
   }
 
   async newPrioritizedTX(
@@ -67,6 +67,7 @@ export class WalletContext<T extends Provider = Provider> {
     payerAddress?: PublicKey,
   ): Promise<TransactionWithRecentBlock> {
     const recentBlock = await this.provider.connection.getLatestBlockhash();
+    const payerKey = payerAddress || this.walletAddress;
 
     if (priorityFee) {
       instructions.unshift(
@@ -74,11 +75,40 @@ export class WalletContext<T extends Provider = Provider> {
           microLamports: priorityFee,
         }),
       );
+
+      try {
+        const txSim = new VersionedTransaction(
+          new TransactionMessage({
+            payerKey,
+            recentBlockhash: recentBlock.blockhash,
+            instructions: [
+              ComputeBudgetProgram.setComputeUnitLimit({
+                units: 140000000,
+              }),
+              ...instructions,
+            ],
+          }).compileToV0Message(altAccounts),
+        );
+        // console.debug("Size:", txSim.serialize().length);
+
+        const { value: sim } = await this.provider.connection.simulateTransaction(txSim);
+        // console.debug(sim.logs?.join("\n"));
+        // console.debug("CU:", sim.unitsConsumed);
+
+        if (sim.unitsConsumed) {
+          instructions.unshift(
+            ComputeBudgetProgram.setComputeUnitLimit({
+              // 150 CU
+              units: sim.unitsConsumed,
+            }),
+          );
+        }
+      } catch (err) {}
     }
 
     const tx = new VersionedTransaction(
       new TransactionMessage({
-        payerKey: payerAddress || this.walletAddress,
+        payerKey,
         recentBlockhash: recentBlock.blockhash,
         instructions,
       }).compileToV0Message(altAccounts),

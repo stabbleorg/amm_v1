@@ -5,10 +5,10 @@
     "build": "tsc",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "format": "rustfmt programs/**/src/lib.rs"
+    "format": "rustfmt programs/**/src/lib.rs libraries/**/src/lib.rs"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.29.0",
+    "@coral-xyz/anchor": "^0.30.0",
     "@solana/spl-token": "^0.4.0",
     "@solana/web3.js": "^1.91.0"
   },
@@ -21,7 +21,7 @@
     "prettier": "^3.2.0",
     "rustfmt": "^0.1.0",
     "ts-mocha": "^10.0.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.4.0"
   },
   "workspaces": [
     "packages/*"

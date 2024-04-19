@@ -1,10 +1,9 @@
 pub mod error;
+pub mod instructions;
 pub mod located;
-pub mod math;
-pub mod processor;
 pub mod state;
 
-use crate::processor::*;
+use crate::instructions::*;
 use anchor_lang::prelude::*;
 
 declare_id!("MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy");
@@ -15,8 +14,8 @@ pub mod pool_weighted {
 
     /// initialize a pool
     #[access_control(Initialize::validate(&ctx, swap_fee, &weights))]
-    pub fn initialize(ctx: Context<Initialize>, swap_fee: u16, weights: Vec<u16>, ticks: Vec<u64>) -> Result<()> {
-        process_initialize(ctx, swap_fee, weights, ticks)
+    pub fn initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<u64>) -> Result<()> {
+        process_initialize(ctx, swap_fee, weights)
     }
 
     /// add liquidity
@@ -57,7 +56,7 @@ pub mod pool_weighted {
         process_unpause(ctx)
     }
 
-    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u16) -> Result<()> {
+    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u64) -> Result<()> {
         process_change_swap_fee(ctx, new_swap_fee)
     }
 

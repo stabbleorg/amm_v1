@@ -4,7 +4,7 @@ import { BasicMath, SafeNumber, WeightedMath } from "../../utils";
 
 export class WeightedPool implements AmmPool<WeightedPoolToken, WeightedPoolData> {
   static POOL_TOKEN_DECIMALS = 9;
-  static POOL_TOKEN_SIZE = 32 + 1 + 2 + 4 + 4 + 8 + 8;
+  static POOL_TOKEN_SIZE = 32 + 1 + 8 + 8 + 8;
 
   constructor(
     readonly address: PublicKey,
@@ -35,10 +35,8 @@ export class WeightedPool implements AmmPool<WeightedPoolToken, WeightedPoolData
     return this.data.tokens.map((token) => ({
       mintAddress: token.mint,
       decimals: token.decimals,
-      balanceT: SafeNumber.toUiAmount(token.balance, WeightedPool.POOL_TOKEN_DECIMALS),
-      balance: SafeNumber.toUiAmount(token.balance.mul(token.tick), WeightedPool.POOL_TOKEN_DECIMALS),
-      tick: token.tick.toNumber(),
-      weight: SafeNumber.toPercentage(token.weight),
+      balance: SafeNumber.toUiAmount(token.balance.div(token.scalingFactor), token.decimals),
+      weight: SafeNumber.toUiAmount(token.weight, 9),
     }));
   }
 
@@ -47,15 +45,13 @@ export class WeightedPool implements AmmPool<WeightedPoolToken, WeightedPoolData
     if (!tokenIn) return 0;
     const tokenOut = this.tokens.find((token) => token.mintAddress.equals(tokenOutAddress));
     if (!tokenOut) return 0;
-    return (
-      WeightedMath.calcOutGivenIn(
-        tokenIn.balanceT,
-        tokenIn.weight,
-        tokenOut.balanceT,
-        tokenOut.weight,
-        amountIn / tokenIn.tick,
-        this.swapFee,
-      ) * tokenOut.tick
+    return WeightedMath.calcOutGivenIn(
+      tokenIn.balance, // scaling_factor
+      tokenIn.weight,
+      tokenOut.balance, // scaling_factor
+      tokenOut.weight,
+      amountIn,
+      this.swapFee,
     );
   }
 
@@ -64,9 +60,9 @@ export class WeightedPool implements AmmPool<WeightedPoolToken, WeightedPoolData
       return [0];
     }
     return BasicMath.calcProportionalAmountsOut(
-      this.tokens.map((token) => token.balanceT),
+      this.tokens.map((token) => token.balance),
       amountIn,
       totalSupply,
-    ).map((ticks, index) => ticks * this.tokens[index].tick);
+    );
   }
 }
