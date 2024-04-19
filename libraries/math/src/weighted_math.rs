@@ -1,6 +1,7 @@
-use bn::safe_math::{CheckedDivCeil, CheckedMulDiv};
-
 use crate::error::WeightedMathError;
+use bn::safe_math::CheckedMulDiv;
+use rust_decimal::prelude::*;
+use rust_decimal::MathematicalOps;
 
 pub const FEE_PRECISION: u64 = 1_000_000;
 pub const INV_PRECISION: u64 = 1_000_000_000;
@@ -27,7 +28,7 @@ pub const MIN_INVARIANT_RATIO: u64 = 700_000_000;
 // Invariant is used to collect protocol swap fees by comparing its value between two times.
 // So we can round always to the same direction. It is also used to initiate the LP amount
 // and, because there is a minimum LP, we round down the invariant.
-// https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-weighted/contracts/WeightedMath.sol#L56
+// See: https://github.com/stabbleorg/balancer-v2-monorepo/blob/master/pkg/pool-weighted/contracts/WeightedMath.sol#L56-L74
 pub fn calc_invariant(balances: &Vec<u64>, normalized_weights: &Vec<u64>) -> Result<u64, WeightedMathError> {
     /**********************************************************************************************
     // invariant               _____                                                             //
@@ -40,10 +41,7 @@ pub fn calc_invariant(balances: &Vec<u64>, normalized_weights: &Vec<u64>) -> Res
 
     for i in 0..balances.len() {
         invariant = invariant
-            .checked_mul_div_down(
-                ((balances[i] as f64 / 1e9).powf(normalized_weights[i] as f64 / 1e9) * 1e9) as u64,
-                INV_PRECISION,
-            )
+            .checked_mul_div_down(pow_down(balances[i], normalized_weights[i]), INV_PRECISION)
             .unwrap();
     }
 
@@ -83,14 +81,11 @@ pub fn calc_out_given_in(
         return Err(WeightedMathError::MaxInRatio);
     }
 
-    // let base = balance_in
-    //     .checked_mul_div_up(INV_PRECISION, balance_in + amount_in)
-    //     .unwrap() as f64
-    //     / 1e9;
-    // let exponent = weight_in.checked_mul_div_down(INV_PRECISION, weight_out).unwrap() as f64 / 1e9;
-    let base = balance_in as f64 / (balance_in + amount_in) as f64;
-    let exponent = weight_in as f64 / weight_out as f64;
-    let power = ((base.powf(exponent) * 1e10) as u64).checked_div_up(10).unwrap();
+    let base = balance_in
+        .checked_mul_div_up(INV_PRECISION, balance_in + amount_in)
+        .unwrap();
+    let exponent = weight_in.checked_mul_div_down(INV_PRECISION, weight_out).unwrap();
+    let power = pow_up(base, exponent);
 
     let amount_out = balance_out
         .checked_mul_div_down(INV_PRECISION.saturating_sub(power), INV_PRECISION)
@@ -128,14 +123,11 @@ pub fn calc_in_given_out(
         return Err(WeightedMathError::MaxOutRatio);
     }
 
-    // let base = balance_out
-    //     .checked_mul_div_down(INV_PRECISION, balance_out - amount_out)
-    //     .unwrap() as f64
-    //     / 1e9;
-    // let exponent = weight_out.checked_mul_div_up(INV_PRECISION, weight_in).unwrap() as f64 / 1e9;
-    let base = balance_out as f64 / (balance_out - amount_out) as f64;
-    let exponent = weight_out as f64 / weight_in as f64;
-    let power = ((base.powf(exponent) * 1e10) as u64).checked_div_up(10).unwrap();
+    let base = balance_out
+        .checked_mul_div_up(INV_PRECISION, balance_out - amount_out)
+        .unwrap();
+    let exponent = weight_out.checked_mul_div_up(INV_PRECISION, weight_in).unwrap();
+    let power = pow_up(base, exponent);
 
     let amount_in = balance_in
         .checked_mul_div_up(power - INV_PRECISION, INV_PRECISION)
@@ -181,9 +173,10 @@ pub fn calc_pool_token_out_given_exact_token_in(
         return Ok(0);
     }
 
-    let balance_ratio = (balance + amount_in_without_fee) as f64 / balance as f64;
-    // normalized_weight is always less than 10^9
-    let invariant_ratio = (balance_ratio.powf(normalized_weight as f64 / 1e9) * 1e9) as u64;
+    let balance_ratio = (balance + amount_in_without_fee)
+        .checked_mul_div_down(INV_PRECISION, balance)
+        .unwrap();
+    let invariant_ratio = pow_down(balance_ratio, normalized_weight);
 
     if invariant_ratio > INV_PRECISION {
         let amount_out = pool_token_supply
@@ -248,12 +241,11 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
             }
         }
 
-        let balance_ratio = (balances[i] + amount_in_without_fee) as f64 / balances[i] as f64;
+        let balance_ratio = (balances[i] + amount_in_without_fee)
+            .checked_mul_div_down(INV_PRECISION, balances[i])
+            .unwrap();
         invariant_ratio = invariant_ratio
-            .checked_mul_div_down(
-                (balance_ratio.powf(normalized_weights[i] as f64 / 1e9) * 1e9) as u64,
-                INV_PRECISION,
-            )
+            .checked_mul_div_down(pow_down(balance_ratio, normalized_weights[i]), INV_PRECISION)
             .unwrap();
     }
 
@@ -288,22 +280,18 @@ pub fn calc_token_out_given_exact_pool_token_in(
 
     // Calculate the factor by which the invariant will decrease after burning LPAmountIn
 
-    // let invariant_ratio = (pool_token_supply - amount_in)
-    //     .checked_mul_div_up(INV_PRECISION, pool_token_supply)
-    //     .unwrap();
-    // if invariant_ratio < MIN_INVARIANT_RATIO {
-    //     return Err(WeightedMathError::MinInvariantRatio);
-    // }
-
-    let invariant_ratio = (pool_token_supply - amount_in) as f64 / pool_token_supply as f64;
-    if invariant_ratio < 0.7 {
+    let invariant_ratio = (pool_token_supply - amount_in)
+        .checked_mul_div_up(INV_PRECISION, pool_token_supply)
+        .unwrap();
+    if invariant_ratio < MIN_INVARIANT_RATIO {
         return Err(WeightedMathError::MinInvariantRatio);
     }
 
     // Calculate by how much the token balance has to decrease to match invariantRatio
-    let balance_ratio = ((invariant_ratio.powf(1e9 / normalized_weight as f64) * 1e10) as u64)
-        .checked_div_up(10)
+    let exponent = INV_PRECISION
+        .checked_mul_div_down(INV_PRECISION, normalized_weight)
         .unwrap();
+    let balance_ratio = pow_up(invariant_ratio, exponent);
 
     // Because of rounding up, balance_ratio can be greater than one. Using complement prevents reverts.
     let amount_out_without_fee = balance
@@ -326,6 +314,20 @@ pub fn calc_token_out_given_exact_pool_token_in(
     Ok(non_taxable_amount + taxable_amount_minus_fees)
 }
 
+fn pow_up(base: u64, exponent: u64) -> u64 {
+    Decimal::from_i128_with_scale(base as i128, 9)
+        .powd(Decimal::from_i128_with_scale(exponent as i128, 9))
+        .round_dp_with_strategy(9, RoundingStrategy::AwayFromZero)
+        .mantissa() as u64
+}
+
+fn pow_down(base: u64, exponent: u64) -> u64 {
+    Decimal::from_i128_with_scale(base as i128, 9)
+        .powd(Decimal::from_i128_with_scale(exponent as i128, 9))
+        .round_dp(9)
+        .mantissa() as u64
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -336,7 +338,7 @@ mod tests {
     #[test]
     fn test_calc_invariant() {
         let invariant = calc_invariant(&BALANCES.to_vec(), &NORMALIZED_WEIGHTS.to_vec()).unwrap();
-        assert_eq!(invariant, 2236067977499709805);
+        assert_eq!(invariant, 2236021719197214567);
     }
 
     #[test]
@@ -349,7 +351,7 @@ mod tests {
             100_000_000_000,
         )
         .unwrap();
-        assert_eq!(amount_out, 20000000000);
+        assert_eq!(amount_out, 19000000000);
 
         let amount_out = calc_out_given_in(
             BALANCES[0],
@@ -369,7 +371,16 @@ mod tests {
             100_000_000_000,
         )
         .unwrap();
-        assert_eq!(amount_out, 388900016);
+        assert_eq!(amount_out, 387103711);
+        let amount_out = calc_out_given_in(
+            366851436508161000,
+            600_000_000,
+            958530278657000,
+            400_000_000,
+            100_000_000_000,
+        )
+        .unwrap();
+        assert_eq!(amount_out, 390121823);
     }
 
     #[test]
@@ -378,51 +389,51 @@ mod tests {
             BALANCES[0],
             NORMALIZED_WEIGHTS[0],
             5_000_000_000_000_000,
-            2236067977499709805 << 1,
+            2236021719197214567 << 1,
             10_000,
         )
         .unwrap();
-        assert_eq!(amount_out, 2224333092753791);
+        assert_eq!(amount_out, 2224287077214867);
 
         let amount_out = calc_pool_token_out_given_exact_token_in(
             BALANCES[0],
             NORMALIZED_WEIGHTS[0],
             5_000_000_000_000,
-            2236067977499709805 << 1,
+            2236021719197214567 << 1,
             10_000,
         )
         .unwrap();
-        assert_eq!(amount_out, 2222651569634);
+        assert_eq!(amount_out, 2222605588882);
 
         let amount_out = calc_pool_token_out_given_exact_token_in(
             BALANCES[1],
             NORMALIZED_WEIGHTS[1],
             1_000_000_000_000_000,
-            2236067977499709805 << 1,
+            2236021719197214567 << 1,
             10_000,
         )
         .unwrap();
-        assert_eq!(amount_out, 2224333092753791);
+        assert_eq!(amount_out, 2224287077214867);
 
         let amount_out = calc_pool_token_out_given_exact_token_in(
             BALANCES[1],
             NORMALIZED_WEIGHTS[1],
             1_000_000_000_000,
-            2236067977499709805 << 1,
+            2236021719197214567 << 1,
             10_000,
         )
         .unwrap();
-        assert_eq!(amount_out, 2222651569634);
+        assert_eq!(amount_out, 2222605588882);
 
         let amount_out = calc_pool_token_out_given_exact_tokens_in(
             &BALANCES.to_vec(),
             &NORMALIZED_WEIGHTS.to_vec(),
             &vec![5_000_000_000_000_000 >> 1, 1_000_000_000_000_000 >> 1],
-            2236067977499709805 << 1,
+            2236021719197214567 << 1,
             10_000,
         )
         .unwrap();
-        assert_eq!(amount_out, 2236059033227799);
+        assert_eq!(amount_out, 2236021719197214);
     }
 
     #[test]
@@ -430,21 +441,21 @@ mod tests {
         let amount_out = calc_token_out_given_exact_pool_token_in(
             BALANCES[0],
             NORMALIZED_WEIGHTS[0],
-            2222651569634,
-            2236067977499709805 << 1,
+            2222605588882,
+            2236021719197214567 << 1,
             10_000,
         )
         .unwrap();
-        assert_eq!(amount_out, 4945150000000);
+        assert_eq!(amount_out, 4930225000000);
 
         let amount_out = calc_token_out_given_exact_pool_token_in(
             BALANCES[1],
             NORMALIZED_WEIGHTS[1],
-            2222651569634,
-            2236067977499709805 << 1,
+            2222605588882,
+            2236021719197214567 << 1,
             10_000,
         )
         .unwrap();
-        assert_eq!(amount_out, 989030000000);
+        assert_eq!(amount_out, 986045000000);
     }
 }
