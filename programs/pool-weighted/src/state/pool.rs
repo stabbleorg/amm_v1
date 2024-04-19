@@ -83,6 +83,8 @@ where
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct PoolUpdatedData {
+    pub is_active: bool,
+    pub swap_fee: u64,
     pub tokens: Vec<PoolToken>,
 }
 
@@ -104,6 +106,8 @@ where
         emit!(PoolUpdatedEvent {
             pubkey: self.key(),
             data: PoolUpdatedData {
+                is_active: self.as_ref().is_active,
+                swap_fee: self.as_ref().swap_fee,
                 tokens: self.as_ref().tokens.clone(),
             },
         });

@@ -1,8 +1,8 @@
 use crate::state::*;
-use ::math::weighted_math;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
 use bn::safe_math::CheckedMulDiv;
+use math::weighted_math;
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
     program::Vault as VaultProgram,

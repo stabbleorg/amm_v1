@@ -114,11 +114,12 @@ where
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct PoolUpdatedData {
+    pub is_active: bool,
     pub amp_initial_factor: u16,
     pub amp_target_factor: u16,
     pub ramp_start_ts: i64,
     pub ramp_stop_ts: i64,
-
+    pub swap_fee: u64,
     pub tokens: Vec<PoolToken>,
 }
 
@@ -140,10 +141,12 @@ where
         emit!(PoolUpdatedEvent {
             pubkey: self.key(),
             data: PoolUpdatedData {
+                is_active: self.as_ref().is_active,
                 amp_initial_factor: self.as_ref().amp_initial_factor,
                 amp_target_factor: self.as_ref().amp_target_factor,
                 ramp_start_ts: self.as_ref().ramp_start_ts,
                 ramp_stop_ts: self.as_ref().ramp_stop_ts,
+                swap_fee: self.as_ref().swap_fee,
                 tokens: self.as_ref().tokens.clone(),
             },
         });

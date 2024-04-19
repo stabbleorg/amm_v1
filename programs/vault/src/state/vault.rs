@@ -71,3 +71,22 @@ pub struct VaultUpdatedEvent {
     pub pubkey: Pubkey,
     pub data: VaultUpdatedData,
 }
+
+pub trait EmitVaultUpdatedEvent {
+    fn emit_updated_event(&self);
+}
+
+impl<T> EmitVaultUpdatedEvent for T
+where
+    T: Located<Vault>,
+{
+    fn emit_updated_event(&self) {
+        emit!(VaultUpdatedEvent {
+            pubkey: self.key(),
+            data: VaultUpdatedData {
+                beneficiary_fee: self.as_ref().beneficiary_fee,
+                is_active: self.as_ref().is_active,
+            },
+        });
+    }
+}

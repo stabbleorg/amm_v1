@@ -304,7 +304,8 @@ export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
     swapFee: BN;
     weights: BN[];
   }): Promise<TransactionInstruction[]> {
-    const poolAccountSize = this.program.account.pool.size + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4 + 32 + 1;
+    const poolAccountSize =
+      this.program.account.pool.size + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4 + 32 + 1;
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
 
     return [

@@ -48,6 +48,10 @@ pub mod pool_weighted {
         process_swap(ctx, amount_in, minimum_amount_out)
     }
 
+    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u64) -> Result<()> {
+        process_change_swap_fee(ctx, new_swap_fee)
+    }
+
     pub fn pause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
         process_pause(ctx)
     }
@@ -56,15 +60,22 @@ pub mod pool_weighted {
         process_unpause(ctx)
     }
 
-    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u64) -> Result<()> {
-        process_change_swap_fee(ctx, new_swap_fee)
+    pub fn transfer_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: Pubkey) -> Result<()> {
+        process_transfer_owner(ctx, new_owner)
     }
 
-    pub fn change_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: Pubkey) -> Result<()> {
-        process_change_owner(ctx, new_owner)
+    #[access_control(PendingOwnerOnly::validate(&ctx))]
+    pub fn accept_owner<'info>(ctx: Context<PendingOwnerOnly<'info>>) -> Result<()> {
+        process_accept_owner(ctx)
     }
 
-    pub fn close<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, '_, 'info, OwnerOnly<'info>>) -> Result<()> {
-        process_close(ctx)
+    #[access_control(PendingOwnerOnly::validate(&ctx))]
+    pub fn reject_owner<'info>(ctx: Context<PendingOwnerOnly<'info>>) -> Result<()> {
+        process_reject_owner(ctx)
+    }
+
+    /// shutdown the zero-liquidity pool
+    pub fn shutdown<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, '_, 'info, OwnerOnly<'info>>) -> Result<()> {
+        process_shutdown(ctx)
     }
 }
