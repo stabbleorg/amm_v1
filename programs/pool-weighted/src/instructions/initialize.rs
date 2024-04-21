@@ -34,7 +34,6 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<
             .unwrap();
         let (scaling_up, scaling_factor) = if max_balance > Pool::MAX_SAFE_BALANCE {
             let tick_size = max_balance.checked_div_up(Pool::MAX_SAFE_BALANCE).unwrap();
-            msg!("Tick size[{}]: {}", token_index, tick_size);
             if default_scaling_factor >= tick_size {
                 (true, default_scaling_factor / tick_size)
             } else {
@@ -43,7 +42,6 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<
         } else {
             (true, default_scaling_factor)
         };
-        msg!("Scaling factor[{}]: {} ({})", token_index, scaling_factor, scaling_up);
 
         ctx.accounts.pool.tokens.push(PoolToken {
             mint: account.key(),

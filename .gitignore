@@ -4,8 +4,8 @@
 dist
 keypairs
 target
-**/*.rs.bk
 node_modules
 test-ledger
 .yarn
 *.log
+*.so
