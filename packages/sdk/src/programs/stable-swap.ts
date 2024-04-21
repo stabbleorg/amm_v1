@@ -4,8 +4,8 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/anchor-contrib";
 import { StablePool, StablePoolData } from "../accounts";
-import { type PoolStable as IDLType } from "../generated/pool_stable";
-import IDL from "../generated/idl/pool_stable.json";
+import { type StableSwap as IDLType } from "../generated/stable_swap";
+import IDL from "../generated/idl/stable_swap.json";
 
 export class StablePoolContext<T extends Provider> extends WalletContext<T> {
   readonly program: Program<IDLType>;

@@ -9,8 +9,8 @@ import {
 import { AccountMeta, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/anchor-contrib";
 import { WeightedPool, WeightedPoolData } from "../accounts";
-import { type PoolWeighted as IDLType } from "../generated/pool_weighted";
-import IDL from "../generated/idl/pool_weighted.json";
+import { type WeightedSwap as IDLType } from "../generated/weighted_swap";
+import IDL from "../generated/idl/weighted_swap.json";
 
 export class WeightedPoolContext<T extends Provider> extends WalletContext<T> {
   readonly program: Program<IDLType>;

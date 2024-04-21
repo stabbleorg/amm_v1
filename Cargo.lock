@@ -1518,31 +1518,9 @@ version = "1.3.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
- "pool-stable",
- "pool-weighted",
+ "stable-swap",
  "vault",
-]
-
-[[package]]
-name = "pool-stable"
-version = "2.0.0"
-dependencies = [
- "anchor-lang",
- "anchor-spl",
- "bn",
- "math",
- "vault",
-]
-
-[[package]]
-name = "pool-weighted"
-version = "2.0.0"
-dependencies = [
- "anchor-lang",
- "anchor-spl",
- "bn",
- "math",
- "vault",
+ "weighted-swap",
 ]
 
 [[package]]
@@ -2458,6 +2436,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "stable-swap"
+version = "1.0.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "bn",
+ "math",
+ "vault",
+]
+
+[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2699,7 +2688,7 @@ checksum = "a183cf7feeba97b4dd1c0d46788634f6221d87fa961b305bed08c851829efcc0"
 
 [[package]]
 name = "vault"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
@@ -2785,6 +2774,17 @@ checksum = "77afa9a11836342370f4817622a2f0f418b134426d91a82dfb48f532d2ec13ef"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "weighted-swap"
+version = "1.0.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "bn",
+ "math",
+ "vault",
 ]
 
 [[package]]

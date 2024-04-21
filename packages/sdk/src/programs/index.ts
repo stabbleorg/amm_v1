@@ -1,4 +1,4 @@
 export * from "./vault";
-export * from "./pool-weighted";
-export * from "./pool-stable";
+export * from "./weighted-swap";
+export * from "./stable-swap";
 export * from "./pool-smart";

@@ -6,10 +6,10 @@ pub mod state;
 use crate::instructions::*;
 use anchor_lang::prelude::*;
 
-declare_id!("EeyyyuAXAzo3YuMv7REuHYtPzEssgK4oBeFYM8K9CoGM");
+declare_id!("swapNyd8XiQwJ6ianp9snpu4brUqFxadzvHebnAXjJZ");
 
 #[program]
-pub mod pool_stable {
+pub mod stable_swap {
     use super::*;
 
     /// initialize a pool

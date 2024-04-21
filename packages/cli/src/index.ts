@@ -12,8 +12,8 @@ import {
 } from "@stabbleorg/solana-sdk";
 import { setContext, useContext, processTX } from "./context";
 import { setupVaultProgram } from "./vault";
-import { setupWeightedPoolProgram } from "./pool-weighted";
-import { setupStablePoolProgram } from "./pool-stable";
+import { setupWeightedPoolProgram } from "./weighted-swap";
+import { setupStablePoolProgram } from "./stable-swap";
 import { setupSmartPoolProgram } from "./pool-smart";
 import { setupTokenProgram } from "./token";
 import { parseKeypair } from "./utils";

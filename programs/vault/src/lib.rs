@@ -5,7 +5,7 @@ pub mod state;
 use crate::instructions::*;
 use anchor_lang::prelude::*;
 
-declare_id!("6sTpp3Z7s4YSWgxuibjhE8tvcywhRc8a5FYfuv6vhuQA");
+declare_id!("vo1tWgqZMjG61Z2T9qUaMYKqZ75CYzMuaZ2LZP1n7HV");
 
 #[program]
 pub mod vault {

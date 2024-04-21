@@ -1,12 +1,12 @@
 [package]
-name = "pool-weighted"
-version = "2.0.0"
+name = "stable-swap"
+version = "1.0.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "pool_weighted"
+name = "stable_swap"
 
 [features]
 default = []

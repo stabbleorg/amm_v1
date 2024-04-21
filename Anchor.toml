@@ -8,9 +8,9 @@ skip-lint = false
 
 [programs.localnet]
 pool_smart = "smpDKqHRt79KZPjWNC1UK5UWrrRv5avn9NqU6y2HJPT"
-pool_stable = "EeyyyuAXAzo3YuMv7REuHYtPzEssgK4oBeFYM8K9CoGM"
-pool_weighted = "MT29MUjo7TPYxWK2NjLUCQ32dFgYEGW3nEDSAAJbyVy"
-vault = "6sTpp3Z7s4YSWgxuibjhE8tvcywhRc8a5FYfuv6vhuQA"
+stable_swap = "swapNyd8XiQwJ6ianp9snpu4brUqFxadzvHebnAXjJZ"
+weighted_swap = "swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW"
+vault = "vo1tWgqZMjG61Z2T9qUaMYKqZ75CYzMuaZ2LZP1n7HV"
 
 [registry]
 url = "https://api.apr.dev"
