@@ -1,6 +1,7 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
+use bn::safe_math::CheckedDivCeil;
 use math::stable_math;
 use vault::state::Vault;
 
@@ -25,12 +26,29 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
         let data = Mint::try_deserialize(&mut buff)?;
         assert!(data.decimals <= Pool::MAX_TOKEN_DECIMALS);
 
+        let default_scaling_factor =
+            10_u64.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(data.decimals) as u32);
+
+        let max_balance = data
+            .supply
+            .checked_div_up(10_u64.saturating_pow(data.decimals as u32))
+            .unwrap();
+        let (scaling_up, scaling_factor) = if max_balance > Pool::MAX_SAFE_BALANCE {
+            let tick_size = max_balance.checked_div_up(Pool::MAX_SAFE_BALANCE).unwrap();
+            if default_scaling_factor >= tick_size {
+                (true, default_scaling_factor / tick_size)
+            } else {
+                (false, tick_size / default_scaling_factor)
+            }
+        } else {
+            (true, default_scaling_factor)
+        };
+
         ctx.accounts.pool.tokens.push(PoolToken {
             mint: account.key(),
             decimals: data.decimals,
-            scaling_factor: 10_u64
-                .checked_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(data.decimals) as u32)
-                .unwrap(),
+            scaling_up,
+            scaling_factor,
             balance: 0,
         });
     }

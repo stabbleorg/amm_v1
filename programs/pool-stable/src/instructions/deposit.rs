@@ -25,7 +25,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             &amounts
                 .iter()
                 .enumerate()
-                .map(|(token_index, &amount)| amount * ctx.accounts.pool.tokens[token_index].scaling_factor)
+                .map(|(token_index, &amount)| ctx.accounts.pool.calc_balance_in(amount, token_index))
                 .collect(),
         )
         .unwrap()
@@ -47,7 +47,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     .enumerate()
                     .map(|(index, _)| {
                         if token_index == index {
-                            amounts[0] * ctx.accounts.pool.tokens[token_index].scaling_factor
+                            ctx.accounts.pool.calc_balance_in(amounts[0], token_index)
                         } else {
                             0
                         }
@@ -65,7 +65,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                 &amounts
                     .iter()
                     .enumerate()
-                    .map(|(token_index, &amount)| amount * ctx.accounts.pool.tokens[token_index].scaling_factor)
+                    .map(|(token_index, &amount)| ctx.accounts.pool.calc_balance_in(amount, token_index))
                     .collect(),
                 ctx.accounts.mint.supply,
                 current_invariant,
@@ -87,7 +87,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             ctx.accounts.pool.get_token_index(mint)
         };
 
-        let balance_in = amounts[token_index] * ctx.accounts.pool.tokens[token_in_index].scaling_factor;
+        let balance_in = ctx.accounts.pool.calc_balance_in(amounts[token_index], token_in_index);
         // add token balances
         ctx.accounts.pool.tokens[token_in_index].balance =
             ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
@@ -104,7 +104,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
-            amounts[token_index],
+            ctx.accounts.pool.calc_amount_in(amounts[token_index], token_in_index),
         )?;
     }
 

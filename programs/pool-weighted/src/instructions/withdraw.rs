@@ -30,7 +30,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
 
         ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index].balance - balance_out;
 
-        let amount_out = balance_out / ctx.accounts.pool.tokens[token_index].scaling_factor;
+        let amount_out = ctx.accounts.pool.calc_amount_out(balance_out, token_index);
         assert!(amount_out >= minimum_amounts_out[0]); // check slippage
         vec![amount_out]
     } else {
@@ -52,7 +52,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             .iter()
             .enumerate()
             .map(|(token_index, &balance_out)| {
-                let amount_out = balance_out / ctx.accounts.pool.tokens[token_index].scaling_factor;
+                let amount_out = ctx.accounts.pool.calc_amount_out(balance_out, token_index);
                 assert!(amount_out >= minimum_amounts_out[token_index]); // check slippage
                 amount_out
             })

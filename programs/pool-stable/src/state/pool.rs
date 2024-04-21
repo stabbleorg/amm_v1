@@ -9,7 +9,7 @@ pub struct PoolToken {
 
     pub decimals: u8, // immutable
 
-    // 10^(9-decimals) / tick
+    pub scaling_up: bool,    // immutable
     pub scaling_factor: u64, // immutable
 
     // balance scaled up to 9 decimals
@@ -45,6 +45,8 @@ impl Pool {
 
     pub const MIN_SWAP_FEE: u64 = 1; // 0.0001%
     pub const MAX_SWAP_FEE: u64 = 10_000; // 1.0000%
+
+    pub const MAX_SAFE_BALANCE: u64 = 3_000_000_000;
 
     pub const MAX_TOKEN_DECIMALS: u8 = 9;
 
@@ -92,6 +94,34 @@ impl Pool {
             .find(|(_, token)| token.mint == mint)
             .unwrap()
             .0
+    }
+
+    pub fn calc_balance_in(&self, amount_in: u64, token_index: usize) -> u64 {
+        if self.tokens[token_index].scaling_factor == 1 {
+            amount_in
+        } else if self.tokens[token_index].scaling_up {
+            amount_in * self.tokens[token_index].scaling_factor
+        } else {
+            amount_in / self.tokens[token_index].scaling_factor
+        }
+    }
+
+    pub fn calc_amount_in(&self, amount_in: u64, token_index: usize) -> u64 {
+        if self.tokens[token_index].scaling_up {
+            amount_in
+        } else {
+            amount_in / self.tokens[token_index].scaling_factor * self.tokens[token_index].scaling_factor
+        }
+    }
+
+    pub fn calc_amount_out(&self, balance_out: u64, token_index: usize) -> u64 {
+        if self.tokens[token_index].scaling_factor == 1 {
+            balance_out
+        } else if self.tokens[token_index].scaling_up {
+            balance_out / self.tokens[token_index].scaling_factor
+        } else {
+            balance_out * self.tokens[token_index].scaling_factor
+        }
     }
 }
 

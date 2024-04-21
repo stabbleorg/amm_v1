@@ -32,8 +32,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
         .pool
         .get_token_index(ctx.accounts.beneficiary_token_out.mint);
 
-    let balance_in = amount_in * ctx.accounts.pool.tokens[token_in_index].scaling_factor;
-
+    let balance_in = ctx.accounts.pool.calc_balance_in(amount_in, token_in_index);
     let balance_out_without_fee = weighted_math::calc_out_given_in(
         ctx.accounts.pool.tokens[token_in_index].balance,
         ctx.accounts.pool.tokens[token_in_index].weight,
@@ -43,7 +42,10 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     )
     .unwrap();
 
-    let amount_out_without_fee = balance_out_without_fee / ctx.accounts.pool.tokens[token_out_index].scaling_factor;
+    let amount_out_without_fee = ctx
+        .accounts
+        .pool
+        .calc_amount_out(balance_out_without_fee, token_out_index);
     let amount_out = amount_out_without_fee
         .checked_mul_div_down(
             weighted_math::FEE_PRECISION.saturating_sub(ctx.accounts.pool.swap_fee),
@@ -60,7 +62,10 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     // add in token balance
     ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
     // remove out token balance
-    let balance_out = (amount_out + beneficiary_fee_amount) * ctx.accounts.pool.tokens[token_out_index].scaling_factor;
+    let balance_out = ctx
+        .accounts
+        .pool
+        .calc_balance_in(amount_out + beneficiary_fee_amount, token_out_index);
     ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index].balance - balance_out;
 
     ctx.accounts.pool.emit_updated_event();
@@ -81,7 +86,9 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
                     },
                 )
                 .with_signer(&[signer_seed]),
-                beneficiary_fee_amount,
+                ctx.accounts
+                    .pool
+                    .calc_amount_in(beneficiary_fee_amount, token_out_index),
             )?;
         }
 

@@ -1,6 +1,7 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
+use bn::safe_math::CheckedDivCeil;
 use math::weighted_math;
 use vault::state::Vault;
 
@@ -20,15 +21,35 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<
     for (token_index, account) in ctx.remaining_accounts.iter().enumerate() {
         let mut buff: &[u8] = &account.try_borrow_data()?;
         let data = Mint::try_deserialize(&mut buff)?;
+
         assert!(data.decimals <= Pool::MAX_TOKEN_DECIMALS);
         assert_ne!(weights[token_index], 0);
+
+        let default_scaling_factor =
+            10_u64.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(data.decimals) as u32);
+
+        let max_balance = data
+            .supply
+            .checked_div_up(10_u64.saturating_pow(data.decimals as u32))
+            .unwrap();
+        let (scaling_up, scaling_factor) = if max_balance > Pool::MAX_SAFE_BALANCE {
+            let tick_size = max_balance.checked_div_up(Pool::MAX_SAFE_BALANCE).unwrap();
+            msg!("Tick size[{}]: {}", token_index, tick_size);
+            if default_scaling_factor >= tick_size {
+                (true, default_scaling_factor / tick_size)
+            } else {
+                (false, tick_size / default_scaling_factor)
+            }
+        } else {
+            (true, default_scaling_factor)
+        };
+        msg!("Scaling factor[{}]: {} ({})", token_index, scaling_factor, scaling_up);
 
         ctx.accounts.pool.tokens.push(PoolToken {
             mint: account.key(),
             decimals: data.decimals,
-            scaling_factor: 10_u64
-                .checked_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(data.decimals) as u32)
-                .unwrap(),
+            scaling_up,
+            scaling_factor,
             balance: 0,
             weight: weights[token_index],
         });

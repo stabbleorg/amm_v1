@@ -23,7 +23,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             &amounts
                 .iter()
                 .enumerate()
-                .map(|(token_index, &amount)| amount * ctx.accounts.pool.tokens[token_index].scaling_factor)
+                .map(|(token_index, &amount)| ctx.accounts.pool.calc_balance_in(amount, token_index))
                 .collect(),
             &ctx.accounts.pool.get_normalized_weights(),
         )
@@ -38,7 +38,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             weighted_math::calc_pool_token_out_given_exact_token_in(
                 ctx.accounts.pool.tokens[token_index].balance,
                 ctx.accounts.pool.tokens[token_index].weight,
-                amounts[0] * ctx.accounts.pool.tokens[token_index].scaling_factor,
+                ctx.accounts.pool.calc_balance_in(amounts[0], token_index),
                 ctx.accounts.mint.supply,
                 ctx.accounts.pool.swap_fee,
             )
@@ -50,7 +50,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                 &amounts
                     .iter()
                     .enumerate()
-                    .map(|(token_index, &amount)| amount * ctx.accounts.pool.tokens[token_index].scaling_factor)
+                    .map(|(token_index, &amount)| ctx.accounts.pool.calc_balance_in(amount, token_index))
                     .collect(),
                 ctx.accounts.mint.supply,
                 ctx.accounts.pool.swap_fee,
@@ -71,7 +71,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             ctx.accounts.pool.get_token_index(mint)
         };
 
-        let balance_in = amounts[token_index] * ctx.accounts.pool.tokens[token_in_index].scaling_factor;
+        let balance_in = ctx.accounts.pool.calc_balance_in(amounts[token_index], token_in_index);
         // add token balances
         ctx.accounts.pool.tokens[token_in_index].balance =
             ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
@@ -88,7 +88,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     authority: ctx.accounts.user.to_account_info(),
                 },
             ),
-            amounts[token_index],
+            ctx.accounts.pool.calc_amount_in(amounts[token_index], token_in_index),
         )?;
     }
 
