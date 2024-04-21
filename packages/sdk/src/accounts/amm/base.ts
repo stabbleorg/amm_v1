@@ -9,6 +9,7 @@ export interface PoolToken {
 export interface PoolTokenData {
   mint: PublicKey;
   decimals: number;
+  scalingUp: boolean;
   scalingFactor: BN; // u64
   balance: BN; // u64
 }

@@ -4,7 +4,7 @@ import { BasicMath, SafeNumber, WeightedMath } from "../../utils";
 
 export class WeightedPool implements AmmPool<WeightedPoolToken, WeightedPoolData> {
   static POOL_TOKEN_DECIMALS = 9;
-  static POOL_TOKEN_SIZE = 32 + 1 + 8 + 8 + 8;
+  static POOL_TOKEN_SIZE = 32 + 1 + 1 + 8 + 8 + 8;
 
   constructor(
     readonly address: PublicKey,
@@ -35,7 +35,10 @@ export class WeightedPool implements AmmPool<WeightedPoolToken, WeightedPoolData
     return this.data.tokens.map((token) => ({
       mintAddress: token.mint,
       decimals: token.decimals,
-      balance: SafeNumber.toUiAmount(token.balance.div(token.scalingFactor), token.decimals),
+      balance: SafeNumber.toUiAmount(
+        token.scalingUp ? token.balance.div(token.scalingFactor) : token.balance.mul(token.scalingFactor),
+        token.decimals,
+      ),
       weight: SafeNumber.toUiAmount(token.weight, 9),
     }));
   }
@@ -46,9 +49,9 @@ export class WeightedPool implements AmmPool<WeightedPoolToken, WeightedPoolData
     const tokenOut = this.tokens.find((token) => token.mintAddress.equals(tokenOutAddress));
     if (!tokenOut) return 0;
     return WeightedMath.calcOutGivenIn(
-      tokenIn.balance, // scaling_factor
+      tokenIn.balance,
       tokenIn.weight,
-      tokenOut.balance, // scaling_factor
+      tokenOut.balance,
       tokenOut.weight,
       amountIn,
       this.swapFee,

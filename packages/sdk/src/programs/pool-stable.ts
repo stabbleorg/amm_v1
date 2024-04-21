@@ -246,8 +246,7 @@ export class StablePoolContext<T extends Provider> extends WalletContext<T> {
     amp: number;
     swapFee: BN;
   }): Promise<TransactionInstruction[]> {
-    const poolAccountSize =
-      this.program.account.pool.size + StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4 + 32 + 1;
+    const poolAccountSize = this.program.account.pool.size + (StablePool.POOL_TOKEN_SIZE * mintAddresses.length + 4);
     const poolAuthorityAddress = this.findPoolAuthorityAddress(poolAddress);
 
     return [

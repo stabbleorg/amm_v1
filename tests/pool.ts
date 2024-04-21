@@ -27,9 +27,11 @@ import {
 
 describe("Pool", () => {
   const provider = AnchorProvider.env();
+
   const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
   const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
   const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
+
   const amm = new Amm({
     vault: ctxVault,
     weighted: ctxWeighted,
@@ -270,11 +272,11 @@ describe("Pool", () => {
           0,
         );
       const {
-        value: { uiAmount: balSTB },
+        value: { uiAmountString: balSTB },
       } = await provider.connection.getTokenAccountBalance(
         getAssociatedTokenAddressSync(stbMintKP.publicKey, vaultAuthorityAddress, true),
       );
-      console.log("STB Liquidity:", liqSTB);
+      console.log("STB Balance:", liqSTB);
       console.log("STB Reserve:", balSTB);
 
       const liqUSDC = pools
@@ -289,115 +291,69 @@ describe("Pool", () => {
       } = await provider.connection.getTokenAccountBalance(
         getAssociatedTokenAddressSync(usdcMintKP.publicKey, vaultAuthorityAddress, true),
       );
-      console.log("USDC Liquidity:", liqUSDC);
+      console.log("USDC Balance:", liqUSDC);
       console.log("USDC Reserve:", balUSDC);
     });
   });
 
-  // describe("Bonk50-STB30-USDC20", () => {
-  //   it("should create weighted pool", async () => {
-  //     // Bonk: $0.000000109, STB: $0.0175, USDC: $1
-  //     const bRatio_BONK_USDC = WeightedMath.calcBalanceRatio(0.5, 0.000000109, 0.2, 1);
-  //     const bRatio_STB_USDC = WeightedMath.calcBalanceRatio(0.3, 0.0175, 0.2, 1);
+  describe("Bonk50-STB30-USDC20", () => {
+    it("should create weighted pool", async () => {
+      // Bonk: $0.0000001, STB: $0.0175, USDC: $1
+      const bRatio_BONK_USDC = WeightedMath.calcBalanceRatio(0.5, 0.0000001, 0.2, 1);
+      const bRatio_STB_USDC = WeightedMath.calcBalanceRatio(0.3, 0.0175, 0.2, 1);
 
-  //     // given 1,000,000 USDC
-  //     const usdcAmount = 1000000;
-  //     const bonkAmount = usdcAmount * bRatio_BONK_USDC;
-  //     const stbAmount = usdcAmount * bRatio_STB_USDC;
-  //     console.log("Bonk in:", bonkAmount);
+      // given 1,000,000 USDC
+      const usdcAmount = 100000;
+      const bonkAmount = usdcAmount * bRatio_BONK_USDC;
+      const stbAmount = usdcAmount * bRatio_STB_USDC;
 
-  //     const { tx: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
-  //       vaultAddress: weightedVaultKP.publicKey,
-  //       mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
-  //       swapFee: 0.001, // 0.1%
-  //       weights: ["0.5", 0.3, 0.2], // either in string or in number
-  //     });
-  //     await ctxWeighted.provider.sendAndConfirm(createTX);
+      const { tx: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
+        vaultAddress: weightedVaultKP.publicKey,
+        mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
+        swapFee: 0.001, // 0.1%
+        weights: ["0.5", 0.3, 0.2], // either in string or in number
+      });
+      await ctxWeighted.provider.sendAndConfirm(createTX);
 
-  //     // add initial liquidity
-  //     const pool = await ctxWeighted.findOne(poolAddress);
-  //     const { tx } = await amm.deposit({
-  //       pool,
-  //       mintAddresses: pool.tokens.map((token) => token.mintAddress),
-  //       amounts: [bonkAmount, stbAmount, usdcAmount],
-  //     });
-  //     await ctxWeighted.provider.sendAndConfirm(tx);
+      // add initial liquidity
+      const pool = await ctxWeighted.findOne(poolAddress);
+      const { tx } = await amm.deposit({
+        pool,
+        mintAddresses: pool.tokens.map((token) => token.mintAddress),
+        amounts: [bonkAmount, stbAmount, usdcAmount],
+      });
+      await ctxWeighted.provider.sendAndConfirm(tx);
 
-  //     const { value: balance } = await provider.connection.getTokenAccountBalance(
-  //       ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
-  //     );
-  //     console.log("LP out:", balance.uiAmountString);
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      console.log("LP out:", balance.uiAmountString);
 
-  //     // {
-  //     //   const pool = await ctxWeighted.findOne(poolAddress);
-  //     //   console.log("Bonk balance (ticks):", pool.tokens[0].balance);
-  //     //   console.log("Bonk balance (amount):", pool.tokens[0].amount);
-  //     // }
+      {
+        const pool = await ctxWeighted.findOne(poolAddress);
 
-  //     {
-  //       const pool = await ctxWeighted.findOne(poolAddress);
-  //       const { value: balance } = await provider.connection.getTokenAccountBalance(
-  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
-  //       );
-  //       const { tx } = await amm.withdraw({
-  //         pool,
-  //         mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
-  //         amount: 86350325.209763808,
-  //       });
-  //       await ctxWeighted.provider.sendAndConfirm(tx);
+        const { value: balance } = await provider.connection.getTokenAccountBalance(
+          ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
+        );
+        const { tx } = await amm.withdraw({
+          pool,
+          mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
+          // amount: "25498939.655507898",
+          // amount: "12749469.827753949",
+          amount: "14254339.712832605",
+        });
+        await ctxWeighted.provider.sendAndConfirm(tx);
 
-  //       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
-  //       );
-  //       console.log(
-  //         "Bonk out:",
-  //         SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-  //       );
-  //     }
-
-  //     {
-  //       const pool = await ctxWeighted.findOne(poolAddress);
-  //       const { value: balance } = await provider.connection.getTokenAccountBalance(
-  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
-  //       );
-  //       const { tx } = await amm.withdraw({
-  //         pool,
-  //         mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
-  //         amount: 8635032.520976381,
-  //       });
-  //       await ctxWeighted.provider.sendAndConfirm(tx);
-
-  //       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
-  //       );
-  //       console.log(
-  //         "Bonk out:",
-  //         SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-  //       );
-  //     }
-
-  //     {
-  //       const pool = await ctxWeighted.findOne(poolAddress);
-  //       const { value: balance } = await provider.connection.getTokenAccountBalance(
-  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
-  //       );
-  //       const { tx } = await amm.withdraw({
-  //         pool,
-  //         mintAddresses: [bonkMintKP.publicKey],
-  //         amount: 8635032.520976381,
-  //       });
-  //       await ctxWeighted.provider.sendAndConfirm(tx);
-
-  //       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-  //         ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
-  //       );
-  //       console.log(
-  //         "Bonk out:",
-  //         SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-  //       );
-  //     }
-  //   });
-  // });
+        const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+          ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
+        );
+        console.log(
+          "Bonk out:",
+          SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
+        );
+      }
+    });
+  });
 
   describe("DAI-USDT-USDC", () => {
     it("should create stable pool", async () => {

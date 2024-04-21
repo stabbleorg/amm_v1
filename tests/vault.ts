@@ -25,6 +25,7 @@ import {
 
 describe("Vault", () => {
   const provider = AnchorProvider.env();
+
   const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
   const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
   const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
@@ -102,7 +103,9 @@ describe("Vault", () => {
       bonkMintKP.publicKey,
       await createAssociatedTokenAccount(provider.connection, adminKP, bonkMintKP.publicKey, adminKP.publicKey),
       adminKP,
-      BigInt("10000000000000000000"), // 200T
+      // BigInt("22 935 779 816 513 76000")
+      // BigInt("9337746579727542402"),
+      BigInt("10000000000000000000"), // 100T
     );
   });
 
