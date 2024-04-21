@@ -67,16 +67,16 @@ export function createMetadata(program: Command) {
           ),
         ];
 
-        const { tx: preTX } = await amm.ctxWeighted.newTX(ixs);
+        const { transaction: preTX } = await amm.ctxWeighted.newTX(ixs);
         if (authorityKP) preTX.sign([authorityKP]);
         const priorityFee = await getPriorityFeeEstimate(provider.connection.rpcEndpoint, preTX);
 
         console.log("Priority Fee:", priorityFee);
 
-        const { tx } = await amm.ctxWeighted.newPrioritizedTX(ixs, priorityFee);
-        if (authorityKP) tx.sign([authorityKP]);
+        const { transaction } = await amm.ctxWeighted.newPrioritizedTX(ixs, priorityFee);
+        if (authorityKP) transaction.sign([authorityKP]);
 
-        submitTX(tx);
+        submitTX(transaction);
       },
     );
 }

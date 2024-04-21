@@ -15,12 +15,12 @@ export function deposit(program: Command) {
 
       const pool = await amm.ctxWeighted.findOne(poolK);
 
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         amounts,
         mintAddresses: mints.map((pubkey) => new PublicKey(pubkey)),
       });
 
-      submitTX(tx);
+      submitTX(transaction);
     });
 }

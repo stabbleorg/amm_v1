@@ -12,10 +12,10 @@ export function close(program: Command) {
     .action(async ({ vaultK, poolK }: { vaultK: PublicKey; poolK: PublicKey }) => {
       const { smart } = useContext();
 
-      const { tx } = await smart.ctxSmart.newTX(
+      const { transaction } = await smart.ctxSmart.newTX(
         await smart.ctxSmart.closeInstructions({ poolAddress: poolK, vaultAddress: vaultK }),
       );
 
-      submitTX(tx);
+      submitTX(transaction);
     });
 }

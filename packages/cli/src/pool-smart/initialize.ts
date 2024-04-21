@@ -25,14 +25,14 @@ export function initialize(program: Command) {
       }) => {
         const { smart } = useContext();
 
-        const { tx, address } = await smart.createSmartPoolAndAddress({
+        const { transaction, address } = await smart.createSmartPoolAndAddress({
           vaultAddress: vaultK,
           poolKP,
           quoteMintAddress: quoteMintK,
           maxLiquidity,
         });
 
-        submitTX(tx);
+        submitTX(transaction);
         console.log("Pool:", address.toBase58());
       },
     );

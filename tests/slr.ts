@@ -13,7 +13,7 @@ describe("SLR", () => {
   });
 
   it("should create SLR pool", async () => {
-    const { tx } = await sdk.createSmartPoolAndAddress({
+    const { transaction } = await sdk.createSmartPoolAndAddress({
       vaultAddress: smartVaultKP.publicKey,
       quoteMintAddress: usdcMintKP.publicKey,
       maxLiquidity: 100000,
@@ -25,7 +25,7 @@ describe("SLR", () => {
   it("should deposit", async () => {
     const pool = await sdk.ctxSmart.findOne(usdcPoolKP.publicKey);
 
-    const { tx } = await sdk.deposit({
+    const { transaction } = await sdk.deposit({
       pool,
       amount: 1000,
     });
@@ -44,7 +44,7 @@ describe("SLR", () => {
       sdk.ctxSmart.getAssociatedTokenAddress(pool.quoteMintAddress),
     );
 
-    const { tx } = await sdk.withdraw({
+    const { transaction } = await sdk.withdraw({
       pool,
       amount: 1000,
     });

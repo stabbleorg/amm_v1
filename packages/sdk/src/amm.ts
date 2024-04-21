@@ -10,7 +10,7 @@ import {
   getMint,
 } from "@solana/spl-token";
 import { PublicKey, Keypair, TransactionInstruction, SystemProgram } from "@solana/web3.js";
-import { TransactionWithRecentBlock } from "@stabbleorg/anchor-contrib";
+import { TransactionWithRecentBlockAndSlot } from "@stabbleorg/anchor-contrib";
 import { VaultContext, StablePoolContext, WeightedPoolContext } from "./programs";
 import { AmmPool, StablePool, WeightedPool, Vault } from "./accounts";
 import { SafeNumber } from "./utils";
@@ -53,7 +53,7 @@ export class Amm<T extends Provider> {
     mintOutAddress: PublicKey;
     amountIn: number | string;
     minimumAmountOut?: number | string;
-  }): Promise<TransactionWithRecentBlock> {
+  }): Promise<TransactionWithRecentBlockAndSlot> {
     const vault = this.vaults.find((v) => v.address.equals(pool.vaultAddress));
     if (!vault) throw Error("Unknown swap");
     const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintInAddress));
@@ -106,7 +106,7 @@ export class Amm<T extends Provider> {
     pool: AmmPool;
     mintAddresses: PublicKey[];
     amounts: (string | number)[];
-  }): Promise<TransactionWithRecentBlock> {
+  }): Promise<TransactionWithRecentBlockAndSlot> {
     const ixs: TransactionInstruction[] = [];
 
     if (pool instanceof WeightedPool) {
@@ -158,7 +158,7 @@ export class Amm<T extends Provider> {
     pool: AmmPool;
     mintAddresses: PublicKey[];
     amount: string | number;
-  }): Promise<TransactionWithRecentBlock> {
+  }): Promise<TransactionWithRecentBlockAndSlot> {
     const ixs: TransactionInstruction[] = [];
 
     if (pool instanceof WeightedPool) {
@@ -214,7 +214,7 @@ export class Amm<T extends Provider> {
     name?: string;
     symbol?: string;
     uri?: string;
-  }): Promise<TransactionWithRecentBlock & { address: PublicKey }> {
+  }): Promise<TransactionWithRecentBlockAndSlot & { address: PublicKey }> {
     const mints = await Promise.all(
       mintAddresses.map((address) => getMint(this.ctxWeighted.provider.connection, address)),
     );
@@ -286,7 +286,7 @@ export class Amm<T extends Provider> {
     ];
 
     const txRes = await this.ctxWeighted.newTX(ixs);
-    txRes.tx.sign([poolKP, poolMintKP]);
+    txRes.transaction.sign([poolKP, poolMintKP]);
 
     return { ...txRes, address: poolKP.publicKey };
   }
@@ -311,7 +311,7 @@ export class Amm<T extends Provider> {
     name?: string;
     symbol?: string;
     uri?: string;
-  }): Promise<TransactionWithRecentBlock & { address: PublicKey }> {
+  }): Promise<TransactionWithRecentBlockAndSlot & { address: PublicKey }> {
     const metadataAddress = Metaplex.make(this.ctxStable.provider.connection)
       .nfts()
       .pdas()
@@ -380,7 +380,7 @@ export class Amm<T extends Provider> {
     ];
 
     const txRes = await this.ctxStable.newTX(ixs);
-    txRes.tx.sign([poolKP, poolMintKP]);
+    txRes.transaction.sign([poolKP, poolMintKP]);
 
     return { ...txRes, address: poolKP.publicKey };
   }
@@ -395,7 +395,7 @@ export class Amm<T extends Provider> {
     beneficiaryFee: number | string;
     poolKind: PoolKind;
     vaultKP?: Keypair;
-  }): Promise<TransactionWithRecentBlock & { address: PublicKey }> {
+  }): Promise<TransactionWithRecentBlockAndSlot & { address: PublicKey }> {
     let withdrawAuthorityAddress: PublicKey;
     let withdrawAuthorityBump: number;
     if (poolKind === "weighted") {
@@ -419,7 +419,7 @@ export class Amm<T extends Provider> {
     });
 
     const txRes = await this.ctxVault.newTX(ixs);
-    txRes.tx.sign([vaultKP]);
+    txRes.transaction.sign([vaultKP]);
 
     return { ...txRes, address: vaultKP.publicKey };
   }

@@ -110,27 +110,27 @@ describe("Vault", () => {
   });
 
   it("should create vault for weighted pool", async () => {
-    const { tx } = await amm.createVaultAndAddress({
+    const { transaction } = await amm.createVaultAndAddress({
       beneficiaryAddress: beneficiaryKP.publicKey,
       beneficiaryFee: 0.22,
       poolKind: "weighted",
       vaultKP: weightedVaultKP,
     });
-    await amm.ctxVault.provider.sendAndConfirm!(tx);
+    await amm.ctxVault.provider.sendAndConfirm(transaction);
   });
 
   it("should create vault for stable pool", async () => {
-    const { tx } = await amm.createVaultAndAddress({
+    const { transaction } = await amm.createVaultAndAddress({
       beneficiaryAddress: beneficiaryKP.publicKey,
       beneficiaryFee: "0.22",
       poolKind: "stable",
       vaultKP: stableVaultKP,
     });
-    await amm.ctxVault.provider.sendAndConfirm!(tx);
+    await amm.ctxVault.provider.sendAndConfirm(transaction);
   });
 
   // it("should create vault for smart pool", async () => {
-  //   const { tx } = await smart.createVaultAndAddress({
+  //   const { transaction } = await smart.createVaultAndAddress({
   //     beneficiaryAddress: beneficiaryKP.publicKey,
   //     beneficiaryFee: 0.14,
   //     vaultKP: smartVaultKP,

@@ -12,9 +12,9 @@ export function pause(program: Command) {
     .action(async ({ poolK }: { poolK: PublicKey }) => {
       const { amm } = useContext();
 
-      const { tx } = await amm.ctxWeighted.newTX(await amm.ctxWeighted.pauseInstructions({ poolAddress: poolK }));
+      const { transaction } = await amm.ctxWeighted.newTX(await amm.ctxWeighted.pauseInstructions({ poolAddress: poolK }));
 
-      submitTX(tx);
+      submitTX(transaction);
     });
 }
 
@@ -27,13 +27,13 @@ export function changeSwapFee(program: Command) {
     .action(async ({ poolK, newSwapFee }: { poolK: PublicKey; newSwapFee: string }) => {
       const { amm } = useContext();
 
-      const { tx } = await amm.ctxWeighted.newTX(
+      const { transaction } = await amm.ctxWeighted.newTX(
         await amm.ctxWeighted.changeSwapFeeInstructions({
           poolAddress: poolK,
           newSwapFee: SafeNumber.toBasisPoints(newSwapFee),
         }),
       );
 
-      submitTX(tx);
+      submitTX(transaction);
     });
 }

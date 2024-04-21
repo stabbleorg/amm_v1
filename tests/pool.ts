@@ -51,7 +51,7 @@ describe("Pool", () => {
       const stbAmount = usdcAmount * bRatio_STB_USDC;
       const sbrAmount = usdcAmount * bRatio_SBR_USDC;
 
-      const { tx: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
+      const { transaction: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
         vaultAddress: weightedVaultKP.publicKey,
         mintAddresses: [stbMintKP.publicKey, sbrMintKP.publicKey, usdcMintKP.publicKey],
         swapFee: 0.0125, // 1.25%
@@ -62,12 +62,12 @@ describe("Pool", () => {
 
       // add initial liquidity
       const pool = await ctxWeighted.findOne(poolAddress);
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [stbAmount, sbrAmount, usdcAmount],
       });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+      await ctxWeighted.provider.sendAndConfirm(transaction);
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
@@ -90,12 +90,12 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [stbAmount, sbrAmount, usdcAmount],
       });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+      await ctxWeighted.provider.sendAndConfirm(transaction);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
@@ -112,12 +112,12 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amounts: ["2500"],
       });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+      await ctxWeighted.provider.sendAndConfirm(transaction);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
@@ -134,12 +134,12 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
       );
-      const { tx } = await amm.withdraw({
+      const { transaction } = await amm.withdraw({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amount: "156189.993848500",
       });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+      await ctxWeighted.provider.sendAndConfirm(transaction);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
@@ -164,7 +164,7 @@ describe("Pool", () => {
       const usdcAmount = 50000;
       const stbAmount = usdcAmount * bRatio_STB_USDC;
 
-      const { tx: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
+      const { transaction: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
         vaultAddress: weightedVaultKP.publicKey,
         mintAddresses,
         swapFee: 0.01, // 1%
@@ -175,12 +175,12 @@ describe("Pool", () => {
 
       // add initial liquidity
       const pool = await ctxWeighted.findOne(poolAddress);
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses,
         amounts: [stbAmount, usdcAmount],
       });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+      await ctxWeighted.provider.sendAndConfirm(transaction);
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
@@ -200,12 +200,12 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [stbAmount, usdcAmount],
       });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+      await ctxWeighted.provider.sendAndConfirm(transaction);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
@@ -222,12 +222,12 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amounts: ["1250"],
       });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+      await ctxWeighted.provider.sendAndConfirm(transaction);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
@@ -244,12 +244,12 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
       );
-      const { tx } = await amm.withdraw({
+      const { transaction } = await amm.withdraw({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amount: "56.760017596",
       });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+      await ctxWeighted.provider.sendAndConfirm(transaction);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
@@ -307,7 +307,7 @@ describe("Pool", () => {
       const bonkAmount = usdcAmount * bRatio_BONK_USDC;
       const stbAmount = usdcAmount * bRatio_STB_USDC;
 
-      const { tx: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
+      const { transaction: createTX, address: poolAddress } = await amm.createWeightedPoolAndAddress({
         vaultAddress: weightedVaultKP.publicKey,
         mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
         swapFee: 0.001, // 0.1%
@@ -317,12 +317,12 @@ describe("Pool", () => {
 
       // add initial liquidity
       const pool = await ctxWeighted.findOne(poolAddress);
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [bonkAmount, stbAmount, usdcAmount],
       });
-      await ctxWeighted.provider.sendAndConfirm(tx);
+      await ctxWeighted.provider.sendAndConfirm(transaction);
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
@@ -335,14 +335,14 @@ describe("Pool", () => {
         const { value: balance } = await provider.connection.getTokenAccountBalance(
           ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
         );
-        const { tx } = await amm.withdraw({
+        const { transaction } = await amm.withdraw({
           pool,
           mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
           // amount: "25498939.655507898",
           amount: "12749469.827753949",
           // amount: "14254339.712832605",
         });
-        await ctxWeighted.provider.sendAndConfirm(tx);
+        await ctxWeighted.provider.sendAndConfirm(transaction);
 
         const { value: postBalance } = await provider.connection.getTokenAccountBalance(
           ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
@@ -357,7 +357,7 @@ describe("Pool", () => {
 
   describe("DAI-USDT-USDC", () => {
     it("should create stable pool", async () => {
-      const { tx: createTX, address: poolAddress } = await amm.createStablePoolAndAddress({
+      const { transaction: createTX, address: poolAddress } = await amm.createStablePoolAndAddress({
         vaultAddress: stableVaultKP.publicKey,
         mintAddresses: [daiMintKP.publicKey, usdtMintKP.publicKey, usdcMintKP.publicKey],
         amp: 2000,
@@ -368,12 +368,12 @@ describe("Pool", () => {
 
       // add initial liquidity
       const pool = await ctxStable.findOne(poolAddress);
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [40000, 30000, 20000],
       });
-      await ctxStable.provider.sendAndConfirm(tx);
+      await ctxStable.provider.sendAndConfirm(transaction);
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
@@ -397,12 +397,12 @@ describe("Pool", () => {
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
       );
 
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [daiAmount, usdtAmount, usdcAmount],
       });
-      await ctxStable.provider.sendAndConfirm(tx);
+      await ctxStable.provider.sendAndConfirm(transaction);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
@@ -419,12 +419,12 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
       );
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amounts: [900],
       });
-      await ctxStable.provider.sendAndConfirm(tx);
+      await ctxStable.provider.sendAndConfirm(transaction);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),
@@ -441,12 +441,12 @@ describe("Pool", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(usdcMintKP.publicKey),
       );
-      const { tx } = await amm.withdraw({
+      const { transaction } = await amm.withdraw({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
         amount: "897.420287765",
       });
-      await ctxStable.provider.sendAndConfirm(tx);
+      await ctxStable.provider.sendAndConfirm(transaction);
 
       const { value: postBalance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(usdcMintKP.publicKey),
@@ -460,7 +460,7 @@ describe("Pool", () => {
 
   describe("USDT-USDC", () => {
     it("should create stable pool", async () => {
-      const { tx: createTX, address: poolAddress } = await amm.createStablePoolAndAddress({
+      const { transaction: createTX, address: poolAddress } = await amm.createStablePoolAndAddress({
         vaultAddress: stableVaultKP.publicKey,
         mintAddresses: [usdtMintKP.publicKey, usdcMintKP.publicKey],
         amp: 5000,
@@ -471,12 +471,12 @@ describe("Pool", () => {
 
       // add initial liquidity
       const pool = await ctxStable.findOne(poolAddress);
-      const { tx } = await amm.deposit({
+      const { transaction } = await amm.deposit({
         pool,
         mintAddresses: pool.tokens.map((token) => token.mintAddress),
         amounts: [1391616, 1978200],
       });
-      await ctxStable.provider.sendAndConfirm(tx);
+      await ctxStable.provider.sendAndConfirm(transaction);
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         ctxStable.getAssociatedTokenAddress(pool.mintAddress),

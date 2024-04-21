@@ -26,23 +26,23 @@ export function initialize(program: Command) {
         const { amm, smart } = useContext();
 
         if (poolKind === "smart") {
-          const { tx, address } = await smart.createVaultAndAddress({
+          const { transaction, address } = await smart.createVaultAndAddress({
             beneficiaryAddress: beneficiaryK,
             beneficiaryFee,
             vaultKP,
           });
 
-          submitTX(tx);
+          submitTX(transaction);
           console.log("Vault:", address.toBase58());
         } else {
-          const { tx, address } = await amm.createVaultAndAddress({
+          const { transaction, address } = await amm.createVaultAndAddress({
             beneficiaryAddress: beneficiaryK,
             beneficiaryFee,
             poolKind,
             vaultKP,
           });
 
-          submitTX(tx);
+          submitTX(transaction);
           console.log("Vault:", address.toBase58());
         }
       },

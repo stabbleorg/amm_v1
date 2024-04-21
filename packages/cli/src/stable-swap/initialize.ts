@@ -31,7 +31,7 @@ export function initialize(program: Command) {
       }) => {
         const { amm } = useContext();
 
-        const { tx, address } = await amm.createStablePoolAndAddress({
+        const { transaction, address } = await amm.createStablePoolAndAddress({
           vaultAddress: vaultK,
           swapFee,
           amp,
@@ -40,7 +40,7 @@ export function initialize(program: Command) {
           poolMintKP,
         });
 
-        submitTX(tx);
+        submitTX(transaction);
         console.log("Pool:", address.toBase58());
       },
     );
