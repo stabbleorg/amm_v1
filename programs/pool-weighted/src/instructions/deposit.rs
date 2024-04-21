@@ -23,11 +23,24 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             &amounts
                 .iter()
                 .enumerate()
-                .map(|(token_index, &amount)| ctx.accounts.pool.calc_balance_in(amount, token_index))
+                .map(|(token_index, &amount)| {
+                    let mint = get_token_mint(&ctx.remaining_accounts[token_index]).unwrap();
+                    assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint); // check token orders
+
+                    ctx.accounts
+                        .transfer_to_vault(
+                            amount,
+                            token_index,
+                            &ctx.remaining_accounts[token_index],
+                            &ctx.remaining_accounts[token_index + num_tokens],
+                        )
+                        .unwrap()
+                })
                 .collect(),
             &ctx.accounts.pool.get_normalized_weights(),
         )
         .unwrap();
+
         ctx.accounts.pool.invariant = invariant * num_tokens as u64;
         ctx.accounts.pool.invariant
     } else {
@@ -35,10 +48,20 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         if num_tokens == 1 {
             let mint = get_token_mint(&ctx.remaining_accounts[0])?;
             let token_index = ctx.accounts.pool.get_token_index(mint);
+            let balance_in = ctx
+                .accounts
+                .transfer_to_vault(
+                    amounts[0],
+                    token_index,
+                    &ctx.remaining_accounts[0],
+                    &ctx.remaining_accounts[1],
+                )
+                .unwrap();
+
             weighted_math::calc_pool_token_out_given_exact_token_in(
                 ctx.accounts.pool.tokens[token_index].balance,
                 ctx.accounts.pool.tokens[token_index].weight,
-                ctx.accounts.pool.calc_balance_in(amounts[0], token_index),
+                balance_in,
                 ctx.accounts.mint.supply,
                 ctx.accounts.pool.swap_fee,
             )
@@ -50,7 +73,19 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                 &amounts
                     .iter()
                     .enumerate()
-                    .map(|(token_index, &amount)| ctx.accounts.pool.calc_balance_in(amount, token_index))
+                    .map(|(token_index, &amount)| {
+                        let mint = get_token_mint(&ctx.remaining_accounts[token_index]).unwrap();
+                        assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint); // check token orders
+
+                        ctx.accounts
+                            .transfer_to_vault(
+                                amount,
+                                token_index,
+                                &ctx.remaining_accounts[token_index],
+                                &ctx.remaining_accounts[token_index + num_tokens],
+                            )
+                            .unwrap()
+                    })
                     .collect(),
                 ctx.accounts.mint.supply,
                 ctx.accounts.pool.swap_fee,
@@ -60,37 +95,6 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     };
 
     assert!(amount_out >= minimum_amount_out); // check slippage
-
-    for (token_index, user_account) in ctx.remaining_accounts[0..num_tokens].iter().enumerate() {
-        let mint = get_token_mint(&user_account)?;
-        let token_in_index = if num_tokens > 1 {
-            // check token orders
-            assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
-            token_index
-        } else {
-            ctx.accounts.pool.get_token_index(mint)
-        };
-
-        let balance_in = ctx.accounts.pool.calc_balance_in(amounts[token_index], token_in_index);
-        // add token balances
-        ctx.accounts.pool.tokens[token_in_index].balance =
-            ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
-
-        let vault_account = &ctx.remaining_accounts[token_index + num_tokens];
-        // check vault token owner
-        assert_eq!(get_token_owner(vault_account)?, ctx.accounts.vault_authority.key());
-        transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: user_account.to_account_info(),
-                    to: vault_account.to_account_info(),
-                    authority: ctx.accounts.user.to_account_info(),
-                },
-            ),
-            ctx.accounts.pool.calc_amount_in(amounts[token_index], token_in_index),
-        )?;
-    }
 
     ctx.accounts.pool.emit_updated_event();
 
@@ -126,6 +130,34 @@ impl<'info> Deposit<'info> {
         assert_eq!(ctx.accounts.user_pool_token.owner, ctx.accounts.user.key());
 
         Ok(())
+    }
+
+    fn transfer_to_vault(
+        &mut self,
+        amount: u64,
+        token_index: usize,
+        user_account: &AccountInfo<'info>,
+        vault_account: &AccountInfo<'info>,
+    ) -> Result<u64> {
+        let balance_in = self.pool.calc_balance_in(amount, token_index);
+        // add token balances
+        self.pool.tokens[token_index].balance = self.pool.tokens[token_index].balance + balance_in;
+
+        // check vault token owner
+        assert_eq!(get_token_owner(vault_account)?, self.vault_authority.key());
+        transfer(
+            CpiContext::new(
+                self.token_program.to_account_info(),
+                Transfer {
+                    from: user_account.to_account_info(),
+                    to: vault_account.to_account_info(),
+                    authority: self.user.to_account_info(),
+                },
+            ),
+            self.pool.calc_amount_in(amount, token_index),
+        )?;
+
+        Ok(balance_in)
     }
 }
 

@@ -14,18 +14,6 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     amount_in: u64,
     minimum_amount_out: u64,
 ) -> Result<()> {
-    transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.user_token_in.to_account_info(),
-                to: ctx.accounts.vault_token_in.to_account_info(),
-                authority: ctx.accounts.user.to_account_info(),
-            },
-        ),
-        amount_in,
-    )?;
-
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
     let token_out_index = ctx
         .accounts
@@ -69,6 +57,18 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index].balance - balance_out;
 
     ctx.accounts.pool.emit_updated_event();
+
+    transfer(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.user_token_in.to_account_info(),
+                to: ctx.accounts.vault_token_in.to_account_info(),
+                authority: ctx.accounts.user.to_account_info(),
+            },
+        ),
+        ctx.accounts.pool.calc_amount_in(amount_in, token_in_index),
+    )?;
 
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
         if beneficiary_fee_amount > 0 {

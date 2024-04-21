@@ -16,7 +16,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     amount: u64,
     minimum_amounts_out: Vec<u64>,
 ) -> Result<()> {
-    let amounts_out = if ctx.remaining_accounts.len() == 2 {
+    if ctx.remaining_accounts.len() == 2 {
         let mint = get_token_mint(&ctx.remaining_accounts[0])?;
         let token_index = ctx.accounts.pool.get_token_index(mint);
         let balance_out = weighted_math::calc_token_out_given_exact_pool_token_in(
@@ -32,7 +32,9 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
 
         let amount_out = ctx.accounts.pool.calc_amount_out(balance_out, token_index);
         assert!(amount_out >= minimum_amounts_out[0]); // check slippage
-        vec![amount_out]
+
+        ctx.accounts
+            .transfer_to_user(amount_out, &ctx.remaining_accounts[0], &ctx.remaining_accounts[1])?;
     } else {
         let balances_out = base_pool_math::compute_proportional_amounts_out(
             &ctx.accounts.pool.get_balances(),
@@ -42,43 +44,24 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
 
         for (token_index, user_account) in ctx.remaining_accounts[0..balances_out.len()].iter().enumerate() {
             let mint = get_token_mint(&user_account)?;
-            assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint);
+            assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint); // check token orders
 
             ctx.accounts.pool.tokens[token_index].balance =
                 ctx.accounts.pool.tokens[token_index].balance - balances_out[token_index];
+
+            let amount_out = ctx
+                .accounts
+                .pool
+                .calc_amount_out(balances_out[token_index], token_index);
+            assert!(amount_out >= minimum_amounts_out[token_index]); // check slippage
+
+            ctx.accounts.transfer_to_user(
+                amount_out,
+                &user_account,
+                &ctx.remaining_accounts[token_index + balances_out.len()],
+            )?;
         }
-
-        balances_out
-            .iter()
-            .enumerate()
-            .map(|(token_index, &balance_out)| {
-                let amount_out = ctx.accounts.pool.calc_amount_out(balance_out, token_index);
-                assert!(amount_out >= minimum_amounts_out[token_index]); // check slippage
-                amount_out
-            })
-            .collect()
     };
-
-    for (index, user_account) in ctx.remaining_accounts[0..amounts_out.len()].iter().enumerate() {
-        let vault_account = &ctx.remaining_accounts[index + amounts_out.len()];
-        ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
-            withdraw_vault(
-                CpiContext::new(
-                    ctx.accounts.vault_program.to_account_info(),
-                    WithdrawVault {
-                        withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
-                        vault: ctx.accounts.vault.to_account_info(),
-                        vault_authority: ctx.accounts.vault_authority.to_account_info(),
-                        vault_token: vault_account.to_account_info(),
-                        dest_token: user_account.to_account_info(),
-                        token_program: ctx.accounts.token_program.to_account_info(),
-                    },
-                )
-                .with_signer(&[signer_seed]),
-                amounts_out[index],
-            )
-        })?;
-    }
 
     ctx.accounts.pool.emit_updated_event();
 
@@ -102,6 +85,31 @@ impl<'info> Withdraw<'info> {
         assert!(ctx.accounts.pool.is_active);
 
         Ok(())
+    }
+
+    fn transfer_to_user(
+        &mut self,
+        amount: u64,
+        user_account: &AccountInfo<'info>,
+        vault_account: &AccountInfo<'info>,
+    ) -> Result<()> {
+        self.vault.withdraw_authority_seeds(|signer_seed| {
+            withdraw_vault(
+                CpiContext::new(
+                    self.vault_program.to_account_info(),
+                    WithdrawVault {
+                        withdraw_authority: self.withdraw_authority.to_account_info(),
+                        vault: self.vault.to_account_info(),
+                        vault_authority: self.vault_authority.to_account_info(),
+                        vault_token: vault_account.to_account_info(),
+                        dest_token: user_account.to_account_info(),
+                        token_program: self.token_program.to_account_info(),
+                    },
+                )
+                .with_signer(&[signer_seed]),
+                amount,
+            )
+        })
     }
 }
 

@@ -234,45 +234,47 @@ export class Amm<T extends Provider> {
       createInitializeMint2Instruction(
         poolMintKP.publicKey,
         StablePool.POOL_TOKEN_DECIMALS,
-        this.ctxWeighted.findPoolAuthorityAddress(poolKP.publicKey), // this.ctxWeighted.walletAddress,
-        null, // this.ctxWeighted.walletAddress,
+        // this.ctxWeighted.findPoolAuthorityAddress(poolKP.publicKey),
+        // null,
+        this.ctxWeighted.walletAddress,
+        this.ctxWeighted.walletAddress,
       ),
-      // createCreateMetadataAccountV3Instruction(
-      //   {
-      //     metadata: metadataAddress,
-      //     mint: poolMintKP.publicKey,
-      //     mintAuthority: this.ctxWeighted.walletAddress,
-      //     payer: this.ctxWeighted.walletAddress,
-      //     updateAuthority: this.ctxWeighted.walletAddress,
-      //   },
-      //   {
-      //     createMetadataAccountArgsV3: {
-      //       data: {
-      //         name,
-      //         symbol,
-      //         uri,
-      //         sellerFeeBasisPoints: 0,
-      //         creators: null,
-      //         collection: null,
-      //         uses: null,
-      //       },
-      //       isMutable: true,
-      //       collectionDetails: null,
-      //     },
-      //   },
-      // ),
-      // createSetAuthorityInstruction(
-      //   poolMintKP.publicKey,
-      //   this.ctxWeighted.walletAddress,
-      //   AuthorityType.MintTokens,
-      //   this.ctxWeighted.findPoolAuthorityAddress(poolKP.publicKey),
-      // ),
-      // createSetAuthorityInstruction(
-      //   poolMintKP.publicKey,
-      //   this.ctxWeighted.walletAddress,
-      //   AuthorityType.FreezeAccount,
-      //   null,
-      // ),
+      createCreateMetadataAccountV3Instruction(
+        {
+          metadata: metadataAddress,
+          mint: poolMintKP.publicKey,
+          mintAuthority: this.ctxWeighted.walletAddress,
+          payer: this.ctxWeighted.walletAddress,
+          updateAuthority: this.ctxWeighted.walletAddress,
+        },
+        {
+          createMetadataAccountArgsV3: {
+            data: {
+              name,
+              symbol,
+              uri,
+              sellerFeeBasisPoints: 0,
+              creators: null,
+              collection: null,
+              uses: null,
+            },
+            isMutable: true,
+            collectionDetails: null,
+          },
+        },
+      ),
+      createSetAuthorityInstruction(
+        poolMintKP.publicKey,
+        this.ctxWeighted.walletAddress,
+        AuthorityType.MintTokens,
+        this.ctxWeighted.findPoolAuthorityAddress(poolKP.publicKey),
+      ),
+      createSetAuthorityInstruction(
+        poolMintKP.publicKey,
+        this.ctxWeighted.walletAddress,
+        AuthorityType.FreezeAccount,
+        null,
+      ),
       ...(await this.ctxWeighted.initializeInstructions({
         vaultAddress,
         poolAddress: poolKP.publicKey,
@@ -326,45 +328,47 @@ export class Amm<T extends Provider> {
       createInitializeMint2Instruction(
         poolMintKP.publicKey,
         StablePool.POOL_TOKEN_DECIMALS,
-        this.ctxStable.findPoolAuthorityAddress(poolKP.publicKey), // this.ctxStable.walletAddress,
-        null, // this.ctxStable.walletAddress,
+        // this.ctxStable.findPoolAuthorityAddress(poolKP.publicKey),
+        // null,
+        this.ctxStable.walletAddress,
+        this.ctxStable.walletAddress,
       ),
-      // createCreateMetadataAccountV3Instruction(
-      //   {
-      //     metadata: metadataAddress,
-      //     mint: poolMintKP.publicKey,
-      //     mintAuthority: this.ctxStable.walletAddress,
-      //     payer: this.ctxStable.walletAddress,
-      //     updateAuthority: this.ctxStable.walletAddress,
-      //   },
-      //   {
-      //     createMetadataAccountArgsV3: {
-      //       data: {
-      //         name,
-      //         symbol,
-      //         uri,
-      //         sellerFeeBasisPoints: 0,
-      //         creators: null,
-      //         collection: null,
-      //         uses: null,
-      //       },
-      //       isMutable: true,
-      //       collectionDetails: null,
-      //     },
-      //   },
-      // ),
-      // createSetAuthorityInstruction(
-      //   poolMintKP.publicKey,
-      //   this.ctxStable.walletAddress,
-      //   AuthorityType.MintTokens,
-      //   this.ctxStable.findPoolAuthorityAddress(poolKP.publicKey),
-      // ),
-      // createSetAuthorityInstruction(
-      //   poolMintKP.publicKey,
-      //   this.ctxStable.walletAddress,
-      //   AuthorityType.FreezeAccount,
-      //   null,
-      // ),
+      createCreateMetadataAccountV3Instruction(
+        {
+          metadata: metadataAddress,
+          mint: poolMintKP.publicKey,
+          mintAuthority: this.ctxStable.walletAddress,
+          payer: this.ctxStable.walletAddress,
+          updateAuthority: this.ctxStable.walletAddress,
+        },
+        {
+          createMetadataAccountArgsV3: {
+            data: {
+              name,
+              symbol,
+              uri,
+              sellerFeeBasisPoints: 0,
+              creators: null,
+              collection: null,
+              uses: null,
+            },
+            isMutable: true,
+            collectionDetails: null,
+          },
+        },
+      ),
+      createSetAuthorityInstruction(
+        poolMintKP.publicKey,
+        this.ctxStable.walletAddress,
+        AuthorityType.MintTokens,
+        this.ctxStable.findPoolAuthorityAddress(poolKP.publicKey),
+      ),
+      createSetAuthorityInstruction(
+        poolMintKP.publicKey,
+        this.ctxStable.walletAddress,
+        AuthorityType.FreezeAccount,
+        null,
+      ),
       ...(await this.ctxStable.initializeInstructions({
         vaultAddress,
         poolAddress: poolKP.publicKey,

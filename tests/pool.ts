@@ -339,8 +339,8 @@ describe("Pool", () => {
           pool,
           mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
           // amount: "25498939.655507898",
-          // amount: "12749469.827753949",
-          amount: "14254339.712832605",
+          amount: "12749469.827753949",
+          // amount: "14254339.712832605",
         });
         await ctxWeighted.provider.sendAndConfirm(tx);
 
