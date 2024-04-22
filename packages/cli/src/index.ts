@@ -14,7 +14,7 @@ import { setContext, useContext, processTX } from "./context";
 import { setupVaultProgram } from "./vault";
 import { setupWeightedPoolProgram } from "./weighted-swap";
 import { setupStablePoolProgram } from "./stable-swap";
-import { setupSmartPoolProgram } from "./pool-smart";
+import { setupSmartPoolProgram } from "./smart-vault";
 import { setupTokenProgram } from "./token";
 import { parseKeypair } from "./utils";
 

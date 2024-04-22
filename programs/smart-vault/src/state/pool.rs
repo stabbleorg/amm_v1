@@ -1,22 +1,24 @@
 use crate::located::Located;
 use anchor_lang::prelude::*;
+use bn::safe_math::CheckedMulDiv;
 
 #[account]
 pub struct Pool {
-    // immutable
-    pub vault: Pubkey,
-    // immutable
-    pub mint: Pubkey,
-    // immutable
-    pub quote_mint: Pubkey,
-    // immutable
-    pub decimals: u8,
+    pub vault: Pubkey, // immutable
+
+    pub mint: Pubkey, // immutable
+
+    pub quote_mint: Pubkey, // immutable
+
+    pub decimals: u8, // immutable
+
+    pub authority_bump: u8, // immutable
+
     pub liquidity: u64,
+
     pub locked_liquidity: u64,
+
     pub max_liquidity: u64,
-    pub is_active: bool,
-    // immutable
-    pub authority_bump: u8,
 }
 
 impl Pool {
@@ -26,20 +28,12 @@ impl Pool {
         if total_supply == 0 {
             amount_in
         } else {
-            (amount_in as u128)
-                .checked_mul(total_supply as u128)
-                .unwrap()
-                .checked_div(self.liquidity as u128)
-                .unwrap() as u64
+            amount_in.checked_mul_div_down(total_supply, self.liquidity).unwrap()
         }
     }
 
-    pub fn calc_unwrapped_amount(&self, total_supply: u64, amount_burn: u64) -> u64 {
-        (amount_burn as u128)
-            .checked_mul(self.liquidity as u128)
-            .unwrap()
-            .checked_div(total_supply as u128)
-            .unwrap() as u64
+    pub fn calc_amount_out(&self, total_supply: u64, amount_burn: u64) -> u64 {
+        amount_burn.checked_mul_div_down(self.liquidity, total_supply).unwrap()
     }
 }
 
@@ -65,7 +59,6 @@ pub struct PoolUpdatedData {
     pub liquidity: u64,
     pub locked_liquidity: u64,
     pub max_liquidity: u64,
-    pub is_active: bool,
 }
 
 #[event]
@@ -89,7 +82,6 @@ where
                 liquidity: self.as_ref().liquidity,
                 locked_liquidity: self.as_ref().locked_liquidity,
                 max_liquidity: self.as_ref().max_liquidity,
-                is_active: self.as_ref().is_active,
             },
         });
     }

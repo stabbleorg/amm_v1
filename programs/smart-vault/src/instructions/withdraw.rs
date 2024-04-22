@@ -1,11 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
-use vault::{
-    cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
-    program::Vault as VaultProgram,
-    state::{Vault, WithdrawAuthority},
-};
+use anchor_spl::token::{burn, transfer, Burn, Mint, Token, TokenAccount, Transfer};
 
 pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     burn(
@@ -20,21 +15,19 @@ pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         amount,
     )?;
 
-    let amount_out = ctx.accounts.pool.calc_unwrapped_amount(ctx.accounts.mint.supply, amount);
+    let amount_out = ctx.accounts.pool.calc_amount_out(ctx.accounts.mint.supply, amount);
     ctx.accounts.pool.liquidity = ctx.accounts.pool.liquidity - amount_out;
+
     ctx.accounts.pool.emit_updated_event();
 
-    ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
-        withdraw_vault(
+    ctx.accounts.vault.authority_seeds(|signer_seed| {
+        transfer(
             CpiContext::new(
-                ctx.accounts.vault_program.to_account_info(),
-                WithdrawVault {
-                    withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
-                    vault: ctx.accounts.vault.to_account_info(),
-                    vault_authority: ctx.accounts.vault_authority.to_account_info(),
-                    vault_token: ctx.accounts.vault_quote_token.to_account_info(),
-                    dest_token: ctx.accounts.user_quote_token.to_account_info(),
-                    token_program: ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault_quote_token.to_account_info(),
+                    to: ctx.accounts.user_quote_token.to_account_info(),
+                    authority: ctx.accounts.vault_authority.to_account_info(),
                 },
             )
             .with_signer(&[signer_seed]),
@@ -46,8 +39,9 @@ pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 impl<'info> Withdraw<'info> {
     pub fn validate(ctx: &Context<Withdraw>) -> Result<()> {
         assert!(ctx.accounts.vault.is_active);
-        assert!(ctx.accounts.pool.is_active);
+
         assert_eq!(ctx.accounts.vault_quote_token.mint, ctx.accounts.pool.quote_mint);
+
         Ok(())
     }
 }
@@ -68,16 +62,13 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub mint: Account<'info, Mint>,
 
-    #[account(mut, has_one = vault)]
+    #[account(mut, has_one = vault, has_one = mint)]
     pub pool: Account<'info, Pool>,
 
-    /// CHECK: signer & account checked in vault.withdraw
-    pub withdraw_authority: UncheckedAccount<'info>,
-
     pub vault: Account<'info, Vault>,
-    /// CHECK: PDA checked in vault.withdraw
+    /// CHECK: OK
+    #[account(seeds = [Vault::AUTHORITY_PREFIX, vault.key().as_ref()], bump = vault.authority_bump)]
     pub vault_authority: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
-    pub vault_program: Program<'info, VaultProgram>,
 }

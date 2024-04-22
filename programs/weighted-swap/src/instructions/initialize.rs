@@ -3,7 +3,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 use bn::safe_math::CheckedDivCeil;
 use math::{fixed_math, weighted_math};
-use std::ops::Rem;
 use vault::state::Vault;
 
 pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<u64>) -> Result<()> {
@@ -26,7 +25,6 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<
         assert!(decimals <= fixed_math::SCALE);
         assert!(weights[token_index] <= weighted_math::MAX_WEIGHT);
         assert!(weights[token_index] >= weighted_math::MIN_WEIGHT);
-        assert_eq!(weights[token_index].rem(weighted_math::WEIGHT_TICK), 0);
 
         let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
         let max_balance = data.supply.checked_div_up(10_u64.saturating_pow(decimals)).unwrap();

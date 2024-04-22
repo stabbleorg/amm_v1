@@ -7,5 +7,5 @@ pub use deposit::*;
 pub mod withdraw;
 pub use withdraw::*;
 
-pub mod pool;
-pub use pool::*;
+pub mod config;
+pub use config::*;

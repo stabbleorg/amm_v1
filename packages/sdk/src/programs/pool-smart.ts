@@ -4,8 +4,8 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE, WalletContext } from "@stabbleorg/anchor-contrib";
 import { SmartPool, SmartPoolData } from "../accounts";
-import { type PoolSmart as IDLType } from "../generated/pool_smart";
-import IDL from "../generated/idl/pool_smart.json";
+import { type PoolSmart as IDLType } from "../generated/smart_vault";
+import IDL from "../generated/idl/smart_vault.json";
 
 export class SmartPoolContext<T extends Provider> extends WalletContext<T> {
   readonly program: Program<IDLType>;

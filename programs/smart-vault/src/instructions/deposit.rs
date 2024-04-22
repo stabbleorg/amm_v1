@@ -1,7 +1,6 @@
 use crate::{error::*, state::*};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer};
-use vault::{state::Vault, ID as VAULT_PROGRAM_ID};
 
 pub fn process_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     ctx.accounts.pool.liquidity = ctx.accounts.pool.liquidity + amount;
@@ -10,6 +9,20 @@ pub fn process_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         ctx.accounts.pool.liquidity <= ctx.accounts.pool.max_liquidity,
         CustomError::MaxLiquidityExceeded
     );
+
+    transfer(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.user_quote_token.to_account_info(),
+                to: ctx.accounts.vault_quote_token.to_account_info(),
+                authority: ctx.accounts.user.to_account_info(),
+            },
+        ),
+        amount,
+    )?;
+
+    ctx.accounts.pool.emit_updated_event();
 
     ctx.accounts.pool.authority_seeds(|signer_seed| {
         mint_to(
@@ -24,29 +37,17 @@ pub fn process_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
             .with_signer(&[signer_seed]),
             ctx.accounts.pool.calc_new_supply(ctx.accounts.mint.supply, amount),
         )
-    })?;
-
-    ctx.accounts.pool.emit_updated_event();
-
-    transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.user_quote_token.to_account_info(),
-                to: ctx.accounts.vault_quote_token.to_account_info(),
-                authority: ctx.accounts.user.to_account_info(),
-            },
-        ),
-        amount,
-    )
+    })
 }
 
 impl<'info> Deposit<'info> {
     pub fn validate(ctx: &Context<Deposit>) -> Result<()> {
         assert!(ctx.accounts.vault.is_active);
-        assert!(ctx.accounts.pool.is_active);
+
         assert_eq!(ctx.accounts.vault_quote_token.mint, ctx.accounts.pool.quote_mint);
+
         assert_eq!(ctx.accounts.vault_quote_token.owner, ctx.accounts.vault_authority.key());
+
         Ok(())
     }
 }
@@ -75,7 +76,7 @@ pub struct Deposit<'info> {
 
     pub vault: Account<'info, Vault>,
     /// CHECK: OK
-    #[account(seeds = [Vault::AUTHORITY_PREFIX, vault.key().as_ref()], bump = vault.authority_bump, seeds::program = VAULT_PROGRAM_ID)]
+    #[account(seeds = [Vault::AUTHORITY_PREFIX, vault.key().as_ref()], bump = vault.authority_bump)]
     pub vault_authority: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
