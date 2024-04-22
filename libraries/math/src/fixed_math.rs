@@ -1,0 +1,216 @@
+use bn::safe_math::CheckedMulDiv;
+use rust_decimal::prelude::*;
+use rust_decimal::MathematicalOps;
+
+pub const ZERO: u64 = 0;
+
+pub const ONE: u64 = 1_000_000_000;
+
+pub const TWO: u64 = 2_000_000_000;
+
+pub const FOUR: u64 = 4_000_000_000;
+
+pub const SCALE: u32 = 9;
+
+pub trait FixedPow<RHS = Self> {
+    /// Output type for the methods of this trait.
+    type Output;
+
+    fn pow_down(self, rhs: RHS) -> Self::Output;
+
+    fn pow_up(self, rhs: RHS) -> Self::Output;
+}
+
+pub trait FixedMul<RHS = Self> {
+    /// Output type for the methods of this trait.
+    type Output;
+
+    fn mul_down(self, rhs: RHS) -> Self::Output;
+
+    fn mul_up(self, rhs: RHS) -> Self::Output;
+}
+
+pub trait FixedDiv<RHS = Self> {
+    /// Output type for the methods of this trait.
+    type Output;
+
+    fn div_down(self, rhs: RHS) -> Self::Output;
+
+    fn div_up(self, rhs: RHS) -> Self::Output;
+}
+
+pub trait FixedComplement<RHS = Self> {
+    /// Output type for the methods of this trait.
+    type Output;
+
+    fn complement(self) -> Self::Output;
+}
+
+impl FixedPow for u64 {
+    type Output = u64;
+    // Optimize for when y equals 1.0, 2.0 or 4.0, as those are very simple to implement and occur often in 50/50
+    // and 80/20 Weighted Pools
+
+    fn pow_down(self, rhs: Self) -> Self::Output {
+        match rhs {
+            ZERO => ONE,
+            ONE => self,
+            TWO => self.mul_down(self),
+            FOUR => {
+                let square = self.mul_down(self);
+                square.mul_down(square)
+            }
+            _ => Decimal::from_i128_with_scale(self as i128, SCALE)
+                .powd(Decimal::from_i128_with_scale(rhs as i128, SCALE))
+                .round_dp(9)
+                .mantissa() as u64,
+        }
+    }
+
+    fn pow_up(self, rhs: Self) -> Self::Output {
+        match rhs {
+            ZERO => ONE,
+            ONE => self,
+            TWO => self.mul_up(self),
+            FOUR => {
+                let square = self.mul_up(self);
+                square.mul_up(square)
+            }
+            _ => Decimal::from_i128_with_scale(self as i128, SCALE)
+                .powd(Decimal::from_i128_with_scale(rhs as i128, SCALE))
+                .round_dp_with_strategy(9, RoundingStrategy::AwayFromZero)
+                .mantissa() as u64,
+        }
+    }
+}
+
+impl FixedMul for u64 {
+    type Output = u64;
+
+    fn mul_down(self, rhs: Self) -> Self::Output {
+        self.checked_mul_div_down(rhs, ONE).unwrap()
+    }
+
+    fn mul_up(self, rhs: Self) -> Self::Output {
+        self.checked_mul_div_up(rhs, ONE).unwrap()
+    }
+}
+
+impl FixedDiv for u64 {
+    type Output = u64;
+
+    fn div_down(self, rhs: Self) -> Self::Output {
+        self.checked_mul_div_down(ONE, rhs).unwrap()
+    }
+
+    fn div_up(self, rhs: Self) -> Self::Output {
+        self.checked_mul_div_up(ONE, rhs).unwrap()
+    }
+}
+
+impl FixedComplement for u64 {
+    type Output = u64;
+
+    fn complement(self) -> Self::Output {
+        ONE.saturating_sub(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    pub const MAX_SAFE_BALANCE: u64 = 2_000_000_000_000_000; // 2M
+    pub const MAX_INVARIANT_RATIO: u64 = 999_999_999; // 0.999999999
+    pub const MAX_BALANCE_RATIO: u64 = 1_999_999_999; // 1.999999999
+
+    pub const AVAILABLE_WEIGHTS: [u64; 15] = [
+        100_000_000, // 10%
+        150_000_000, // 15%
+        200_000_000, // 20%
+        250_000_000, // 20%
+        300_000_000, // 30%
+        350_000_000, // 35%
+        400_000_000, // 40%
+        450_000_000, // 45%
+        500_000_000, // 50%
+        550_000_000, // 55%
+        600_000_000, // 60%
+        650_000_000, // 65%
+        700_000_000, // 70%
+        750_000_000, // 75%
+        800_000_000, // 80%
+    ];
+
+    #[test]
+    fn test_powers_for_invariant() {
+        for normalized_weight in AVAILABLE_WEIGHTS.clone() {
+            let value = ((MAX_SAFE_BALANCE as f64 / 1e9).powf(normalized_weight as f64 / 1e9) * 1e9) as u64;
+            let value_1 = MAX_SAFE_BALANCE.pow_down(normalized_weight);
+            let value_2 = MAX_SAFE_BALANCE.pow_up(normalized_weight);
+            check_epsilon(value, value_1);
+            check_epsilon(value, value_2);
+            assert!(value_2 >= value_1);
+        }
+    }
+
+    #[test]
+    fn test_powers_for_deposit() {
+        for normalized_weight in AVAILABLE_WEIGHTS.clone() {
+            let value = ((MAX_BALANCE_RATIO as f64 / 1e9).powf(normalized_weight as f64 / 1e9) * 1e9) as u64;
+            let value_1 = MAX_BALANCE_RATIO.pow_down(normalized_weight);
+            let value_2 = MAX_BALANCE_RATIO.pow_up(normalized_weight);
+            check_epsilon(value, value_1);
+            check_epsilon(value, value_2);
+            assert!(value_2 >= value_1);
+        }
+    }
+
+    #[test]
+    fn test_powers_for_withdraw() {
+        for normalized_weight in AVAILABLE_WEIGHTS.clone() {
+            let exp = ONE.div_down(normalized_weight);
+            let value = ((MAX_INVARIANT_RATIO as f64 / 1e9).powf(exp as f64 / 1e9) * 1e9) as u64;
+            let value_1 = MAX_INVARIANT_RATIO.pow_down(exp);
+            let value_2 = MAX_INVARIANT_RATIO.pow_up(exp);
+            check_epsilon(value, value_1);
+            check_epsilon(value, value_2);
+            assert!(value_2 >= value_1);
+        }
+    }
+
+    #[test]
+    fn test_powers_for_swap() {
+        for w_i in AVAILABLE_WEIGHTS.clone() {
+            for w_o in AVAILABLE_WEIGHTS.clone() {
+                let exp = w_i.div_up(w_o);
+                let value = ((MAX_INVARIANT_RATIO as f64 / 1e9).powf(exp as f64 / 1e9) * 1e9) as u64;
+                let value_1 = MAX_INVARIANT_RATIO.pow_down(exp);
+                let value_2 = MAX_INVARIANT_RATIO.pow_up(exp);
+                check_epsilon(value, value_1);
+                check_epsilon(value, value_2);
+                assert!(value_2 >= value_1);
+
+                let exp = w_o.div_up(w_i);
+                let value = ((MAX_INVARIANT_RATIO as f64 / 1e9).powf(exp as f64 / 1e9) * 1e9) as u64;
+                let value_1 = MAX_INVARIANT_RATIO.pow_down(exp);
+                let value_2 = MAX_INVARIANT_RATIO.pow_up(exp);
+                check_epsilon(value, value_1);
+                check_epsilon(value, value_2);
+                assert!(value_2 >= value_1);
+            }
+        }
+    }
+
+    fn check_epsilon(exact: u64, similar: u64) {
+        let diff = if exact > similar {
+            exact - similar
+        } else {
+            similar - exact
+        };
+
+        if diff >= ONE {
+            println!("Diff:{}", diff);
+        }
+    }
+}

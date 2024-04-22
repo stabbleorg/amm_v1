@@ -26,10 +26,10 @@ export class SafeNumber {
   }
 
   static toBasisPoints(pct: FloatLike): BN {
-    return this.toBigAmount(pct, 6);
+    return this.toBigAmount(pct, 9);
   }
 
   static toPercentage(bps: IntegerLike): number {
-    return this.toUiAmount(bps, 6);
+    return this.toUiAmount(bps, 9);
   }
 }

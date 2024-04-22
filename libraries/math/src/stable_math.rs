@@ -1,12 +1,13 @@
-use crate::error::StableMathError;
+use crate::{
+    error::StableMathError,
+    fixed_math::{self, FixedComplement, FixedDiv, FixedMul},
+};
 use bn::{
     safe_math::{CheckedDivCeil, CheckedMulDiv},
     uint256, U256,
 };
 
 pub const AMP_PRECISION: u64 = 1_000;
-pub const FEE_PRECISION: u64 = 1_000_000;
-pub const INV_PRECISION: u64 = 1_000_000_000;
 
 pub const MIN_AMP: u16 = 1;
 pub const MAX_AMP: u16 = 5000;
@@ -194,16 +195,9 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
     // The weighted sum of token balance ratios with fee
     let mut invariant_ratio_with_fees = 0;
     for i in 0..balances.len() {
-        let current_weight = balances[i].checked_mul_div_down(INV_PRECISION, sum).unwrap();
-        balance_ratios_with_fee.push(
-            (balances[i] + amounts_in[i])
-                .checked_mul_div_down(INV_PRECISION, balances[i])
-                .unwrap(),
-        );
-        invariant_ratio_with_fees = balance_ratios_with_fee[i]
-            .checked_mul_div_down(current_weight, INV_PRECISION)
-            .unwrap()
-            + invariant_ratio_with_fees;
+        let current_weight = balances[i].div_down(sum);
+        balance_ratios_with_fee.push((balances[i] + amounts_in[i]).div_down(balances[i]));
+        invariant_ratio_with_fees = balance_ratios_with_fee[i].mul_down(current_weight) + invariant_ratio_with_fees;
     }
 
     // Second loop calculates new amounts in, taking into account the fee on the percentage excess
@@ -213,19 +207,10 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
 
         // Check if the balance ratio is greater than the ideal ratio to charge fees or not
         if balance_ratios_with_fee[i] > invariant_ratio_with_fees {
-            let non_taxable_amount = balances[i]
-                .checked_mul_div_down(invariant_ratio_with_fees - INV_PRECISION, INV_PRECISION)
-                .unwrap();
+            let non_taxable_amount = balances[i].mul_down(invariant_ratio_with_fees - fixed_math::ONE);
             let taxable_amount = amounts_in[i] - non_taxable_amount;
 
-            amount_in_without_fee = taxable_amount
-                .checked_mul_div_down(
-                    // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
-                    FEE_PRECISION.saturating_sub(swap_fee),
-                    FEE_PRECISION,
-                )
-                .unwrap()
-                + non_taxable_amount;
+            amount_in_without_fee = taxable_amount.mul_down(swap_fee.complement()) + non_taxable_amount;
         } else {
             amount_in_without_fee = amounts_in[i];
         }
@@ -234,15 +219,11 @@ pub fn calc_pool_token_out_given_exact_tokens_in(
     }
 
     let new_invariant = calc_invariant(amplification, &new_balances)?;
-    let invariant_ratio = new_invariant
-        .checked_mul_div_down(INV_PRECISION, current_invariant)
-        .unwrap();
+    let invariant_ratio = new_invariant.div_down(current_invariant);
 
     // If the invariant didn't increase for any reason, we simply don't mint LP
-    if invariant_ratio > INV_PRECISION {
-        let amount_out = pool_token_supply
-            .checked_mul_div_down(invariant_ratio.saturating_sub(INV_PRECISION), INV_PRECISION)
-            .unwrap();
+    if invariant_ratio > fixed_math::ONE {
+        let amount_out = pool_token_supply.mul_down(invariant_ratio.saturating_sub(fixed_math::ONE));
         Ok(amount_out)
     } else {
         Ok(0)
@@ -276,24 +257,15 @@ pub fn calc_token_out_given_exact_pool_token_in(
 
     // We can now compute how much excess balance is being withdrawn as a result of the virtual swaps, which result
     // in swap fees.
-    let current_weight = balances[token_index].checked_mul_div_down(INV_PRECISION, sum).unwrap();
-    let taxable_percentage = INV_PRECISION.saturating_sub(current_weight);
+    let current_weight = balances[token_index].div_down(sum);
+    let taxable_percentage = current_weight.complement();
 
     // Swap fees are typically charged on 'token in', but there is no 'token in' here, so we apply it
     // to 'token out'. This results in slightly larger price impact. Fees are rounded up.
-    let taxable_amount = amount_out_without_fee
-        .checked_mul_div_up(taxable_percentage, INV_PRECISION)
-        .unwrap();
+    let taxable_amount = amount_out_without_fee.mul_up(taxable_percentage);
     let non_taxable_amount = amount_out_without_fee.saturating_sub(taxable_amount);
 
-    let amount_out = taxable_amount
-        .checked_mul_div_down(
-            // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
-            FEE_PRECISION.saturating_sub(swap_fee),
-            FEE_PRECISION,
-        )
-        .unwrap()
-        + non_taxable_amount;
+    let amount_out = taxable_amount.mul_down(swap_fee.complement()) + non_taxable_amount;
 
     Ok(amount_out)
 }
@@ -423,56 +395,116 @@ mod tests {
         let invariant = calc_invariant(amplification, &balances).unwrap();
 
         let amounts_in = vec![1_000_000_000_000_000, 1_000_000_000_000_000];
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            100_000,
+        )
+        .unwrap();
         assert_eq!(amount_out, 1999977982041509);
 
         let amounts_in = vec![0, 2_000_000_000_000];
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            100_000,
+        )
+        .unwrap();
         assert_eq!(amount_out, 2000047447155);
 
         let amounts_in = vec![1_000_000_000_000, 1_000_000_000_000];
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            100_000,
+        )
+        .unwrap();
         assert!(amount_out < 2000047447155);
         assert_eq!(amount_out, 1999994325732);
 
         let amounts_in = vec![2_000_000_000_000, 0];
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            100_000,
+        )
+        .unwrap();
         assert!(amount_out < 1999994325732);
         assert_eq!(amount_out, 1999802271357);
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 150)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            150_000,
+        )
+        .unwrap();
         assert!(amount_out < 1999802271357);
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 50)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            50_000,
+        )
+        .unwrap();
         assert!(amount_out > 1999802271357);
 
         // balanced deposit
         let amounts_in = vec![1_313_441_146_063, 686_558_853_937];
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 100)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            100_000,
+        )
+        .unwrap();
         assert_eq!(amount_out, 1999977980679);
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 150)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            150_000,
+        )
+        .unwrap();
         assert_eq!(amount_out, 1999977980679);
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 50)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            50_000,
+        )
+        .unwrap();
         assert_eq!(amount_out, 1999977980679);
-        let amount_out =
-            calc_pool_token_out_given_exact_tokens_in(amplification, &balances, &amounts_in, invariant, invariant, 300)
-                .unwrap();
+        let amount_out = calc_pool_token_out_given_exact_tokens_in(
+            amplification,
+            &balances,
+            &amounts_in,
+            invariant,
+            invariant,
+            300_000,
+        )
+        .unwrap();
         assert_eq!(amount_out, 1999977980679);
     }
 }

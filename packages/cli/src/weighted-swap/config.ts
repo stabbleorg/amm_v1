@@ -12,7 +12,9 @@ export function pause(program: Command) {
     .action(async ({ poolK }: { poolK: PublicKey }) => {
       const { amm } = useContext();
 
-      const { transaction } = await amm.ctxWeighted.newTX(await amm.ctxWeighted.pauseInstructions({ poolAddress: poolK }));
+      const { transaction } = await amm.ctxWeighted.newTX(
+        await amm.ctxWeighted.pauseInstructions({ poolAddress: poolK }),
+      );
 
       submitTX(transaction);
     });

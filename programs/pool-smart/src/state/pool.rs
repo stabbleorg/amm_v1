@@ -34,7 +34,7 @@ impl Pool {
         }
     }
 
-    pub fn calc_amount_out(&self, total_supply: u64, amount_burn: u64) -> u64 {
+    pub fn calc_unwrapped_amount(&self, total_supply: u64, amount_burn: u64) -> u64 {
         (amount_burn as u128)
             .checked_mul(self.liquidity as u128)
             .unwrap()

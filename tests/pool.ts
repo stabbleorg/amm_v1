@@ -137,7 +137,7 @@ describe("Pool", () => {
       const { transaction } = await amm.withdraw({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
-        amount: "156189.993848500",
+        amount: "951.862862158",
       });
       await ctxWeighted.provider.sendAndConfirm(transaction);
 
@@ -247,7 +247,7 @@ describe("Pool", () => {
       const { transaction } = await amm.withdraw({
         pool,
         mintAddresses: [usdcMintKP.publicKey],
-        amount: "56.760017596",
+        amount: "326.372257864",
       });
       await ctxWeighted.provider.sendAndConfirm(transaction);
 
@@ -324,33 +324,56 @@ describe("Pool", () => {
       });
       await ctxWeighted.provider.sendAndConfirm(transaction);
 
-      const { value: balance } = await provider.connection.getTokenAccountBalance(
-        ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
-      );
-      console.log("LP out:", balance.uiAmountString);
+      {
+        const { value: balance } = await provider.connection.getTokenAccountBalance(
+          ctxWeighted.getAssociatedTokenAddress(pool.mintAddress),
+        );
+        console.log("LP out:", balance.uiAmountString);
+      }
 
       {
         const pool = await ctxWeighted.findOne(poolAddress);
 
-        const { value: balance } = await provider.connection.getTokenAccountBalance(
+        const { value: bonkBalance } = await provider.connection.getTokenAccountBalance(
           ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
         );
+        const { value: usdcBalance } = await provider.connection.getTokenAccountBalance(
+          ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
+        );
+
         const { transaction } = await amm.withdraw({
           pool,
           mintAddresses: [bonkMintKP.publicKey, stbMintKP.publicKey, usdcMintKP.publicKey],
-          // amount: "25498939.655507898",
-          amount: "12749469.827753949",
-          // amount: "14254339.712832605",
+          // amount: "123489.224457636",
+          amount: "61744.612228818",
         });
         await ctxWeighted.provider.sendAndConfirm(transaction);
 
-        const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-          ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
-        );
-        console.log(
-          "Bonk out:",
-          SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-        );
+        {
+          const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+            ctxWeighted.getAssociatedTokenAddress(bonkMintKP.publicKey),
+          );
+          console.log(
+            "Bonk out:",
+            SafeNumber.toUiAmountString(
+              new BN(postBalance.amount!).sub(new BN(bonkBalance.amount!)),
+              postBalance.decimals,
+            ),
+          );
+        }
+
+        {
+          const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+            ctxWeighted.getAssociatedTokenAddress(usdcMintKP.publicKey),
+          );
+          console.log(
+            "USDC out:",
+            SafeNumber.toUiAmountString(
+              new BN(postBalance.amount!).sub(new BN(usdcBalance.amount!)),
+              postBalance.decimals,
+            ),
+          );
+        }
       }
     });
   });

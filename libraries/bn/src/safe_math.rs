@@ -1,4 +1,4 @@
-use crate::{uint128, U128, U256};
+use crate::U256;
 
 /// Trait for calculating `val * num / denom` with different rounding modes and overflow
 /// protection.
@@ -48,18 +48,18 @@ pub trait Upcast {
 pub trait Downcast {
     /// Unsafe cast to U128
     /// Bits beyond the 128th position are lost
-    fn as_u128(self) -> U128;
+    fn as_u128(self) -> u128;
 }
 
-impl Upcast for U128 {
+impl Upcast for u128 {
     fn as_u256(self) -> U256 {
-        U256([self.0[0], self.0[1], 0, 0])
+        U256([self as u64, (self >> 64) as u64, 0, 0])
     }
 }
 
 impl Downcast for U256 {
-    fn as_u128(self) -> U128 {
-        U128([self.0[0], self.0[1]])
+    fn as_u128(self) -> u128 {
+        self.0[0] as u128 + ((self.0[1] as u128) << 64)
     }
 }
 
@@ -101,51 +101,13 @@ impl CheckedDivCeil for u64 {
     }
 }
 
-impl CheckedMulDiv for U128 {
-    type Output = U128;
-
-    fn checked_mul_div_down(self, num: Self, denom: Self) -> Option<Self::Output> {
-        assert_ne!(denom, U128::default());
-        let r = ((self.as_u256()) * (num.as_u256())) / (denom.as_u256());
-        if r > U128::MAX.as_u256() {
-            None
-        } else {
-            Some(r.as_u128())
-        }
-    }
-
-    fn checked_mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
-        assert_ne!(denom, U128::default());
-        let r = (self.as_u256() * num.as_u256() + (denom - 1).as_u256()) / denom.as_u256();
-        if r > U128::MAX.as_u256() {
-            None
-        } else {
-            Some(uint128!(r.as_u128()))
-        }
-    }
-}
-
-impl CheckedDivCeil for U128 {
-    type Output = U128;
-
-    fn checked_div_up(self, denom: Self) -> Option<Self::Output> {
-        assert_ne!(denom, U128::default());
-        let r = (self.as_u256() + (denom - 1).as_u256()) / denom.as_u256();
-        if r > U128::MAX.as_u256() {
-            None
-        } else {
-            Some(r.as_u128())
-        }
-    }
-}
-
 impl CheckedMulDiv for U256 {
     type Output = U256;
 
     fn checked_mul_div_down(self, num: Self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
         let r = (self * num) / denom;
-        if r > U128::MAX.as_u256() {
+        if r > u128::MAX.as_u256() {
             None
         } else {
             Some(r)
@@ -155,7 +117,7 @@ impl CheckedMulDiv for U256 {
     fn checked_mul_div_up(self, num: Self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
         let r = (self * num + (denom - 1)) / denom;
-        if r > U128::MAX.as_u256() {
+        if r > u128::MAX.as_u256() {
             None
         } else {
             Some(r)
@@ -169,7 +131,7 @@ impl CheckedDivCeil for U256 {
     fn checked_div_up(self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
         let r = (self + (denom - 1)) / denom;
-        if r > U128::MAX.as_u256() {
+        if r > u128::MAX.as_u256() {
             None
         } else {
             Some(r)
@@ -183,10 +145,25 @@ impl CheckedDivFloor for U256 {
     fn checked_div_down(self, denom: Self) -> Option<Self::Output> {
         assert_ne!(denom, U256::default());
         let r = self / denom;
-        if r > U128::MAX.as_u256() {
+        if r > u128::MAX.as_u256() {
             None
         } else {
             Some(r)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::uint256;
+
+    #[test]
+    fn test_casting_overflow() {
+        assert_eq!(uint256!(0), U256::zero());
+        assert_eq!(uint256!(u64::MAX).as_u64(), u64::MAX);
+        assert_eq!(uint256!(u128::MAX).as_u128(), u128::MAX);
+        assert_eq!(uint256!(u128::MAX), u128::MAX.as_u256());
     }
 }

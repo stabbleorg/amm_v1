@@ -43,8 +43,8 @@ pub struct Pool {
 impl Pool {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
-    pub const MIN_SWAP_FEE: u64 = 1; // 0.0001%
-    pub const MAX_SWAP_FEE: u64 = 10_000; // 1.0000%
+    pub const MIN_SWAP_FEE: u64 = 1_000; // 0.0001%
+    pub const MAX_SWAP_FEE: u64 = 10_000_000; // 1%
 
     pub const MAX_SAFE_BALANCE: u64 = 3_000_000_000;
 
@@ -96,31 +96,34 @@ impl Pool {
             .0
     }
 
-    pub fn calc_balance_in(&self, amount_in: u64, token_index: usize) -> u64 {
+    /// scaling up/down from token amount to wrapped balance amount
+    pub fn calc_wrapped_amount(&self, amount: u64, token_index: usize) -> u64 {
         if self.tokens[token_index].scaling_factor == 1 {
-            amount_in
+            amount
         } else if self.tokens[token_index].scaling_up {
-            amount_in * self.tokens[token_index].scaling_factor
+            amount * self.tokens[token_index].scaling_factor
         } else {
-            amount_in / self.tokens[token_index].scaling_factor
+            amount / self.tokens[token_index].scaling_factor
         }
     }
 
-    pub fn calc_amount_in(&self, amount_in: u64, token_index: usize) -> u64 {
+    /// scaling up/down from wrapped balance amount to token amount
+    pub fn calc_unwrapped_amount(&self, amount: u64, token_index: usize) -> u64 {
+        if self.tokens[token_index].scaling_factor == 1 {
+            amount
+        } else if self.tokens[token_index].scaling_up {
+            amount / self.tokens[token_index].scaling_factor
+        } else {
+            amount * self.tokens[token_index].scaling_factor
+        }
+    }
+
+    /// round down token amount not to send the lost amount from wrapped balance amount when it scaled down
+    pub fn calc_rounded_amount(&self, amount: u64, token_index: usize) -> u64 {
         if self.tokens[token_index].scaling_up {
-            amount_in
+            amount
         } else {
-            amount_in / self.tokens[token_index].scaling_factor * self.tokens[token_index].scaling_factor
-        }
-    }
-
-    pub fn calc_amount_out(&self, balance_out: u64, token_index: usize) -> u64 {
-        if self.tokens[token_index].scaling_factor == 1 {
-            balance_out
-        } else if self.tokens[token_index].scaling_up {
-            balance_out / self.tokens[token_index].scaling_factor
-        } else {
-            balance_out * self.tokens[token_index].scaling_factor
+            amount / self.tokens[token_index].scaling_factor * self.tokens[token_index].scaling_factor
         }
     }
 }

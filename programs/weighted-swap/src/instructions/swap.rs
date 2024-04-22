@@ -1,8 +1,10 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
-use bn::safe_math::CheckedMulDiv;
-use math::weighted_math;
+use math::{
+    fixed_math::{FixedComplement, FixedMul},
+    weighted_math,
+};
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
     program::Vault as VaultProgram,
@@ -20,7 +22,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
         .pool
         .get_token_index(ctx.accounts.beneficiary_token_out.mint);
 
-    let balance_in = ctx.accounts.pool.calc_balance_in(amount_in, token_in_index);
+    let balance_in = ctx.accounts.pool.calc_wrapped_amount(amount_in, token_in_index);
     let balance_out_without_fee = weighted_math::calc_out_given_in(
         ctx.accounts.pool.tokens[token_in_index].balance,
         ctx.accounts.pool.tokens[token_in_index].weight,
@@ -33,19 +35,12 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     let amount_out_without_fee = ctx
         .accounts
         .pool
-        .calc_amount_out(balance_out_without_fee, token_out_index);
-    let amount_out = amount_out_without_fee
-        .checked_mul_div_down(
-            weighted_math::FEE_PRECISION.saturating_sub(ctx.accounts.pool.swap_fee),
-            weighted_math::FEE_PRECISION,
-        )
-        .unwrap();
+        .calc_unwrapped_amount(balance_out_without_fee, token_out_index);
+    let amount_out = amount_out_without_fee.mul_down(ctx.accounts.pool.swap_fee.complement());
     assert!(amount_out >= minimum_amount_out); // check slippage
 
     let swap_fee_amount = amount_out_without_fee.saturating_sub(amount_out);
-    let beneficiary_fee_amount = (swap_fee_amount)
-        .checked_mul_div_down(ctx.accounts.vault.beneficiary_fee, weighted_math::FEE_PRECISION)
-        .unwrap();
+    let beneficiary_fee_amount = swap_fee_amount.mul_down(ctx.accounts.vault.beneficiary_fee);
 
     // add in token balance
     ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
@@ -53,7 +48,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
     let balance_out = ctx
         .accounts
         .pool
-        .calc_balance_in(amount_out + beneficiary_fee_amount, token_out_index);
+        .calc_wrapped_amount(amount_out + beneficiary_fee_amount, token_out_index);
     ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index].balance - balance_out;
 
     ctx.accounts.pool.emit_updated_event();
@@ -67,7 +62,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
                 authority: ctx.accounts.user.to_account_info(),
             },
         ),
-        ctx.accounts.pool.calc_amount_in(amount_in, token_in_index),
+        ctx.accounts.pool.calc_rounded_amount(amount_in, token_in_index),
     )?;
 
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
@@ -88,7 +83,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
                 .with_signer(&[signer_seed]),
                 ctx.accounts
                     .pool
-                    .calc_amount_in(beneficiary_fee_amount, token_out_index),
+                    .calc_rounded_amount(beneficiary_fee_amount, token_out_index),
             )?;
         }
 
@@ -106,7 +101,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
                 },
             )
             .with_signer(&[signer_seed]),
-            amount_out,
+            ctx.accounts.pool.calc_rounded_amount(amount_out, token_out_index),
         )
     })
 }

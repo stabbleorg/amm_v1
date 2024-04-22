@@ -2,7 +2,8 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 use bn::safe_math::CheckedDivCeil;
-use math::weighted_math;
+use math::{fixed_math, weighted_math};
+use std::ops::Rem;
 use vault::state::Vault;
 
 pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<u64>) -> Result<()> {
@@ -23,7 +24,9 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<
         let data = Mint::try_deserialize(&mut buff)?;
 
         assert!(data.decimals <= Pool::MAX_TOKEN_DECIMALS);
-        assert_ne!(weights[token_index], 0);
+        assert!(weights[token_index] <= weighted_math::MAX_WEIGHT);
+        assert!(weights[token_index] >= weighted_math::MIN_WEIGHT);
+        assert_eq!(weights[token_index].rem(weighted_math::MIN_WEIGHT_TICK), 0);
 
         let default_scaling_factor =
             10_u64.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(data.decimals) as u32);
@@ -71,7 +74,7 @@ impl<'info> Initialize<'info> {
         assert!(swap_fee <= Pool::MAX_SWAP_FEE);
 
         let sum_weights: u64 = weights.iter().sum();
-        assert_eq!(sum_weights, weighted_math::INV_PRECISION);
+        assert_eq!(sum_weights, fixed_math::ONE);
 
         assert!(weights.len() >= weighted_math::MIN_TOKENS);
         assert!(weights.len() <= weighted_math::MAX_TOKENS);
