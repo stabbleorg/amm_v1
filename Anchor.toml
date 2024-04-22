@@ -7,7 +7,6 @@ resolution = false
 skip-lint = false
 
 [programs.localnet]
-smart_vault = "smpDKqHRt79KZPjWNC1UK5UWrrRv5avn9NqU6y2HJPT"
 stable_swap = "swapNyd8XiQwJ6ianp9snpu4brUqFxadzvHebnAXjJZ"
 weighted_swap = "swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW"
 vault = "vo1tWgqZMjG61Z2T9qUaMYKqZ75CYzMuaZ2LZP1n7HV"

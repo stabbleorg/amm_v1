@@ -2012,18 +2012,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
-name = "smart-vault"
-version = "1.3.0"
-dependencies = [
- "anchor-lang",
- "anchor-spl",
- "bn",
- "stable-swap",
- "vault",
- "weighted-swap",
-]
-
-[[package]]
 name = "solana-frozen-abi"
 version = "1.18.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
