@@ -5,9 +5,7 @@ import {
   VaultContext,
   WeightedPoolContext,
   StablePoolContext,
-  SmartPoolContext,
   Amm,
-  Smart,
 } from "@stabbleorg/solana-sdk";
 import {
   weightedVaultKP,
@@ -29,16 +27,11 @@ describe("Vault", () => {
   const ctxVault = new VaultContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
   const ctxWeighted = new WeightedPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
   const ctxStable = new StablePoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
-  const ctxSmart = new SmartPoolContext(new AnchorProvider(provider.connection, new Wallet(adminKP)));
 
   const amm = new Amm({
     vault: ctxVault,
     weighted: ctxWeighted,
     stable: ctxStable,
-  });
-  const smart = new Smart({
-    vault: ctxVault,
-    smart: ctxSmart,
   });
 
   before(async () => {
@@ -128,13 +121,4 @@ describe("Vault", () => {
     });
     await amm.ctxVault.provider.sendAndConfirm(transaction);
   });
-
-  // it("should create vault for smart pool", async () => {
-  //   const { transaction } = await smart.createVaultAndAddress({
-  //     beneficiaryAddress: beneficiaryKP.publicKey,
-  //     beneficiaryFee: 0.14,
-  //     vaultKP: smartVaultKP,
-  //   });
-  //   await amm.ctxVault.provider.sendAndConfirm!(tx);
-  // });
 });

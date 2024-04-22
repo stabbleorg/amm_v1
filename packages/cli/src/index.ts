@@ -2,19 +2,11 @@ import type { Command } from "commander";
 import { program } from "commander";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-import {
-  VaultContext,
-  WeightedPoolContext,
-  StablePoolContext,
-  SmartPoolContext,
-  Amm,
-  Smart,
-} from "@stabbleorg/solana-sdk";
+import { VaultContext, WeightedPoolContext, StablePoolContext, Amm } from "@stabbleorg/solana-sdk";
 import { setContext, useContext, processTX } from "./context";
 import { setupVaultProgram } from "./vault";
 import { setupWeightedPoolProgram } from "./weighted-swap";
 import { setupStablePoolProgram } from "./stable-swap";
-import { setupSmartPoolProgram } from "./smart-vault";
 import { setupTokenProgram } from "./token";
 import { parseKeypair } from "./utils";
 
@@ -47,10 +39,6 @@ program
         weighted: new WeightedPoolContext(provider),
         stable: new StablePoolContext(provider),
       }),
-      smart: new Smart({
-        vault: new VaultContext(provider),
-        smart: new SmartPoolContext(provider),
-      }),
       provider,
       simulate: Boolean(simulate),
     });
@@ -59,7 +47,6 @@ program
 setupVaultProgram(program);
 setupWeightedPoolProgram(program);
 setupStablePoolProgram(program);
-setupSmartPoolProgram(program);
 setupTokenProgram(program);
 
 program
