@@ -2,7 +2,7 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 use bn::safe_math::CheckedDivCeil;
-use math::stable_math;
+use math::{fixed_math, stable_math};
 use vault::state::Vault;
 
 pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64) -> Result<()> {
@@ -24,17 +24,13 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
     for account in ctx.remaining_accounts.iter() {
         let mut buff: &[u8] = &account.try_borrow_data()?;
         let data = Mint::try_deserialize(&mut buff)?;
-        assert!(data.decimals <= Pool::MAX_TOKEN_DECIMALS);
+        let decimals = data.decimals as u32;
+        assert!(decimals <= fixed_math::SCALE);
 
-        let default_scaling_factor =
-            10_u64.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(data.decimals) as u32);
-
-        let max_balance = data
-            .supply
-            .checked_div_up(10_u64.saturating_pow(data.decimals as u32))
-            .unwrap();
-        let (scaling_up, scaling_factor) = if max_balance > Pool::MAX_SAFE_BALANCE {
-            let tick_size = max_balance.checked_div_up(Pool::MAX_SAFE_BALANCE).unwrap();
+        let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
+        let max_balance = data.supply.checked_div_up(10_u64.saturating_pow(decimals)).unwrap();
+        let (scaling_up, scaling_factor) = if max_balance > stable_math::MAX_SAFE_BALANCE {
+            let tick_size = max_balance.checked_div_up(stable_math::MAX_SAFE_BALANCE).unwrap();
             if default_scaling_factor >= tick_size {
                 (true, default_scaling_factor / tick_size)
             } else {
@@ -61,7 +57,7 @@ impl<'info> Initialize<'info> {
         assert!(ctx.accounts.vault.is_active);
 
         assert_eq!(ctx.accounts.mint.supply, 0);
-        assert_eq!(ctx.accounts.mint.decimals, Pool::MAX_TOKEN_DECIMALS);
+        assert_eq!(ctx.accounts.mint.decimals as u32, fixed_math::SCALE);
         assert_eq!(
             ctx.accounts.mint.mint_authority.unwrap(),
             ctx.accounts.pool_authority.key()
@@ -71,11 +67,11 @@ impl<'info> Initialize<'info> {
         assert!(amp_factor >= stable_math::MIN_AMP);
         assert!(amp_factor <= stable_math::MAX_AMP);
 
-        assert!(swap_fee >= Pool::MIN_SWAP_FEE);
-        assert!(swap_fee <= Pool::MAX_SWAP_FEE);
+        assert!(swap_fee >= stable_math::MIN_SWAP_FEE);
+        assert!(swap_fee <= stable_math::MAX_SWAP_FEE);
 
-        assert!(ctx.remaining_accounts.len() >= stable_math::MIN_STABLE_TOKENS);
-        assert!(ctx.remaining_accounts.len() <= stable_math::MAX_STABLE_TOKENS);
+        assert!(ctx.remaining_accounts.len() >= stable_math::MIN_TOKENS);
+        assert!(ctx.remaining_accounts.len() <= stable_math::MAX_TOKENS);
 
         Ok(())
     }

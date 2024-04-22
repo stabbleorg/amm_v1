@@ -22,21 +22,16 @@ pub fn process_initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<
     for (token_index, account) in ctx.remaining_accounts.iter().enumerate() {
         let mut buff: &[u8] = &account.try_borrow_data()?;
         let data = Mint::try_deserialize(&mut buff)?;
-
-        assert!(data.decimals <= Pool::MAX_TOKEN_DECIMALS);
+        let decimals = data.decimals as u32;
+        assert!(decimals <= fixed_math::SCALE);
         assert!(weights[token_index] <= weighted_math::MAX_WEIGHT);
         assert!(weights[token_index] >= weighted_math::MIN_WEIGHT);
-        assert_eq!(weights[token_index].rem(weighted_math::MIN_WEIGHT_TICK), 0);
+        assert_eq!(weights[token_index].rem(weighted_math::WEIGHT_TICK), 0);
 
-        let default_scaling_factor =
-            10_u64.saturating_pow(Pool::MAX_TOKEN_DECIMALS.saturating_sub(data.decimals) as u32);
-
-        let max_balance = data
-            .supply
-            .checked_div_up(10_u64.saturating_pow(data.decimals as u32))
-            .unwrap();
-        let (scaling_up, scaling_factor) = if max_balance > Pool::MAX_SAFE_BALANCE {
-            let tick_size = max_balance.checked_div_up(Pool::MAX_SAFE_BALANCE).unwrap();
+        let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
+        let max_balance = data.supply.checked_div_up(10_u64.saturating_pow(decimals)).unwrap();
+        let (scaling_up, scaling_factor) = if max_balance > weighted_math::MAX_SAFE_BALANCE {
+            let tick_size = max_balance.checked_div_up(weighted_math::MAX_SAFE_BALANCE).unwrap();
             if default_scaling_factor >= tick_size {
                 (true, default_scaling_factor / tick_size)
             } else {
@@ -63,15 +58,15 @@ impl<'info> Initialize<'info> {
         assert!(ctx.accounts.vault.is_active);
 
         assert_eq!(ctx.accounts.mint.supply, 0);
-        assert_eq!(ctx.accounts.mint.decimals, Pool::MAX_TOKEN_DECIMALS);
+        assert_eq!(ctx.accounts.mint.decimals as u32, fixed_math::SCALE);
         assert_eq!(
             ctx.accounts.mint.mint_authority.unwrap(),
             ctx.accounts.pool_authority.key()
         );
         assert!(ctx.accounts.mint.freeze_authority.is_none());
 
-        assert!(swap_fee >= Pool::MIN_SWAP_FEE);
-        assert!(swap_fee <= Pool::MAX_SWAP_FEE);
+        assert!(swap_fee >= weighted_math::MIN_SWAP_FEE);
+        assert!(swap_fee <= weighted_math::MAX_SWAP_FEE);
 
         let sum_weights: u64 = weights.iter().sum();
         assert_eq!(sum_weights, fixed_math::ONE);

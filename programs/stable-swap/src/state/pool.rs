@@ -43,13 +43,6 @@ pub struct Pool {
 impl Pool {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
-    pub const MIN_SWAP_FEE: u64 = 1_000; // 0.0001%
-    pub const MAX_SWAP_FEE: u64 = 10_000_000; // 1%
-
-    pub const MAX_SAFE_BALANCE: u64 = 3_000_000_000;
-
-    pub const MAX_TOKEN_DECIMALS: u8 = 9;
-
     pub fn get_amplification(&self) -> u64 {
         let current_ts = Clock::get().unwrap().unix_timestamp;
         let amp_initial_factor = self.amp_initial_factor as u64;

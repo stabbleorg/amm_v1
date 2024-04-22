@@ -1,10 +1,11 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use math::weighted_math;
 
 pub fn process_change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u64) -> Result<()> {
     assert_ne!(ctx.accounts.pool.swap_fee, new_swap_fee);
-    assert!(new_swap_fee >= Pool::MIN_SWAP_FEE);
-    assert!(new_swap_fee <= Pool::MAX_SWAP_FEE);
+    assert!(new_swap_fee >= weighted_math::MIN_SWAP_FEE);
+    assert!(new_swap_fee <= weighted_math::MAX_SWAP_FEE);
 
     ctx.accounts.pool.swap_fee = new_swap_fee;
 

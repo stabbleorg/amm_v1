@@ -10,7 +10,12 @@ use crate::fixed_math::FixedPow;
 pub const MIN_WEIGHT: u64 = 100_000_000; // 20%
 pub const MAX_WEIGHT: u64 = 800_000_000; // 80%
 
-pub const MIN_WEIGHT_TICK: u64 = 50_000_000; // 5%
+pub const WEIGHT_TICK: u64 = 50_000_000; // 5%
+
+pub const MIN_SWAP_FEE: u64 = 1_000_000; // 0.1%
+pub const MAX_SWAP_FEE: u64 = 25_000_000; // 2.5%
+
+pub const MAX_SAFE_BALANCE: u64 = 2_000_000; // 2M
 
 pub const MIN_TOKENS: usize = 2;
 pub const MAX_TOKENS: usize = 6;
@@ -237,7 +242,7 @@ pub fn calc_token_out_given_exact_pool_token_in(
     // a = amountOut                                                                        //
     // b = balance                   /      /      totalLP - lpIn      \    (1 / w)  \      //
     // lpIn = lpAmountIn    a = b * |  1 - | -------------------------- | ^           |     //
-    // lp = totalLP                  \      \       totalLP            /             /      //
+    // lp = totalLP                  \      \          totalLP         /             /      //
     // w = weight                                                                           //
      *****************************************************************************************/
     // Token out, so we round down overall. The multiplication rounds down, but the power rounds up (so the base

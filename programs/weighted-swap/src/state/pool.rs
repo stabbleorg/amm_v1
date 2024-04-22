@@ -41,13 +41,6 @@ pub struct Pool {
 impl Pool {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
-    pub const MIN_SWAP_FEE: u64 = 1_000_000; // 0.1%
-    pub const MAX_SWAP_FEE: u64 = 25_000_000; // 2.5%
-
-    pub const MAX_SAFE_BALANCE: u64 = 2_000_000;
-
-    pub const MAX_TOKEN_DECIMALS: u8 = 9;
-
     pub fn get_balances(&self) -> Vec<u64> {
         self.tokens.iter().map(|token| token.balance).collect()
     }

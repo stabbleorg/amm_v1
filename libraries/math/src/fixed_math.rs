@@ -122,7 +122,7 @@ mod tests {
 
     pub const MAX_SAFE_BALANCE: u64 = 2_000_000_000_000_000; // 2M
     pub const MAX_INVARIANT_RATIO: u64 = 999_999_999; // 0.999999999
-    pub const MAX_BALANCE_RATIO: u64 = 1_999_999_999; // 1.999999999
+    pub const MIN_INVARIANT_RATIO: u64 = 700_000_000; // 0.7
 
     pub const AVAILABLE_WEIGHTS: [u64; 15] = [
         100_000_000, // 10%
@@ -157,9 +157,9 @@ mod tests {
     #[test]
     fn test_powers_for_deposit() {
         for normalized_weight in AVAILABLE_WEIGHTS.clone() {
-            let value = ((MAX_BALANCE_RATIO as f64 / 1e9).powf(normalized_weight as f64 / 1e9) * 1e9) as u64;
-            let value_1 = MAX_BALANCE_RATIO.pow_down(normalized_weight);
-            let value_2 = MAX_BALANCE_RATIO.pow_up(normalized_weight);
+            let value = ((MIN_INVARIANT_RATIO as f64 / 1e9).powf(normalized_weight as f64 / 1e9) * 1e9) as u64;
+            let value_1 = MIN_INVARIANT_RATIO.pow_down(normalized_weight);
+            let value_2 = MIN_INVARIANT_RATIO.pow_up(normalized_weight);
             check_epsilon(value, value_1);
             check_epsilon(value, value_2);
             assert!(value_2 >= value_1);
