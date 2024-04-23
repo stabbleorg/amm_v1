@@ -1,14 +1,18 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
+use anchor_spl::token::{
+    accessor::{amount as get_token_amount, authority as get_token_owner, mint as get_token_mint},
+    transfer, Token, TokenAccount, Transfer,
+};
 use math::{
     fixed_math::{FixedComplement, FixedMul},
-    stable_math,
+    stable_math, swap_fee_math,
 };
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
     program::Vault as VaultProgram,
     state::{Vault, WithdrawAuthority},
+    x_token,
 };
 
 pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Result<()> {
@@ -33,11 +37,20 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64)
     )
     .unwrap();
 
+    let swap_fee = if ctx.accounts.user_x_token.is_none() {
+        ctx.accounts.pool.swap_fee
+    } else {
+        let x_token_account = ctx.accounts.user_x_token.as_ref().unwrap();
+        assert_eq!(get_token_mint(x_token_account)?, x_token::ID);
+        assert_eq!(get_token_owner(x_token_account)?, ctx.accounts.user.key());
+        swap_fee_math::calc_swap_fee_in_discount(ctx.accounts.pool.swap_fee, get_token_amount(x_token_account)?)
+    };
+
     let amount_out_without_fee = ctx
         .accounts
         .pool
         .calc_unwrapped_amount(balance_out_without_fee, token_out_index);
-    let amount_out = amount_out_without_fee.mul_down(ctx.accounts.pool.swap_fee.complement());
+    let amount_out = amount_out_without_fee.mul_down(swap_fee.complement());
     assert!(amount_out >= minimum_amount_out); // check slippage
 
     let swap_fee_amount = amount_out_without_fee.saturating_sub(amount_out);
@@ -123,6 +136,9 @@ impl<'info> Swap<'info> {
 #[derive(Accounts)]
 pub struct Swap<'info> {
     pub user: Signer<'info>,
+
+    /// CHECK: optional xSTB token account for swap fee discount
+    pub user_x_token: Option<UncheckedAccount<'info>>,
 
     /// CHECK: OK
     #[account(mut)]

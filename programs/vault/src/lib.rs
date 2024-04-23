@@ -1,6 +1,7 @@
 pub mod instructions;
 pub mod located;
 pub mod state;
+pub mod x_token;
 
 use crate::instructions::*;
 use anchor_lang::prelude::*;
