@@ -1,23 +1,13 @@
 import { Keypair } from "@solana/web3.js";
 
-export const adminKP = Keypair.generate();
-export const userKP = Keypair.generate();
-export const beneficiaryKP = Keypair.generate();
+export const MINT_AUTH_KP = Keypair.generate();
+export const BENEFICIARY_KP = Keypair.generate();
 
-export const usdcMintKP = Keypair.generate(); // 6 decimals
-export const usdtMintKP = Keypair.generate(); // 6 decimals
-export const daiMintKP = Keypair.generate(); // 8 decimals
-export const stbMintKP = Keypair.generate(); // 9 decimals
-export const sbrMintKP = Keypair.generate(); // 6 decimals
-export const bonkMintKP = Keypair.generate(); // 5 decimals
+export const USDC_MINT_KP = Keypair.generate();
+export const USDT_MINT_KP = Keypair.generate();
+export const DAI_MINT_KP = Keypair.generate();
+export const STB_MINT_KP = Keypair.generate();
+export const BONK_MINT_KP = Keypair.generate();
 
-export const weightedVaultKP = Keypair.generate();
-export const weightedN2PoolKP = Keypair.generate();
-export const weightedN3PoolKP = Keypair.generate();
-
-export const stableVaultKP = Keypair.generate();
-export const stableN2PoolKP = Keypair.generate();
-export const stableN3PoolKP = Keypair.generate();
-
-export const smartVaultKP = Keypair.generate();
-export const usdcPoolKP = Keypair.generate();
+export const WEIGHTED_VAULT_KP = Keypair.generate();
+export const STABLE_VAULT_KP = Keypair.generate();

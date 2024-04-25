@@ -2,13 +2,13 @@ import type { Command } from "commander";
 import { program } from "commander";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-import { VaultContext, WeightedPoolContext, StablePoolContext, Amm } from "@stabbleorg/solana-sdk";
 import { setContext, useContext, processTX } from "./context";
-import { setupVaultProgram } from "./vault";
-import { setupWeightedPoolProgram } from "./weighted-swap";
-import { setupStablePoolProgram } from "./stable-swap";
+// import { setupVaultProgram } from "./vault";
+// import { setupWeightedPoolProgram } from "./weighted-swap";
+// import { setupStablePoolProgram } from "./stable-swap";
 import { setupTokenProgram } from "./token";
 import { parseKeypair } from "./utils";
+import { WalletContext } from "@stabbleorg/anchor-contrib";
 
 program
   .version("1.3.1")
@@ -31,22 +31,25 @@ program
         rpcEndpoint = url;
         break;
     }
-    const provider = new AnchorProvider(new Connection(rpcEndpoint), new Wallet(payer));
+
+    const provider = new AnchorProvider(new Connection(rpcEndpoint), new Wallet(payer), {
+      commitment: "confirmed",
+      maxRetries: 1,
+      preflightCommitment: "confirmed",
+      skipPreflight: true,
+    });
+    const walletContext = new WalletContext(provider);
 
     setContext({
-      amm: new Amm({
-        vault: new VaultContext(provider),
-        weighted: new WeightedPoolContext(provider),
-        stable: new StablePoolContext(provider),
-      }),
+      walletContext,
       provider,
       simulate: Boolean(simulate),
     });
   });
 
-setupVaultProgram(program);
-setupWeightedPoolProgram(program);
-setupStablePoolProgram(program);
+// setupVaultProgram(program);
+// setupWeightedPoolProgram(program);
+// setupStablePoolProgram(program);
 setupTokenProgram(program);
 
 program

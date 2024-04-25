@@ -1,15 +1,32 @@
+import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import { AmmPool, PoolToken, StablePoolData, StablePoolToken } from "./base";
-import { StableMath, SafeNumber, BasicMath } from "../../utils";
+import { Pool, PoolData, PoolToken, PoolTokenData } from "./basePool";
+import { Vault } from "./vault";
+import { BasicMath, SafeNumber, StableMath } from "../utils";
 
-export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
+export const STABLE_SWAP_ID: PublicKey = new PublicKey("swapNyd8XiQwJ6ianp9snpu4brUqFxadzvHebnAXjJZ");
+
+export type StablePoolTokenData = PoolTokenData;
+
+export type StablePoolData = PoolData & {
+  ampInitialFactor: number; // u16
+  ampTargetFactor: number; // u16
+  rampStartTs: BN; // i64
+  rampStopTs: BN; // i64
+  tokens: StablePoolTokenData[];
+};
+
+export class StablePool implements Pool<StablePoolData> {
   static POOL_TOKEN_DECIMALS = 9;
   static POOL_TOKEN_SIZE = 32 + 1 + 1 + 8 + 8;
 
   constructor(
+    readonly vault: Vault,
     readonly address: PublicKey,
     readonly data: StablePoolData,
-  ) {}
+  ) {
+    if (!vault.address.equals(data.vault)) throw Error("Vault address does not match");
+  }
 
   get vaultAddress(): PublicKey {
     return this.data.vault;
@@ -21,6 +38,10 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
 
   get mintAddress(): PublicKey {
     return this.data.mint;
+  }
+
+  get authorityAddress(): PublicKey {
+    return StablePool.getAuthorityAddress(this.address);
   }
 
   get amplification(): number {
@@ -51,7 +72,6 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
   get tokens(): PoolToken[] {
     return this.data.tokens.map((token) => ({
       mintAddress: token.mint,
-      decimals: token.decimals,
       balance: SafeNumber.toUiAmount(
         token.scalingUp ? token.balance.div(token.scalingFactor) : token.balance.mul(token.scalingFactor),
         token.decimals,
@@ -59,30 +79,48 @@ export class StablePool implements AmmPool<StablePoolToken, StablePoolData> {
     }));
   }
 
-  getEstAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {
+  get balances(): number[] {
+    return this.tokens.map((token) => token.balance);
+  }
+
+  getSwapAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {
     const tokenInIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenInAddress));
     if (tokenInIndex === -1) return 0;
     const tokenOutIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenOutAddress));
     if (tokenOutIndex === -1) return 0;
+
     const amountOut = StableMath.calcOutGivenIn(
-      [...this.tokens.map((token) => token.balance)],
+      this.balances,
       this.amplification,
       tokenInIndex,
       tokenOutIndex,
       amountIn,
       this.swapFee,
     );
+
     return Math.max(amountOut, 0);
   }
 
-  getEstAmountsOut(amountIn: number, totalSupply: number = 1, tokenAddress?: PublicKey): number[] {
+  getWithdrawalAmountsOut(amountIn: number, totalSupply: number, tokenAddress?: PublicKey): number[] {
     if (tokenAddress) {
       return [0];
     }
-    return BasicMath.calcProportionalAmountsOut(
-      this.tokens.map((token) => token.balance),
-      amountIn,
-      totalSupply,
+
+    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply);
+  }
+
+  static getAuthorityAddress(poolAddress: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync([Buffer.from("pool_authority"), poolAddress.toBuffer()], STABLE_SWAP_ID)[0];
+  }
+
+  static getWithdrawAuthorityAddress(vaultAddress: PublicKey): PublicKey {
+    return StablePool.getWithdrawAuthorityAddressAndBump(vaultAddress)[0];
+  }
+
+  static getWithdrawAuthorityAddressAndBump(vaultAddress: PublicKey): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("withdraw_authority"), vaultAddress.toBuffer()],
+      STABLE_SWAP_ID,
     );
   }
 }

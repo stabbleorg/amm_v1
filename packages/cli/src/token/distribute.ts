@@ -10,11 +10,11 @@ import {
   getMint,
 } from "@solana/spl-token";
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { SafeNumber } from "@stabbleorg/solana-sdk";
+import { SafeNumber } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
-const BATCH_SIZE = 9;
+const BATCH_SIZE = 8;
 type WhitelistItem = { address: string; amount: number };
 
 export function distribute(program: Command) {
@@ -24,7 +24,7 @@ export function distribute(program: Command) {
     .requiredOption("--iou-mint-k <string>", "iou mint key", parseKey)
     .requiredOption("--path <path>", "path")
     .action(async ({ iouMintK, path }: { iouMintK: PublicKey; path: string }) => {
-      const { provider, amm } = useContext();
+      const { provider, walletContext } = useContext();
 
       const items: WhitelistItem[] = JSON.parse(fs.readFileSync(path, { encoding: "utf8" }));
 
@@ -62,8 +62,8 @@ export function distribute(program: Command) {
         );
         if (index % BATCH_SIZE === 0 || index === items.length) {
           console.log("Batch #:", Math.ceil(index / BATCH_SIZE));
-          const { transaction } = await amm.ctxVault.newTX(ixs);
-          const signature = await provider.sendAndConfirm(transaction);
+          const { transaction, slot } = await walletContext.createTransaction(ixs);
+          const signature = await provider.sendAndConfirm(transaction, [], { minContextSlot: slot });
           console.log("Signature:", signature);
           ixs = [];
         }

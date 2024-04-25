@@ -1,10 +1,10 @@
-import { BN } from "bn.js";
+import BN from "bn.js";
 import { AnchorProvider } from "@coral-xyz/anchor";
 import { createAssociatedTokenAccount, getAssociatedTokenAddressSync, mintTo } from "@solana/spl-token";
 import {
   VaultContext,
-  WeightedPoolContext,
-  StablePoolContext,
+  WeightedSwap,
+  StableSwap,
   AmmPool,
   WeightedPoolListener,
   StablePoolListener,
@@ -29,9 +29,9 @@ import {
 describe("Swap", () => {
   const provider = AnchorProvider.env();
   const ctxVault = new VaultContext(provider);
-  const ctxWeighted = new WeightedPoolContext(provider);
+  const ctxWeighted = new WeightedSwap(provider);
   const listenerWeighted = new WeightedPoolListener(ctxWeighted.program);
-  const ctxStable = new StablePoolContext(provider);
+  const ctxStable = new StableSwap(provider);
   const listenerStable = new StablePoolListener(ctxStable.program);
 
   let amm: Amm<AnchorProvider>;
@@ -246,8 +246,8 @@ describe("Swap", () => {
       console.log("Swap @", pool.address.toBase58());
 
       const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
-      console.log("1 USDC =", (estAmountOut / amountIn).toFixed(5), "BONK");
-      console.log("1 BONK =", (amountIn / estAmountOut).toFixed(9), "USDC");
+      console.log("1 USDC =", (estAmountOut / amountIn).toFixed(5), "Bonk");
+      console.log("1 Bonk =", (amountIn / estAmountOut).toFixed(9), "USDC");
       console.log("Estimated out:", estAmountOut);
       if (estAmountOut === 0) return;
       // slippage tolarance 0.3% (0.003)
@@ -271,7 +271,7 @@ describe("Swap", () => {
           getAssociatedTokenAddressSync(bonkMintKP.publicKey, provider.publicKey),
         );
         console.log(
-          "BONK out:",
+          "Bonk out:",
           SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
         );
       } else {
@@ -287,7 +287,7 @@ describe("Swap", () => {
         const { value: balance } = await provider.connection.getTokenAccountBalance(
           getAssociatedTokenAddressSync(bonkMintKP.publicKey, provider.publicKey),
         );
-        console.log("BONK out:", balance.uiAmountString);
+        console.log("Bonk out:", balance.uiAmountString);
       }
     }
   });
