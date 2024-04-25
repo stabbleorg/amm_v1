@@ -14,8 +14,8 @@ pub mod stable_swap {
 
     /// initialize a pool
     #[access_control(Initialize::validate(&ctx, amp_factor, swap_fee))]
-    pub fn initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64) -> Result<()> {
-        process_initialize(ctx, amp_factor, swap_fee)
+    pub fn initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64, max_caps: Vec<u64>) -> Result<()> {
+        process_initialize(ctx, amp_factor, swap_fee, &max_caps)
     }
 
     /// add liquidity

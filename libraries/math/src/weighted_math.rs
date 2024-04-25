@@ -13,7 +13,8 @@ pub const MAX_WEIGHT: u64 = 800_000_000; // 80%
 pub const MIN_SWAP_FEE: u64 = 1_000_000; // 0.1%
 pub const MAX_SWAP_FEE: u64 = 25_000_000; // 2.5%
 
-pub const MAX_SAFE_BALANCE: u64 = 2_000_000; // 2M
+// Safe max balance without decimal places supported by weighted_math
+pub const SAFE_MAX_CAP: u64 = 2_000_000; // 2M
 
 pub const MIN_TOKENS: usize = 2;
 pub const MAX_TOKENS: usize = 6;

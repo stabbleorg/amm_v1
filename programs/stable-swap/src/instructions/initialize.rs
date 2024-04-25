@@ -5,7 +5,7 @@ use bn::safe_math::CheckedDivCeil;
 use math::{fixed_math, stable_math};
 use vault::state::Vault;
 
-pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64) -> Result<()> {
+pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64, max_caps: &Vec<u64>) -> Result<()> {
     ctx.accounts.pool.set_inner(Pool {
         owner: ctx.accounts.owner.key(),
         vault: ctx.accounts.vault.key(),
@@ -21,20 +21,19 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
         pending_owner: None,
     });
 
-    for account in ctx.remaining_accounts.iter() {
+    for (token_index, account) in ctx.remaining_accounts.iter().enumerate() {
         let mut buff: &[u8] = &account.try_borrow_data()?;
         let data = Mint::try_deserialize(&mut buff)?;
         let decimals = data.decimals as u32;
         assert!(decimals <= fixed_math::SCALE);
 
         let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
-        let max_balance = data.supply.checked_div_up(10_u64.saturating_pow(decimals)).unwrap();
-        let (scaling_up, scaling_factor) = if max_balance > stable_math::MAX_SAFE_BALANCE {
-            let tick_size = max_balance.checked_div_up(stable_math::MAX_SAFE_BALANCE).unwrap();
+        let (scaling_up, scaling_factor) = if max_caps[token_index] > stable_math::SAFE_MAX_CAP {
+            let tick_size = max_caps[token_index].checked_div_up(stable_math::SAFE_MAX_CAP).unwrap();
             if default_scaling_factor >= tick_size {
                 (true, default_scaling_factor / tick_size)
             } else {
-                (false, tick_size / default_scaling_factor)
+                (false, tick_size)
             }
         } else {
             (true, default_scaling_factor)

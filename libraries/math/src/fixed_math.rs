@@ -52,6 +52,10 @@ impl FixedPow for u64 {
     // and 80/20 Weighted Pools
 
     fn pow_down(self, rhs: Self) -> Self::Output {
+        if self == 0 {
+            return 0;
+        }
+
         match rhs {
             ZERO => ONE,
             ONE => self,
@@ -68,6 +72,10 @@ impl FixedPow for u64 {
     }
 
     fn pow_up(self, rhs: Self) -> Self::Output {
+        if self == 0 {
+            return 0;
+        }
+
         match rhs {
             ZERO => ONE,
             ONE => self,
