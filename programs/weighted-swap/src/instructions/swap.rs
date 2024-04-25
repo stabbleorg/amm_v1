@@ -15,16 +15,22 @@ use vault::{
     x_token,
 };
 
-pub fn process_swap<'a, 'b, 'c, 'info>(
-    ctx: Context<'_, '_, '_, 'info, Swap<'info>>,
-    amount_in: u64,
-    minimum_amount_out: u64,
-) -> Result<()> {
+pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
     let token_out_index = ctx
         .accounts
         .pool
         .get_token_index(ctx.accounts.beneficiary_token_out.mint);
+
+    // if amount_in is set to None, it will send full amount given user's in token account
+    // this is useful to swap from intermediate token account created in multi-hop swap
+    let amount_in = if amount_in.is_some() {
+        ctx.accounts
+            .pool
+            .calc_rounded_amount(amount_in.unwrap(), token_in_index)
+    } else {
+        get_token_amount(&ctx.accounts.user_token_in.to_account_info())?
+    };
 
     let balance_in = ctx.accounts.pool.calc_wrapped_amount(amount_in, token_in_index);
     let balance_out_without_fee = weighted_math::calc_out_given_in(
@@ -75,7 +81,7 @@ pub fn process_swap<'a, 'b, 'c, 'info>(
                 authority: ctx.accounts.user.to_account_info(),
             },
         ),
-        ctx.accounts.pool.calc_rounded_amount(amount_in, token_in_index),
+        amount_in,
     )?;
 
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {

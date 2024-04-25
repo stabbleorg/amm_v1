@@ -40,11 +40,7 @@ pub mod weighted_swap {
 
     /// swap
     #[access_control(Swap::validate(&ctx))]
-    pub fn swap<'a, 'b, 'c, 'info>(
-        ctx: Context<'_, '_, '_, 'info, Swap<'info>>,
-        amount_in: u64,
-        minimum_amount_out: u64,
-    ) -> Result<()> {
+    pub fn swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
         process_swap(ctx, amount_in, minimum_amount_out)
     }
 
