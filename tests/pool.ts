@@ -47,7 +47,7 @@ describe("Pool", () => {
 
   describe("STB50-USDC50", () => {
     it("should create weighted pool", async () => {
-      const mintAddresses = [BONK_MINT_KP.publicKey, USDC_MINT_KP.publicKey];
+      const mintAddresses = [STB_MINT_KP.publicKey, USDC_MINT_KP.publicKey];
 
       const { pool } = await weightedSwap.initialize({
         vault: weightedVault,
@@ -73,18 +73,18 @@ describe("Pool", () => {
       });
     });
 
-    it("should deposit in balance", async () => {
+    it("should make balanced deposit", async () => {
       const pools = await weightedSwap.findByVault(weightedVault);
       const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
-
-      const { value: balance } = await provider.connection.getTokenAccountBalance(
-        weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
-      );
 
       const mintAddresses = pool.tokens.map((token) => token.mintAddress);
       const bRatio_STB_USDC = pool.tokens[0].balance / pool.tokens[1].balance;
       const usdcAmount = 10000;
       const stbAmount = usdcAmount * bRatio_STB_USDC;
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
 
       // add liquidity
       await weightedSwap.deposit({
@@ -97,10 +97,181 @@ describe("Pool", () => {
         weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
       );
 
-      const ratio = balance.uiAmount! / (postBalance.uiAmount! - balance.uiAmount!);
-
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+      const ratio = balance.uiAmount! / amountOut;
       assert.ok(ratio > 99.99998);
       assert.ok(ratio < 100.00002);
+
+      const { value: stbBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(STB_MINT_KP.publicKey),
+      );
+      const { value: usdcBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      // remove liquidity
+      await weightedSwap.withdraw({
+        pool,
+        mintAddresses,
+        amount: amountOut,
+      });
+
+      const { value: postStbBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(STB_MINT_KP.publicKey),
+      );
+      const stbAmountOut = postStbBalance.uiAmount! - stbBalance.uiAmount!;
+      const stbRatio = stbAmount / stbAmountOut;
+      assert.ok(stbRatio > 1);
+      assert.ok(stbRatio < 1.000001);
+
+      const { value: postUsdcBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const usdcAmountOut = postUsdcBalance.uiAmount! - usdcBalance.uiAmount!;
+      const usdcRatio = usdcAmount / usdcAmountOut;
+      assert.ok(usdcRatio > 1);
+      assert.ok(usdcRatio < 1.000001);
+    });
+
+    it("should make imbalanced deposit", async () => {
+      const pools = await weightedSwap.findByVault(weightedVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
+
+      const mintAddresses = pool.tokens.map((token) => token.mintAddress);
+      const bRatio_STB_USDC = pool.tokens[0].balance / pool.tokens[1].balance;
+      const stbAmount = 1000;
+      const usdcAmount = stbAmount * bRatio_STB_USDC;
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+
+      // add liquidity
+      await weightedSwap.deposit({
+        pool,
+        mintAddresses,
+        amounts: [stbAmount, usdcAmount],
+      });
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+
+      const { value: usdtBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(STB_MINT_KP.publicKey),
+      );
+      const { value: usdcBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      // remove liquidity
+      await weightedSwap.withdraw({
+        pool,
+        mintAddresses,
+        amount: amountOut,
+      });
+
+      const { value: postUsdtBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(STB_MINT_KP.publicKey),
+      );
+      const stbAmountOut = postUsdtBalance.uiAmount! - usdtBalance.uiAmount!;
+      assert.ok(stbAmount < stbAmountOut);
+
+      const { value: postUsdcBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const usdcAmountOut = postUsdcBalance.uiAmount! - usdcBalance.uiAmount!;
+      assert.ok(usdcAmount > usdcAmountOut);
+    });
+
+    it("should make single deposit", async () => {
+      const pools = await weightedSwap.findByVault(weightedVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+
+      // add liquidity
+      await weightedSwap.deposit({
+        pool,
+        mintAddresses: [USDC_MINT_KP.publicKey],
+        amounts: [1000],
+      });
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+
+      const { value: usdcBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      // remove liquidity
+      await weightedSwap.withdraw({
+        pool,
+        mintAddresses: [USDC_MINT_KP.publicKey],
+        amount: amountOut,
+      });
+
+      const { value: postUsdcBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const usdcOut = postUsdcBalance.uiAmount! - usdcBalance.uiAmount!;
+      assert.ok(usdcOut > 994);
+
+      const { value: balance2 } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+
+      // add liquidity
+      await weightedSwap.deposit({
+        pool,
+        mintAddresses: [STB_MINT_KP.publicKey],
+        amounts: [33333.333333333],
+      });
+
+      const { value: postBalance2 } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      const amountOut2 = postBalance2.uiAmount! - balance2.uiAmount!;
+
+      const { value: stbBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(STB_MINT_KP.publicKey),
+      );
+
+      // remove liquidity
+      await weightedSwap.withdraw({
+        pool,
+        mintAddresses: [STB_MINT_KP.publicKey],
+        amount: amountOut2,
+      });
+
+      const { value: postStbBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(STB_MINT_KP.publicKey),
+      );
+      const stbOut = postStbBalance.uiAmount! - stbBalance.uiAmount!;
+      assert.ok(stbOut > 33133);
+      assert.ok(stbOut < 33333.333333333);
+    });
+
+    it("should have more balance in vault than in pool", async () => {
+      weightedVault = await vaultCtx.findOne(weightedVault.address);
+      const pools = await weightedSwap.findByVault(weightedVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
+
+      const { value: vaultStbBalance } = await provider.connection.getTokenAccountBalance(
+        weightedVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
+      );
+      assert.ok(vaultStbBalance.uiAmount! >= pool.tokens[0].balance);
+
+      const { value: vaultUsdtBalance } = await provider.connection.getTokenAccountBalance(
+        weightedVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
+      );
+      assert.ok(vaultUsdtBalance.uiAmount! >= pool.tokens[1].balance);
     });
   });
 
@@ -126,114 +297,208 @@ describe("Pool", () => {
         mintAddresses,
         amounts: ["3165522.820842", "771061.758046"],
       });
+    });
+
+    it("should make balanced deposit", async () => {
+      const pools = await stableSwap.findByVault(stableVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
+
+      const mintAddresses = pool.tokens.map((token) => token.mintAddress);
+      const bRatio_USDT_USDC = pool.tokens[0].balance / pool.tokens[1].balance;
+      const usdcAmount = 7710.61758;
+      const usdtAmount = usdcAmount * bRatio_USDT_USDC;
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         stableSwap.getAssociatedTokenAddress(pool.mintAddress),
       );
-      console.log("LP out:", balance);
+
+      // add liquidity
+      await stableSwap.deposit({
+        pool,
+        mintAddresses,
+        amounts: [usdtAmount, usdcAmount],
+      });
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+      const ratio = balance.uiAmount! / amountOut;
+      assert.ok(ratio > 99.99998);
+      assert.ok(ratio < 100.00002);
+
+      const { value: usdtBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+      );
+      const { value: usdcBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      // remove liquidity
+      await stableSwap.withdraw({
+        pool,
+        mintAddresses,
+        amount: amountOut,
+      });
+
+      const { value: postUsdtBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+      );
+      const usdtAmountOut = postUsdtBalance.uiAmount! - usdtBalance.uiAmount!;
+      const usdtRatio = usdtAmount / usdtAmountOut;
+      assert.ok(usdtRatio > 1);
+      assert.ok(usdtRatio < 1.000001);
+
+      const { value: postUsdcBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const usdcAmountOut = postUsdcBalance.uiAmount! - usdcBalance.uiAmount!;
+      const usdcRatio = usdcAmount / usdcAmountOut;
+      assert.ok(usdcRatio > 1);
+      assert.ok(usdcRatio < 1.000001);
+    });
+
+    it("should make imbalanced deposit", async () => {
+      const pools = await stableSwap.findByVault(stableVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
+
+      const mintAddresses = pool.tokens.map((token) => token.mintAddress);
+      const bRatio_USDT_USDC = pool.tokens[0].balance / pool.tokens[1].balance;
+      const usdtAmount = 7710.61758;
+      const usdcAmount = usdtAmount * bRatio_USDT_USDC;
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+
+      // add liquidity
+      await stableSwap.deposit({
+        pool,
+        mintAddresses,
+        amounts: [usdtAmount, usdcAmount],
+      });
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+
+      const { value: usdtBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+      );
+      const { value: usdcBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      // remove liquidity
+      await stableSwap.withdraw({
+        pool,
+        mintAddresses,
+        amount: amountOut,
+      });
+
+      const { value: postUsdtBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+      );
+      const usdtAmountOut = postUsdtBalance.uiAmount! - usdtBalance.uiAmount!;
+      assert.ok(usdtAmount < usdtAmountOut);
+
+      const { value: postUsdcBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const usdcAmountOut = postUsdcBalance.uiAmount! - usdcBalance.uiAmount!;
+      assert.ok(usdcAmount > usdcAmountOut);
+    });
+
+    it("should make single deposit", async () => {
+      const pools = await stableSwap.findByVault(stableVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+
+      // add liquidity
+      await stableSwap.deposit({
+        pool,
+        mintAddresses: [USDC_MINT_KP.publicKey],
+        amounts: [1000],
+      });
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+
+      const { value: usdcBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      // remove liquidity
+      await stableSwap.withdraw({
+        pool,
+        mintAddresses: [USDC_MINT_KP.publicKey],
+        amount: amountOut,
+      });
+
+      const { value: postUsdcBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const usdcOut = postUsdcBalance.uiAmount! - usdcBalance.uiAmount!;
+      assert.ok(usdcOut > 999.8);
+      assert.ok(usdcOut < 1000);
+
+      const { value: balance2 } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+
+      // add liquidity
+      await stableSwap.deposit({
+        pool,
+        mintAddresses: [USDT_MINT_KP.publicKey],
+        amounts: [1000],
+      });
+
+      const { value: postBalance2 } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(pool.mintAddress),
+      );
+      const amountOut2 = postBalance2.uiAmount! - balance2.uiAmount!;
+
+      const { value: usdtBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+      );
+
+      // remove liquidity
+      await stableSwap.withdraw({
+        pool,
+        mintAddresses: [USDT_MINT_KP.publicKey],
+        amount: amountOut2,
+      });
+
+      const { value: postUsdtBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+      );
+      const usdtOut = postUsdtBalance.uiAmount! - usdtBalance.uiAmount!;
+      assert.ok(usdtOut > 999.9);
+      assert.ok(usdtOut < 1000);
+    });
+
+    it("should have more balance in vault than in pool", async () => {
+      stableVault = await vaultCtx.findOne(stableVault.address);
+      const pools = await stableSwap.findByVault(stableVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
+
+      const { value: vaultUsdcBalance } = await provider.connection.getTokenAccountBalance(
+        stableVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
+      );
+      assert.ok(vaultUsdcBalance.uiAmount! >= pool.tokens[0].balance);
+
+      const { value: vaultUsdtBalance } = await provider.connection.getTokenAccountBalance(
+        stableVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
+      );
+      assert.ok(vaultUsdtBalance.uiAmount! >= pool.tokens[1].balance);
     });
   });
-
-  // describe("DAI-USDT-USDC", () => {
-  //   it("should create stable pool", async () => {
-  //     const { transaction: createTX, address: poolAddress } = await amm.createStablePoolAndAddress({
-  //       vaultAddress: stableVaultKP.publicKey,
-  //       mintAddresses: [daiMintKP.publicKey, usdtMintKP.publicKey, usdcMintKP.publicKey],
-  //       amp: 2000,
-  //       swapFee: "0.004", // 0.4%
-  //       poolKP: stableN3PoolKP, // can omit in dapp
-  //     });
-  //     await ctxStable.provider.sendAndConfirm(createTX);
-
-  //     // add initial liquidity
-  //     const pool = await ctxStable.findOne(poolAddress);
-  //     const { transaction } = await amm.deposit({
-  //       pool,
-  //       mintAddresses: pool.tokens.map((token) => token.mintAddress),
-  //       amounts: [40000, 30000, 20000],
-  //     });
-  //     await ctxStable.provider.sendAndConfirm(transaction);
-
-  //     const { value: balance } = await provider.connection.getTokenAccountBalance(
-  //       ctxStable.getAssociatedTokenAddress(pool.mintAddress),
-  //     );
-  //     console.log("LP out:", balance.uiAmountString!);
-  //   });
-
-  //   it("should add liquidity in balance", async () => {
-  //     const pool = await ctxStable.findOne(stableN3PoolKP.publicKey); // selected pool address in dapp
-  //     const bRatio_DAI_USDC = pool.tokens[0].balance / pool.tokens[2].balance;
-  //     const bRatio_USDT_USDC = pool.tokens[1].balance / pool.tokens[2].balance;
-  //     // console.log("DAI/USDC:", bRatio_DAI_USDC);
-  //     // console.log("USDT/USDC:", bRatio_USDT_USDC);
-
-  //     // given 200 USDC
-  //     const usdcAmount = 200;
-  //     const daiAmount = usdcAmount * bRatio_DAI_USDC;
-  //     const usdtAmount = usdcAmount * bRatio_USDT_USDC;
-
-  //     const { value: balance } = await provider.connection.getTokenAccountBalance(
-  //       ctxStable.getAssociatedTokenAddress(pool.mintAddress),
-  //     );
-
-  //     const { transaction } = await amm.deposit({
-  //       pool,
-  //       mintAddresses: pool.tokens.map((token) => token.mintAddress),
-  //       amounts: [daiAmount, usdtAmount, usdcAmount],
-  //     });
-  //     await ctxStable.provider.sendAndConfirm(transaction);
-
-  //     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-  //       ctxStable.getAssociatedTokenAddress(pool.mintAddress),
-  //     );
-  //     console.log(
-  //       "LP out:",
-  //       SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-  //     );
-  //   });
-
-  //   it("should add liquidity in single token", async () => {
-  //     const pool = await ctxStable.findOne(stableN3PoolKP.publicKey); // selected pool address in dapp
-
-  //     const { value: balance } = await provider.connection.getTokenAccountBalance(
-  //       ctxStable.getAssociatedTokenAddress(pool.mintAddress),
-  //     );
-  //     const { transaction } = await amm.deposit({
-  //       pool,
-  //       mintAddresses: [usdcMintKP.publicKey],
-  //       amounts: [900],
-  //     });
-  //     await ctxStable.provider.sendAndConfirm(transaction);
-
-  //     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-  //       ctxStable.getAssociatedTokenAddress(pool.mintAddress),
-  //     );
-  //     console.log(
-  //       "LP out:",
-  //       SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-  //     );
-  //   });
-
-  //   it("should remove liquidity in single token", async () => {
-  //     const pool = await ctxStable.findOne(stableN3PoolKP.publicKey); // selected pool address in dapp
-
-  //     const { value: balance } = await provider.connection.getTokenAccountBalance(
-  //       ctxStable.getAssociatedTokenAddress(usdcMintKP.publicKey),
-  //     );
-  //     const { transaction } = await amm.withdraw({
-  //       pool,
-  //       mintAddresses: [usdcMintKP.publicKey],
-  //       amount: "897.420287765",
-  //     });
-  //     await ctxStable.provider.sendAndConfirm(transaction);
-
-  //     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-  //       ctxStable.getAssociatedTokenAddress(usdcMintKP.publicKey),
-  //     );
-  //     console.log(
-  //       "USDC out:",
-  //       SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-  //     );
-  //   });
-  // });
 });

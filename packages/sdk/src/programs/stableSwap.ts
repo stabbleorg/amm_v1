@@ -221,7 +221,7 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     pool: StablePool;
     mintAddresses: PublicKey[];
     amount: FloatLike;
-    minimumAmountsOut: FloatLike[];
+    minimumAmountsOut?: FloatLike[];
   }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
@@ -237,14 +237,13 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 
       const vaultTokenAddress = pool.vault.getAuthorityTokenAddress(mintAddress);
       vaultRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: vaultTokenAddress });
-      vaultRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: vaultTokenAddress });
     }
 
     instructions.push(
       await this.program.methods
         .withdraw(
           SafeNumber.toBigAmount(amount, StablePool.POOL_TOKEN_DECIMALS),
-          minimumAmountsOut.length === mintAddresses.length
+          minimumAmountsOut !== undefined
             ? minimumAmountsOut.map((amount, index) =>
                 SafeNumber.toBigAmount(
                   amount,
