@@ -1,10 +1,10 @@
-
 .anchor
 .DS_Store
-dist
-keypairs
 target
 **/*.rs.bk
+dist
 node_modules
 test-ledger
 .yarn
+*.log
+*.so

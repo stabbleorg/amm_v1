@@ -1,2 +1,2 @@
 export * from "./math";
-export * from "./token-amount";
+export * from "./safeNumber";

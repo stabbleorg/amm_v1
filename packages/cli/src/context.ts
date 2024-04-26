@@ -1,9 +1,9 @@
 import type { VersionedTransaction } from "@solana/web3.js";
 import { AnchorProvider } from "@coral-xyz/anchor";
-import { VaultContext, WeightedPoolContext, StablePoolContext, SDKWrapper } from "@stabbleorg/solana-sdk";
+import { WalletContext } from "@stabbleorg/anchor-contrib";
 
 export interface Context {
-  sdk: SDKWrapper<AnchorProvider>;
+  walletContext: WalletContext<AnchorProvider>;
   provider: AnchorProvider;
   simulate: boolean;
   tx?: VersionedTransaction;

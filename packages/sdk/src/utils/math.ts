@@ -7,7 +7,28 @@ export class WeightedMath {
     amountIn: number,
     swapFee: number = 0,
   ): number {
+    if (amountIn > balanceIn * 0.3) return 0;
     return balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut)) * (1 - swapFee);
+  }
+
+  static calcPriceImpact(
+    balanceIn: number,
+    weightIn: number,
+    balanceOut: number,
+    weightOut: number,
+    amountIn: number,
+    amountOut: number, // estimated amount out
+    swapFee: number = 0,
+  ): number {
+    const postAmountOut = this.calcOutGivenIn(
+      balanceIn + amountIn,
+      weightIn,
+      balanceOut - amountOut,
+      weightOut,
+      amountIn,
+      swapFee,
+    );
+    return postAmountOut / amountOut - 1;
   }
 
   static calcSpotPrice(
@@ -18,18 +39,6 @@ export class WeightedMath {
     swapFee: number = 0,
   ): number {
     return ((balanceOut * weightIn) / (balanceIn * weightOut)) * (1 - swapFee);
-  }
-
-  static calcPostPrice(
-    balanceIn: number,
-    weightIn: number,
-    balanceOut: number,
-    weightOut: number,
-    amountIn: number,
-    swapFee: number = 0,
-  ): number {
-    const amountOut = this.calcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn, swapFee);
-    return this.calcSpotPrice(balanceIn + amountIn, weightIn, balanceOut - amountOut, weightOut, swapFee);
   }
 
   static calcBalanceRatio(weightA: number, priceA: number, weightB: number, priceB: number): number {
@@ -44,26 +53,28 @@ export class StableMath {
 
     if (sum === 0) return 0;
 
-    let prevInv = 0;
-    let inv = sum;
+    let prevInvariant = 0;
+    let invariant = sum;
     const ampTimesTotal = amplification * numTokens;
 
     for (let i = 0; i < 255; i++) {
-      let P_D = inv;
+      let P_D = invariant;
       for (let j = 0; j < numTokens; j++) {
-        P_D = (P_D * inv) / (balances[j] * numTokens);
+        P_D = (P_D * invariant) / (balances[j] * numTokens);
       }
 
-      prevInv = inv;
-      inv = ((ampTimesTotal * sum + P_D * numTokens) * inv) / ((ampTimesTotal - 1) * inv + (numTokens + 1) * P_D);
+      prevInvariant = invariant;
+      invariant =
+        ((ampTimesTotal * sum + P_D * numTokens) * invariant) /
+        ((ampTimesTotal - 1) * invariant + (numTokens + 1) * P_D);
 
       // converge with precision of integer 1
-      if (inv > prevInv) {
-        if (inv - prevInv <= 1e-9) break;
-      } else if (prevInv - inv <= 1e-9) break;
+      if (invariant > prevInvariant) {
+        if (invariant - prevInvariant <= 1e-9) break;
+      } else if (prevInvariant - invariant <= 1e-9) break;
     }
 
-    return inv;
+    return invariant;
   }
 
   static calcOutGivenIn(
@@ -107,21 +118,42 @@ export class StableMath {
     }
     sum = sum - balances[tokenIndex];
 
-    const inv2 = invariant ** 2;
+    const invariant2 = invariant * invariant;
     const b = invariant / ampTimesTotal + sum;
-    const c = (inv2 / (ampTimesTotal * P_D)) * balances[tokenIndex];
+    const c = (invariant2 / (ampTimesTotal * P_D)) * balances[tokenIndex];
 
     let prevBalance = 0;
-    let balance = (inv2 + c) / (invariant + b);
+    let balance = (invariant2 + c) / (invariant + b);
 
     for (let i = 0; i < 255; i++) {
       prevBalance = balance;
       balance = (prevBalance * prevBalance + c) / (prevBalance * 2 + b - invariant);
       if (balance > prevBalance) {
-        if (balance - prevBalance <= 1e-9) break;
-      } else if (prevBalance - balance <= 1e-9) break;
+        if (balance - prevBalance <= 1e-9) return balance;
+      } else if (prevBalance - balance <= 1e-9) return balance;
     }
 
-    return balance;
+    return balances[tokenIndex];
+  }
+
+  static calcPriceImpact(
+    balances: number[],
+    amplification: number,
+    tokenIndexIn: number,
+    tokenIndexOut: number,
+    amountIn: number,
+    amountOut: number, // estimated amount out
+    swapFee: number = 0,
+  ): number {
+    balances[tokenIndexIn] += amountIn;
+    balances[tokenIndexOut] -= amountOut;
+    const postAmountOut = this.calcOutGivenIn(balances, amplification, tokenIndexIn, tokenIndexOut, amountIn, swapFee);
+    return postAmountOut / amountOut - 1;
+  }
+}
+
+export class BasicMath {
+  static calcProportionalAmountsOut(balances: number[], amountIn: number, totalSupply: number): number[] {
+    return balances.map((balance) => balance * (amountIn / totalSupply));
   }
 }

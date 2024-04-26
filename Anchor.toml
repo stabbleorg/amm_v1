@@ -1,16 +1,15 @@
 [toolchain]
-anchor_version = "0.29.0"
-solana_version = "1.16.19"
+anchor_version = "0.30.0"
+solana_version = "1.18.4"
 
 [features]
-seeds = false
+resolution = false
 skip-lint = false
 
 [programs.localnet]
-pool-slr = "8XCueEVRNzMPybq6zAgKLiC8WJ1SRXLqP33Mru6nvrAz"
-pool_stable = "CKZnJGq6aCDBccaoZUJkJpgYUVLpoVT51RfYpaMXP37f"
-pool_weighted = "GfVXtcDC2vUReYr2kNsijGgvNjqhpnfCce5AnriQQvg4"
-vault = "7oh6tTdSfoWdKgqFXotGtPfS3Gqk6Jwc2yDZ7NCErYLW"
+stable_swap = "swapNyd8XiQwJ6ianp9snpu4brUqFxadzvHebnAXjJZ"
+weighted_swap = "swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW"
+vault = "vo1tWgqZMjG61Z2T9qUaMYKqZ75CYzMuaZ2LZP1n7HV"
 
 [registry]
 url = "https://api.apr.dev"
@@ -26,10 +25,26 @@ types = "packages/sdk/src/generated/"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.spec.ts"
 
 [test]
-startup_wait = 5000
+startup_wait = 100000
 shutdown_wait = 2000
 upgradeable = false
-
+# [test.validator]
+# url = "https://api.devnet.solana.com"
+# # mpl-token-metadata
+# [[test.validator.clone]]
+# address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+# # quarry-merge-mine	
+# [[test.validator.clone]]
+# address = "QMMD16kjauP5knBwxNUJRZ1Z5o3deBuFrqVjBVmmqto"
+# # quarry-mine
+# [[test.validator.clone]]
+# address = "QMNeHCGYnLVDn1icRAfQZpjPLBNkfGbSKRB83G5d8KB"
+# # quarry-mint-wrapper
+# [[test.validator.clone]]
+# address = "QMWoBmAyJLAsA1Lh9ugMTw2gciTihncciphzdNzdZYV"
+# # quarry-redeemer
+# [[test.validator.clone]]
+# address = "QRDxhMw1P2NEfiw5mYXG79bwfgHTdasY2xNP76XSea9"
 [[test.genesis]]
 address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-program = "token_metadata.so"
+program = "mpl_token_metadata.so"

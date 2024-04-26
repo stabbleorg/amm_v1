@@ -1,18 +1,20 @@
 {
-  "name": "@stabbleorg/solana-sdk",
-  "version": "0.2.0",
+  "name": "@stabbleorg/amm-sdk",
+  "version": "0.4.6",
   "main": "src",
   "types": "src/index.d.ts",
   "license": "MIT",
   "dependencies": {
-    "@coral-xyz/anchor": "^0.29.0",
-    "@metaplex-foundation/js": "^0.19.5",
-    "@metaplex-foundation/mpl-token-metadata": "^2.13.0",
-    "@solana/spl-token": "^0.3.8",
-    "@solana/web3.js": "^1.87.2",
-    "bn.js": "^5.2.1"
+    "@coral-xyz/anchor": "^0.30.0",
+    "@metaplex-foundation/js": "^0.20.0",
+    "@metaplex-foundation/mpl-token-metadata": "^2.11.0",
+    "@solana/spl-token": "^0.4.0",
+    "@solana/web3.js": "^1.91.0",
+    "@stabbleorg/anchor-contrib": "^0.4.6",
+    "bn.js": "^5.2.0",
+    "decimal.js": "^10.4.3"
   },
   "devDependencies": {
-    "@types/bn.js": "^5.1.2"
+    "@types/bn.js": "^5.1.0"
   }
 }
