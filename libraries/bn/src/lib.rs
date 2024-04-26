@@ -3,13 +3,13 @@ pub mod safe_math;
 use uint::construct_uint;
 
 construct_uint! {
-    pub struct U256(4);
+    pub struct U192(3);
 }
 
 #[macro_export]
-macro_rules! uint256 {
+macro_rules! uint192 {
     ($value:expr) => {
-        U256::from($value)
+        U192::from($value)
     };
 }
 
@@ -19,11 +19,11 @@ mod tests {
 
     #[test]
     fn test_shift_for_div_by_2() {
-        assert_eq!(uint256!(u128::MAX) >> 1, uint256!(u128::MAX) / (uint256!(2)));
+        assert_eq!(uint192!(u128::MAX) >> 1, uint192!(u128::MAX) / (uint192!(2)));
     }
 
     #[test]
     fn test_shift_for_mul_by_2() {
-        assert_eq!(uint256!(u128::MAX) << 1, uint256!(u128::MAX) * uint256!(2));
+        assert_eq!(uint192!(u128::MAX) << 1, uint192!(u128::MAX) * uint192!(2));
     }
 }

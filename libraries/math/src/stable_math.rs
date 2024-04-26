@@ -4,7 +4,7 @@ use crate::{
 };
 use bn::{
     safe_math::{CheckedDivCeil, CheckedMulDiv},
-    uint256, U256,
+    uint192, U192,
 };
 
 pub const AMP_PRECISION: u64 = 1_000;
@@ -21,8 +21,8 @@ pub const SAFE_MAX_CAP: u64 = 3_000_000_000; // 3B
 pub const MIN_TOKENS: usize = 2;
 pub const MAX_TOKENS: usize = 5;
 
-pub fn amp_precision_u256() -> U256 {
-    uint256!(AMP_PRECISION)
+pub fn amp_precision_u192() -> U192 {
+    uint192!(AMP_PRECISION)
 }
 
 // StableMath._calculateInvariant
@@ -47,7 +47,7 @@ pub fn calc_invariant(amplification: u64, balances: &Vec<u64>) -> Result<u64, St
     let num_tokens = balances.len() as u64;
     let amp_times_total = amplification * num_tokens; // Ann in the Curve version
 
-    let sum = uint256!(sum);
+    let sum = uint192!(sum);
     let mut prev_invariant; // Dprev in the Curve version
     let mut invariant = sum; // D in the Curve version
 
@@ -57,22 +57,22 @@ pub fn calc_invariant(amplification: u64, balances: &Vec<u64>) -> Result<u64, St
         for i in 0..balances.len() {
             // (p * invariant) / (balances[i] * num_tokens)
             p = p
-                .checked_mul_div_down(invariant, uint256!(balances[i] * num_tokens))
+                .checked_mul_div_down(invariant, uint192!(balances[i] * num_tokens))
                 .unwrap();
         }
 
         prev_invariant = invariant;
 
-        invariant = (uint256!(amp_times_total)
-            .checked_mul_div_down(sum, amp_precision_u256())
+        invariant = (uint192!(amp_times_total)
+            .checked_mul_div_down(sum, amp_precision_u192())
             .unwrap()
-            + (p * uint256!(balances.len())))
+            + (p * uint192!(balances.len())))
         .checked_mul_div_down(
             invariant,
-            uint256!(amp_times_total - AMP_PRECISION)
-                .checked_mul_div_down(invariant, amp_precision_u256())
+            uint192!(amp_times_total - AMP_PRECISION)
+                .checked_mul_div_down(invariant, amp_precision_u192())
                 .unwrap()
-                + (uint256!(num_tokens.saturating_add(1)) * p),
+                + (uint192!(num_tokens.saturating_add(1)) * p),
         )
         .unwrap();
 
@@ -288,29 +288,29 @@ fn get_token_balance_given_invariant_n_all_other_balances(
     // Rounds result up overall
 
     let num_tokens = balances.len() as u64;
-    let amp_times_total = uint256!(amplification * num_tokens);
+    let amp_times_total = uint192!(amplification * num_tokens);
 
-    let invariant = uint256!(invariant);
+    let invariant = uint192!(invariant);
 
     let mut sum = balances[0];
-    let mut p = uint256!(balances[0] * num_tokens);
+    let mut p = uint192!(balances[0] * num_tokens);
     for i in 1..balances.len() {
-        let p_i = uint256!(balances[i] * num_tokens);
+        let p_i = uint192!(balances[i] * num_tokens);
         p = p.checked_mul_div_down(p_i, invariant).unwrap();
         sum = sum + balances[i];
     }
     // No need to use safe math, based on the loop above `sum` is greater than or equal to `balances[token_index]`
     sum = sum.saturating_sub(balances[token_index]);
-    let sum = uint256!(sum);
+    let sum = uint192!(sum);
 
     let invariant_2 = invariant * invariant;
     // We remove the balance from c by multiplying it
     let c = invariant_2
-        .checked_mul_div_up(amp_precision_u256(), amp_times_total * p)
+        .checked_mul_div_up(amp_precision_u192(), amp_times_total * p)
         .unwrap()
-        * uint256!(balances[token_index]);
+        * uint192!(balances[token_index]);
     let b = invariant
-        .checked_mul_div_up(amp_precision_u256(), amp_times_total)
+        .checked_mul_div_up(amp_precision_u192(), amp_times_total)
         .unwrap()
         + sum;
 
