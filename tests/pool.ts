@@ -21,6 +21,7 @@ import {
   STB_MINT_KP,
   BONK_MINT_KP,
 } from "./consts";
+import { NATIVE_MINT } from "@solana/spl-token";
 
 describe("Pool", () => {
   const provider = AnchorProvider.env();
@@ -259,7 +260,6 @@ describe("Pool", () => {
     });
 
     it("should have more balance in vault than in pool", async () => {
-      weightedVault = await vaultCtx.findOne(weightedVault.address);
       const pools = await weightedSwap.findByVault(weightedVault);
       const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
 
@@ -272,6 +272,98 @@ describe("Pool", () => {
         weightedVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
       );
       assert.ok(vaultUsdtBalance.uiAmount! >= pool.tokens[1].balance);
+    });
+  });
+
+  describe("Bonk50-SOL30-USDC20", () => {
+    it("should create/deposit/withdraw", async () => {
+      const mintAddresses = [BONK_MINT_KP.publicKey, NATIVE_MINT, USDC_MINT_KP.publicKey];
+
+      const { pool } = await weightedSwap.initialize({
+        vault: weightedVault,
+        mintAddresses,
+        maxCaps: [5000000000000, 2000000, 2000000],
+        weights: [0.5, 0.3, "0.2"], // 50:30:20
+        swapFee: "0.005", // 0.5%
+      });
+
+      // Bonk: $0.000001, SOL: $145, USDC: $1
+      const bRatio_Bonk_USDC = WeightedMath.calcBalanceRatio(0.5, 0.000001, 0.2, 1);
+      const bRatio_SOL_USDC = WeightedMath.calcBalanceRatio(0.3, 145, 0.2, 1);
+      const usdcAmount = 500000;
+      const bonkAmount = usdcAmount * bRatio_Bonk_USDC;
+      const solAmount = usdcAmount * bRatio_SOL_USDC;
+
+      await vaultCtx.createMissingTokenAccounts({ vault: weightedVault, mintAddresses });
+
+      // add initial liquidity
+      await weightedSwap.deposit({
+        pool,
+        mintAddresses,
+        amounts: [bonkAmount, solAmount, usdcAmount],
+      });
+
+      // add liquidity
+      await weightedSwap.deposit({
+        pool,
+        mintAddresses,
+        amounts: [bonkAmount, solAmount, usdcAmount],
+      });
+      await weightedSwap.deposit({
+        pool,
+        mintAddresses: [BONK_MINT_KP.publicKey],
+        amounts: [bonkAmount / 5],
+      });
+      await weightedSwap.deposit({
+        pool,
+        mintAddresses: [NATIVE_MINT],
+        amounts: [solAmount / 5],
+      });
+      await weightedSwap.deposit({
+        pool,
+        mintAddresses: [USDC_MINT_KP.publicKey],
+        amounts: [usdcAmount / 5],
+      });
+
+      // const { value: balance } = await provider.connection.getTokenAccountBalance(
+      //   weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
+      // );
+      // console.log("LP balance:", balance);
+
+      // remove liquidity
+      await weightedSwap.withdraw({
+        pool,
+        mintAddresses: [BONK_MINT_KP.publicKey],
+        amount: 100,
+      });
+      await weightedSwap.withdraw({
+        pool,
+        mintAddresses: [NATIVE_MINT],
+        amount: 100,
+      });
+      await weightedSwap.withdraw({
+        pool,
+        mintAddresses: [USDC_MINT_KP.publicKey],
+        amount: 100,
+      });
+      await weightedSwap.withdraw({
+        pool,
+        mintAddresses,
+        amount: 300,
+      });
+
+      const pools = await weightedSwap.findByVault(weightedVault);
+      const pool2 = pools.find((pool2) => pool2.address.equals(pool.address))!;
+
+      const { value: vaultBonkBalance } = await provider.connection.getTokenAccountBalance(
+        weightedVault.getAuthorityTokenAddress(pool2.tokens[0].mintAddress),
+      );
+      assert.ok(vaultBonkBalance.uiAmount! >= pool2.tokens[0].balance);
+
+      const { value: vaultSolBalance } = await provider.connection.getTokenAccountBalance(
+        weightedVault.getAuthorityTokenAddress(pool2.tokens[1].mintAddress),
+      );
+      assert.ok(vaultSolBalance.uiAmount! >= pool2.tokens[1].balance);
     });
   });
 
@@ -486,7 +578,6 @@ describe("Pool", () => {
     });
 
     it("should have more balance in vault than in pool", async () => {
-      stableVault = await vaultCtx.findOne(stableVault.address);
       const pools = await stableSwap.findByVault(stableVault);
       const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
 
