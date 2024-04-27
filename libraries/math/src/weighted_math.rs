@@ -17,7 +17,7 @@ pub const MAX_SWAP_FEE: u64 = 25_000_000; // 2.5%
 pub const MAX_SAFE_BALANCE_INT: u64 = 4_000_000_000; // 4B
 
 pub const MIN_TOKENS: usize = 2;
-pub const MAX_TOKENS: usize = 6;
+pub const MAX_TOKENS: usize = 4;
 
 // Pool limits that arise from limitations in the fixed point power function (and the imposed 1:100 maximum weight ratio).
 
