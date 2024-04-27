@@ -1,0 +1,13 @@
+[package]
+name = "fixed-exp"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "fixed_exp"
+
+[dependencies]
+fixed = "1.27.0"
+num-traits = "0.2.18"
+typenum = "1.17.0"

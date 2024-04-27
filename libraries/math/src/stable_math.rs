@@ -16,7 +16,7 @@ pub const MIN_SWAP_FEE: u64 = 1_000; // 0.0001%
 pub const MAX_SWAP_FEE: u64 = 10_000_000; // 1%
 
 // Safe max balance without decimal places supported by weighted_math
-pub const SAFE_MAX_CAP: u64 = 3_000_000_000; // 3B
+pub const MAX_SAFE_BALANCE_INT: u64 = 3_000_000_000; // 3B
 
 pub const MIN_TOKENS: usize = 2;
 pub const MAX_TOKENS: usize = 5;

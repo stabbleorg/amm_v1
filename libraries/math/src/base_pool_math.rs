@@ -5,10 +5,10 @@ pub fn compute_proportional_amounts_in(balances: &Vec<u64>, pool_token_supply: u
     /************************************************************************************
     // computeProportionalAmountsIn                                                    //
     // (per token)                                                                     //
-    // aI = amountIn                   /      bptOut      \                            //
+    // aI = amountIn                   /      lpOut      \                             //
     // b = balance           aI = b * | ----------------- |                            //
-    // bptOut = bptAmountOut           \  bptTotalSupply  /                            //
-    // bpt = bptTotalSupply                                                            //
+    // lpOut = lpAmountOut             \  lpTotalSupply  /                             //
+    // lp = lpTotalSupply                                                              //
      ************************************************************************************/
 
     // Since we're computing amounts in, we round up overall. This means rounding up on both the
@@ -27,10 +27,10 @@ pub fn compute_proportional_amounts_out(balances: &Vec<u64>, pool_token_supply: 
     /**********************************************************************************************
     // computeProportionalAmountsOut                                                             //
     // (per token)                                                                               //
-    // aO = tokenAmountOut             /        bptIn         \                                  //
+    // aO = tokenAmountOut             /        lpIn          \                                  //
     // b = tokenBalance      a0 = b * | ---------------------  |                                 //
-    // bptIn = bptAmountIn             \     bptTotalSupply    /                                 //
-    // bpt = bptTotalSupply                                                                      //
+    // lpIn = lpAmountIn               \     lpTotalSupply    /                                  //
+    // lp = lpTotalSupply                                                                        //
      **********************************************************************************************/
 
     // Since we're computing an amount out, we round down overall. This means rounding down on both the

@@ -8,13 +8,13 @@ use crate::fixed_math::FixedPow;
 // A minimum normalized weight imposes a maximum weight ratio. We need this due to limitations in the
 // implementation of the power function, as these ratios are often exponents.
 pub const MIN_WEIGHT: u64 = 100_000_000; // 10%
-pub const MAX_WEIGHT: u64 = 800_000_000; // 80%
+pub const MAX_WEIGHT: u64 = 900_000_000; // 90%
 
 pub const MIN_SWAP_FEE: u64 = 1_000_000; // 0.1%
 pub const MAX_SWAP_FEE: u64 = 25_000_000; // 2.5%
 
 // Safe max balance without decimal places supported by weighted_math
-pub const SAFE_MAX_CAP: u64 = 2_000_000; // 2M
+pub const MAX_SAFE_BALANCE_INT: u64 = 4_000_000_000; // 4B
 
 pub const MIN_TOKENS: usize = 2;
 pub const MAX_TOKENS: usize = 6;

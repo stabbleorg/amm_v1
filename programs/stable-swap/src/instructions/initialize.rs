@@ -28,8 +28,10 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
         assert!(decimals <= fixed_math::SCALE);
 
         let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
-        let (scaling_up, scaling_factor) = if max_caps[token_index] > stable_math::SAFE_MAX_CAP {
-            let tick_size = max_caps[token_index].checked_div_up(stable_math::SAFE_MAX_CAP).unwrap();
+        let (scaling_up, scaling_factor) = if max_caps[token_index] > stable_math::MAX_SAFE_BALANCE_INT {
+            let tick_size = max_caps[token_index]
+                .checked_div_up(stable_math::MAX_SAFE_BALANCE_INT)
+                .unwrap();
             if default_scaling_factor >= tick_size {
                 (true, default_scaling_factor / tick_size)
             } else {

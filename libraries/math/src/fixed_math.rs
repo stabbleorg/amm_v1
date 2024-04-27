@@ -1,6 +1,6 @@
 use bn::safe_math::CheckedMulDiv;
-use rust_decimal::prelude::*;
-use rust_decimal::MathematicalOps;
+use fixed::types::U34F30;
+use fixed_exp::FixedPowF;
 
 pub const ZERO: u64 = 0;
 
@@ -11,6 +11,8 @@ pub const TWO: u64 = 2_000_000_000;
 pub const FOUR: u64 = 4_000_000_000;
 
 pub const SCALE: u32 = 9;
+
+pub const BITS_ONE: u64 = 1073741824; // 1 << 30
 
 pub trait FixedPow<RHS = Self> {
     /// Output type for the methods of this trait.
@@ -52,10 +54,6 @@ impl FixedPow for u64 {
     // and 80/20 Weighted Pools
 
     fn pow_down(self, rhs: Self) -> Self::Output {
-        if self == 0 {
-            return 0;
-        }
-
         match rhs {
             ZERO => ONE,
             ONE => self,
@@ -64,18 +62,15 @@ impl FixedPow for u64 {
                 let square = self.mul_down(self);
                 square.mul_down(square)
             }
-            _ => Decimal::from_i128_with_scale(self as i128, SCALE)
-                .powd(Decimal::from_i128_with_scale(rhs as i128, SCALE))
-                .round_dp(9)
-                .mantissa() as u64,
+            _ => {
+                let base = U34F30::from_bits(self.mul_down(BITS_ONE));
+                let exp = U34F30::from_bits(rhs.mul_down(BITS_ONE));
+                base.powf(exp).to_bits().div_down(BITS_ONE)
+            }
         }
     }
 
     fn pow_up(self, rhs: Self) -> Self::Output {
-        if self == 0 {
-            return 0;
-        }
-
         match rhs {
             ZERO => ONE,
             ONE => self,
@@ -84,10 +79,11 @@ impl FixedPow for u64 {
                 let square = self.mul_up(self);
                 square.mul_up(square)
             }
-            _ => Decimal::from_i128_with_scale(self as i128, SCALE)
-                .powd(Decimal::from_i128_with_scale(rhs as i128, SCALE))
-                .round_dp_with_strategy(9, RoundingStrategy::AwayFromZero)
-                .mantissa() as u64,
+            _ => {
+                let base = U34F30::from_bits(self.mul_up(BITS_ONE));
+                let exp = U34F30::from_bits(rhs.mul_up(BITS_ONE));
+                base.powf(exp).to_bits().div_up(BITS_ONE)
+            }
         }
     }
 }
@@ -128,11 +124,11 @@ impl FixedComplement for u64 {
 mod tests {
     use super::*;
 
-    pub const MAX_SAFE_BALANCE: u64 = 2_000_000_000_000_000; // 2M
+    pub const MAX_SAFE_BALANCE: u64 = 4_000_000_000_000_000_000; // 4B
     pub const MAX_INVARIANT_RATIO: u64 = 999_999_999; // 0.999999999
     pub const MIN_INVARIANT_RATIO: u64 = 700_000_000; // 0.7
 
-    pub const AVAILABLE_WEIGHTS: [u64; 29] = [
+    pub const AVAILABLE_WEIGHTS: [u64; 30] = [
         100_000_000, // 10%
         150_000_000, // 15%
         200_000_000, // 20%
@@ -148,6 +144,7 @@ mod tests {
         700_000_000, // 70%
         750_000_000, // 75%
         800_000_000, // 80%
+        900_000_000, // 90%
         111_111_111,
         137_137_137,
         222_222_222,
@@ -161,7 +158,7 @@ mod tests {
         666_666_666,
         699_888_999,
         777_777_777,
-        799_777_111,
+        888_888_888,
     ];
 
     #[test]
@@ -231,6 +228,6 @@ mod tests {
             similar - exact
         };
 
-        assert!(diff.div_up(exact) < 35000); // 0.0035%
+        assert!(diff.div_up(exact) < 100); // 0.00001%
     }
 }

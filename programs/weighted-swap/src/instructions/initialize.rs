@@ -32,9 +32,9 @@ pub fn process_initialize(
         assert!(weights[token_index] >= weighted_math::MIN_WEIGHT);
 
         let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
-        let (scaling_up, scaling_factor) = if max_caps[token_index] > weighted_math::SAFE_MAX_CAP {
+        let (scaling_up, scaling_factor) = if max_caps[token_index] > weighted_math::MAX_SAFE_BALANCE_INT {
             let tick_size = max_caps[token_index]
-                .checked_div_up(weighted_math::SAFE_MAX_CAP)
+                .checked_div_up(weighted_math::MAX_SAFE_BALANCE_INT)
                 .unwrap();
             if default_scaling_factor >= tick_size {
                 (true, default_scaling_factor / tick_size)

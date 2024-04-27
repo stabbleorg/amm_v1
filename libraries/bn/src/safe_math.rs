@@ -1,4 +1,4 @@
-use crate::U192;
+use crate::{uint192, U192};
 
 /// Trait for calculating `val * num / denom` with different rounding modes and overflow
 /// protection.
@@ -53,7 +53,7 @@ pub trait Downcast {
 
 impl Upcast for u128 {
     fn as_u192(self) -> U192 {
-        U192([self as u64, (self >> 64) as u64, 0])
+        uint192!(self)
     }
 }
 
