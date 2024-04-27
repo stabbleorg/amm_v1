@@ -1,28 +1,19 @@
 import { assert } from "chai";
+import { BN } from "bn.js";
 import { AnchorProvider } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
-import {
-  VaultContext,
-  WeightedSwapContext,
-  StableSwapContext,
-  Vault,
-  WeightedPool,
-  StablePool,
-  WeightedMath,
-  SafeNumber,
-} from "@stabbleorg/amm-sdk";
+import { NATIVE_MINT } from "@solana/spl-token";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { VaultContext, WeightedSwapContext, StableSwapContext, Vault, WeightedMath } from "@stabbleorg/amm-sdk";
 import {
   WEIGHTED_VAULT_KP,
   STABLE_VAULT_KP,
-  MINT_AUTH_KP,
   USDC_MINT_KP,
   USDT_MINT_KP,
   DAI_MINT_KP,
+  MSOL_MINT_KP,
   STB_MINT_KP,
   BONK_MINT_KP,
 } from "./consts";
-import { NATIVE_MINT } from "@solana/spl-token";
-import { BN } from "bn.js";
 
 describe("Pool", () => {
   const provider = AnchorProvider.env();
@@ -39,7 +30,9 @@ describe("Pool", () => {
   let stableVault: Vault;
 
   let POOL_ID_STB_USDC: PublicKey;
+  let POOL_ID_BONK_SOL_USDC: PublicKey;
   let POOL_ID_USDT_USDC: PublicKey;
+  let POOL_ID_MSOL_SOL: PublicKey;
 
   before(async () => {
     const vaults = await vaultCtx.findAll();
@@ -133,6 +126,37 @@ describe("Pool", () => {
       const usdcRatio = usdcAmount / usdcAmountOut;
       assert.ok(usdcRatio > 1);
       assert.ok(usdcRatio < 1.000001);
+    });
+
+    it("should swap STB for USDC", async () => {
+      const pools = await weightedSwap.findByVault(weightedVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
+
+      const amountIn = 10000;
+      const slippage = 0.003; // 0.03%
+      const estimatedAmountOut = pool.getSwapAmountOut(STB_MINT_KP.publicKey, USDC_MINT_KP.publicKey, amountIn);
+      // 1 STB/USDC = estimatedAmountOut / amountIn
+      // 1 USDC/STB = amountIn / estimatedAmountOut
+      const minimumAmountOut = estimatedAmountOut * (1 - slippage);
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      await weightedSwap.swap({
+        pool,
+        mintInAddress: STB_MINT_KP.publicKey,
+        mintOutAddress: USDC_MINT_KP.publicKey,
+        amountIn: amountIn,
+        minimumAmountOut,
+      });
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+      assert.ok(amountOut >= minimumAmountOut);
+      assert.ok(amountOut <= estimatedAmountOut);
     });
 
     it("should make imbalanced deposit", async () => {
@@ -287,6 +311,7 @@ describe("Pool", () => {
         weights: [0.5, 0.3, "0.2"], // 50:30:20
         swapFee: "0.005", // 0.5%
       });
+      POOL_ID_BONK_SOL_USDC = pool.address;
 
       // Bonk: $0.000001, SOL: $145, USDC: $1
       const bRatio_Bonk_USDC = WeightedMath.calcBalanceRatio(0.5, 0.000001, 0.2, 1);
@@ -347,19 +372,52 @@ describe("Pool", () => {
         mintAddresses,
         amount: 30000,
       });
+    });
 
+    it("should swap SOL for USDC", async () => {
       const pools = await weightedSwap.findByVault(weightedVault);
-      const pool2 = pools.find((pool2) => pool2.address.equals(pool.address))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_BONK_SOL_USDC))!;
+
+      const amountIn = 10;
+      const slippage = 0.003; // 0.03%
+      const estimatedAmountOut = pool.getSwapAmountOut(NATIVE_MINT, USDC_MINT_KP.publicKey, amountIn);
+      // 1 SOL/USDC = estimatedAmountOut / amountIn
+      // 1 USDC/SOL = amountIn / estimatedAmountOut
+      const minimumAmountOut = estimatedAmountOut * (1 - slippage);
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      await weightedSwap.swap({
+        pool,
+        mintInAddress: NATIVE_MINT,
+        mintOutAddress: USDC_MINT_KP.publicKey,
+        amountIn: amountIn,
+        minimumAmountOut,
+      });
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+      assert.ok(amountOut >= minimumAmountOut);
+      assert.ok(amountOut <= estimatedAmountOut);
+    });
+
+    it("should have more balance in vault than in pool", async () => {
+      const pools = await weightedSwap.findByVault(weightedVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_BONK_SOL_USDC))!;
 
       const { value: vaultBonkBalance } = await provider.connection.getTokenAccountBalance(
-        weightedVault.getAuthorityTokenAddress(pool2.tokens[0].mintAddress),
+        weightedVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
       );
-      assert.ok(new BN(vaultBonkBalance.amount).gte(new BN(pool2.tokens[0].balance.amount)));
+      assert.ok(new BN(vaultBonkBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
 
       const { value: vaultSolBalance } = await provider.connection.getTokenAccountBalance(
-        weightedVault.getAuthorityTokenAddress(pool2.tokens[1].mintAddress),
+        weightedVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
       );
-      assert.ok(new BN(vaultSolBalance.amount).gte(new BN(pool2.tokens[1].balance.amount)));
+      assert.ok(new BN(vaultSolBalance.amount).gte(new BN(pool.tokens[1].balance.amount)));
     });
   });
 
@@ -586,6 +644,131 @@ describe("Pool", () => {
         stableVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
       );
       assert.ok(new BN(vaultUsdtBalance.amount).gte(new BN(pool.tokens[1].balance.amount)));
+    });
+  });
+
+  describe("MSOL-SOL", () => {
+    it("should create/deposit/withdraw", async () => {
+      const mintAddresses = [MSOL_MINT_KP.publicKey, NATIVE_MINT];
+      const ampFactor = 50;
+
+      const { pool } = await stableSwap.initialize({
+        vault: stableVault,
+        mintAddresses,
+        maxCaps: [3000000000, 3000000000],
+        ampFactor,
+        swapFee: "0.0001", // 0.01%
+      });
+      POOL_ID_MSOL_SOL = pool.address;
+
+      await vaultCtx.createMissingTokenAccounts({ vault: stableVault, mintAddresses });
+
+      // add initial liquidity
+      await stableSwap.deposit({
+        pool,
+        mintAddresses,
+        amounts: [6915.978, 54972.969],
+      });
+
+      // add liquidity
+      await stableSwap.deposit({
+        pool,
+        mintAddresses,
+        amounts: [69.15978, 549.72969],
+      });
+      await stableSwap.deposit({
+        pool,
+        mintAddresses: [MSOL_MINT_KP.publicKey],
+        amounts: [69.15978],
+      });
+      await stableSwap.deposit({
+        pool,
+        mintAddresses: [NATIVE_MINT],
+        amounts: [549.72969],
+      });
+
+      // remove liquidity
+      await stableSwap.withdraw({
+        pool,
+        mintAddresses: [MSOL_MINT_KP.publicKey],
+        amount: 600,
+      });
+      await stableSwap.withdraw({
+        pool,
+        mintAddresses: [NATIVE_MINT],
+        amount: 600,
+      });
+      await stableSwap.withdraw({
+        pool,
+        mintAddresses,
+        amount: 1200,
+      });
+    });
+
+    it("should swap MSOL for SOL", async () => {
+      const pools = await stableSwap.findByVault(stableVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_MSOL_SOL))!;
+
+      const amountIn = 10;
+      const slippage = 0.003; // 0.03%
+      const estimatedAmountOut = pool.getSwapAmountOut(MSOL_MINT_KP.publicKey, NATIVE_MINT, amountIn);
+      // 1 MSOL/SOL = estimatedAmountOut / amountIn
+      // 1 SOL/MSOL = amountIn / estimatedAmountOut
+      const minimumAmountOut = estimatedAmountOut * (1 - slippage);
+
+      const balance = await provider.connection.getBalance(stableSwap.walletAddress);
+
+      await stableSwap.swap({
+        pool,
+        mintInAddress: MSOL_MINT_KP.publicKey,
+        mintOutAddress: NATIVE_MINT,
+        amountIn: amountIn,
+        minimumAmountOut,
+      });
+
+      const postBalance = await provider.connection.getBalance(stableSwap.walletAddress);
+      const amountOut = (postBalance - balance) / LAMPORTS_PER_SOL;
+      assert.ok(amountOut >= minimumAmountOut);
+      assert.ok(amountOut <= estimatedAmountOut);
+    });
+
+    it("should have more balance in vault than in pool", async () => {
+      const pools = await stableSwap.findByVault(stableVault);
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_MSOL_SOL))!;
+
+      const { value: vaultMsolBalance } = await provider.connection.getTokenAccountBalance(
+        stableVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
+      );
+      assert.ok(new BN(vaultMsolBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
+
+      const { value: vaultSolBalance } = await provider.connection.getTokenAccountBalance(
+        stableVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
+      );
+      assert.ok(new BN(vaultSolBalance.amount).gte(new BN(pool.tokens[1].balance.amount)));
+    });
+  });
+
+  describe("DAI-USDC", () => {
+    it("should create stable pool", async () => {
+      const mintAddresses = [DAI_MINT_KP.publicKey, USDC_MINT_KP.publicKey];
+      const ampFactor = 750;
+
+      const { pool } = await stableSwap.initialize({
+        vault: stableVault,
+        mintAddresses,
+        maxCaps: [3000000000, 3000000000],
+        ampFactor,
+        swapFee: "0.0004", // 0.04%
+      });
+
+      await vaultCtx.createMissingTokenAccounts({ vault: stableVault, mintAddresses });
+
+      // add initial liquidity
+      await stableSwap.deposit({
+        pool,
+        mintAddresses,
+        amounts: [87485.12, 93921],
+      });
     });
   });
 });

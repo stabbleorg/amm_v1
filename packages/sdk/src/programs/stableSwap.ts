@@ -25,7 +25,7 @@ import {
   TransactionArgsWithPriority,
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
-import { AMM_VAULT_ID, StablePool, StablePoolData, Vault } from "../accounts";
+import { AMM_VAULT_ID, Vault, StablePool, StablePoolData } from "../accounts";
 import { FloatLike, SafeNumber } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
@@ -299,60 +299,141 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
   }
 
-  // async swapInstructions({
-  //   beneficiaryAddress,
-  //   vaultAddress,
-  //   vaultAuthorityAddress,
-  //   vaultProgramAddress,
-  //   poolAddress,
-  //   mintInAddress,
-  //   mintOutAddress,
-  //   amountIn,
-  //   minimumAmountOut,
-  // }: {
-  //   beneficiaryAddress: PublicKey;
-  //   vaultAddress: PublicKey;
-  //   vaultAuthorityAddress: PublicKey;
-  //   vaultProgramAddress: PublicKey;
-  //   poolAddress: PublicKey;
-  //   mintInAddress: PublicKey;
-  //   mintOutAddress: PublicKey;
-  //   amountIn: BN;
-  //   minimumAmountOut: BN;
-  // }): Promise<TransactionInstruction[]> {
-  //   const instructions: TransactionInstruction[] = [];
+  async swap({
+    pool,
+    mintInAddress,
+    mintOutAddress,
+    amountIn,
+    minimumAmountOut,
+  }: TransactionArgsWithPriority<{
+    pool: StablePool;
+    mintInAddress: PublicKey;
+    mintOutAddress: PublicKey;
+    amountIn: FloatLike;
+    minimumAmountOut: FloatLike;
+  }>): Promise<TransactionSignature> {
+    const instructions: TransactionInstruction[] = [];
+    const signers: Signer[] = [];
 
-  //   const { address: userTokenOutAddress, instruction: userTokenOutInstruction } =
-  //     await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress);
-  //   if (userTokenOutInstruction) instructions.push(userTokenOutInstruction);
+    let tokenInAddress;
+    if (mintInAddress.equals(NATIVE_MINT)) {
+      const keypair = Keypair.generate();
+      instructions.push(
+        ...(await this.transferWSOLInstructions(
+          keypair.publicKey,
+          mintInAddress,
+          BigInt(SafeNumber.toBigAmount(amountIn, 9).toString()),
+        )),
+      );
+      signers.push(keypair);
+      tokenInAddress = keypair.publicKey;
+    }
 
-  //   const { address: beneficiaryTokenOutAddress, instruction: beneficiaryTokenOutInstruction } =
-  //     await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress, beneficiaryAddress);
-  //   if (beneficiaryTokenOutInstruction) instructions.push(beneficiaryTokenOutInstruction);
+    let tokenOutAddress;
+    if (mintOutAddress.equals(NATIVE_MINT)) {
+      const keypair = Keypair.generate();
+      signers.push(keypair);
+      instructions.push(...(await this.createIntermediateTokenAccountInstructions(keypair.publicKey, mintOutAddress)));
+      signers.push(keypair);
+      tokenOutAddress = keypair.publicKey;
+    }
 
-  //   instructions.push(
-  //     await this.program.methods
-  //       .swap(amountIn, minimumAmountOut)
-  //       .accountsStrict({
-  //         user: this.walletAddress,
-  //         userXToken: null,
-  //         userTokenIn: this.getAssociatedTokenAddress(mintInAddress),
-  //         userTokenOut: userTokenOutAddress,
-  //         vaultTokenIn: this.getAssociatedTokenAddress(mintInAddress, vaultAuthorityAddress),
-  //         vaultTokenOut: this.getAssociatedTokenAddress(mintOutAddress, vaultAuthorityAddress),
-  //         beneficiaryTokenOut: beneficiaryTokenOutAddress,
-  //         pool: poolAddress,
-  //         withdrawAuthority: this.findWithdrawAuthorityAddress(vaultAddress),
-  //         vault: vaultAddress,
-  //         vaultAuthority: vaultAuthorityAddress,
-  //         tokenProgram: TOKEN_PROGRAM_ID,
-  //         vaultProgram: vaultProgramAddress,
-  //       })
-  //       .instruction(),
-  //   );
+    instructions.push(
+      ...(await this.swapInstructions({
+        pool,
+        mintInAddress,
+        mintOutAddress,
+        amountIn,
+        minimumAmountOut,
+        tokenInAddress,
+        tokenOutAddress,
+      })),
+    );
 
-  //   return instructions;
-  // }
+    const { transaction, slot } = await this.createTransaction(instructions);
+
+    return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
+  }
+
+  async swapInstructions({
+    pool,
+    mintInAddress,
+    mintOutAddress,
+    amountIn,
+    minimumAmountOut,
+    tokenInAddress,
+    tokenOutAddress,
+  }: {
+    pool: StablePool;
+    mintInAddress: PublicKey;
+    mintOutAddress: PublicKey;
+    amountIn?: FloatLike;
+    minimumAmountOut: FloatLike;
+    tokenInAddress?: PublicKey;
+    tokenOutAddress?: PublicKey;
+  }): Promise<TransactionInstruction[]> {
+    const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintInAddress));
+    if (!tokenIn) throw Error("Swap path not found");
+    const tokenOut = pool.tokens.find((token) => token.mintAddress.equals(mintOutAddress));
+    if (!tokenOut) throw Error("Swap path not found");
+
+    const instructions: TransactionInstruction[] = [];
+
+    let userTokenInAddress: PublicKey;
+    if (tokenInAddress) {
+      userTokenInAddress = tokenInAddress;
+    } else {
+      const { address: userTokenAddress, instruction: createUserTokenInstruction } =
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintInAddress);
+      if (createUserTokenInstruction) {
+        instructions.push(createUserTokenInstruction);
+      }
+      userTokenInAddress = userTokenAddress;
+    }
+
+    let userTokenOutAddress: PublicKey;
+    if (tokenOutAddress) {
+      userTokenOutAddress = tokenOutAddress;
+    } else {
+      const { address: userTokenAddress, instruction: createUserTokenInstruction } =
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress);
+      if (createUserTokenInstruction) {
+        instructions.push(createUserTokenInstruction);
+      }
+      userTokenOutAddress = userTokenAddress;
+    }
+
+    instructions.push(
+      await this.program.methods
+        .swap(
+          amountIn ? SafeNumber.toBigAmount(amountIn, tokenIn.balance.decimals) : null,
+          SafeNumber.toBigAmount(minimumAmountOut, tokenOut.balance.decimals),
+        )
+        .accountsStrict({
+          user: this.walletAddress,
+          // TODO: assign xSTB token account for swap fee discount
+          userXToken: null,
+          userTokenIn: userTokenInAddress,
+          userTokenOut: userTokenOutAddress,
+          vaultTokenIn: pool.vault.getAuthorityTokenAddress(mintInAddress),
+          vaultTokenOut: pool.vault.getAuthorityTokenAddress(mintOutAddress),
+          beneficiaryTokenOut: pool.vault.getBeneficiaryTokenAddress(mintOutAddress),
+          pool: pool.address,
+          withdrawAuthority: pool.vault.withdrawAuthorityAddress,
+          vault: pool.vault.address,
+          vaultAuthority: pool.vault.authorityAddress,
+          vaultProgram: AMM_VAULT_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .instruction(),
+    );
+
+    // close intermediate token accounts
+    if (tokenInAddress) instructions.push(this.closeIntermediateTokenAccountInstruction(tokenInAddress));
+    if (tokenOutAddress) instructions.push(this.closeIntermediateTokenAccountInstruction(tokenOutAddress));
+
+    return instructions;
+  }
 
   async changeAmpFactor({
     pool,

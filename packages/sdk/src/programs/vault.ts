@@ -6,7 +6,7 @@ import {
   TransactionArgsWithPriority,
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
-import { StablePool, Vault, VaultData, WeightedPool } from "../accounts";
+import { Vault, VaultData, WeightedPool, StablePool } from "../accounts";
 import { SafeNumber } from "../utils";
 import { type Vault as IDLType } from "../generated/vault";
 import IDL from "../generated/idl/vault.json";
