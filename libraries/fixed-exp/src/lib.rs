@@ -7,7 +7,6 @@
 //! use fixed_exp::FixedPowF;
 //!
 //! let x = U34F30::from_num(4.0);
-//! assert_eq!(U34F30::from_num(1024.0), x.powi(5));
 //! assert_eq!(U34F30::from_num(8.0), x.powf(U34F30::from_num(1.5)));
 //! ```
 
@@ -20,14 +19,8 @@ use num_traits::{One, PrimInt, Zero};
 use typenum::{Bit, IsLessOrEqual, LeEq, True, Unsigned, U63};
 
 /// Extension trait providing fixed-point exponentiation for fixed-point numbers.
-///
-/// This is only implemented for types that can represent numbers larger than `1`.
 pub trait FixedPowF: Fixed {
     /// Raises a number to a fixed-point power.
-    ///
-    /// # Panics
-    ///
-    /// - If `self` is negative and `n` is fractional.
     ///
     /// # Examples
     ///
