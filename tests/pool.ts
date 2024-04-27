@@ -22,6 +22,7 @@ import {
   BONK_MINT_KP,
 } from "./consts";
 import { NATIVE_MINT } from "@solana/spl-token";
+import { BN } from "bn.js";
 
 describe("Pool", () => {
   const provider = AnchorProvider.env();
@@ -53,7 +54,7 @@ describe("Pool", () => {
       const { pool } = await weightedSwap.initialize({
         vault: weightedVault,
         mintAddresses,
-        maxCaps: [500000000, 2000000],
+        maxCaps: [500000000, 4000000000],
         weights: [0.5, "0.5"], // 50:50
         swapFee: "0.005", // 0.5%
       });
@@ -79,7 +80,7 @@ describe("Pool", () => {
       const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
 
       const mintAddresses = pool.tokens.map((token) => token.mintAddress);
-      const bRatio_STB_USDC = pool.tokens[0].balance / pool.tokens[1].balance;
+      const bRatio_STB_USDC = pool.tokens[0].balance.uiAmount! / pool.tokens[1].balance.uiAmount!;
       const usdcAmount = 10000;
       const stbAmount = usdcAmount * bRatio_STB_USDC;
 
@@ -139,7 +140,7 @@ describe("Pool", () => {
       const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
 
       const mintAddresses = pool.tokens.map((token) => token.mintAddress);
-      const bRatio_STB_USDC = pool.tokens[0].balance / pool.tokens[1].balance;
+      const bRatio_STB_USDC = pool.tokens[0].balance.uiAmount! / pool.tokens[1].balance.uiAmount!;
       const stbAmount = 1000;
       const usdcAmount = stbAmount * bRatio_STB_USDC;
 
@@ -266,12 +267,12 @@ describe("Pool", () => {
       const { value: vaultStbBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
       );
-      assert.ok(vaultStbBalance.uiAmount! >= pool.tokens[0].balance);
+      assert.ok(new BN(vaultStbBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
 
-      const { value: vaultUsdtBalance } = await provider.connection.getTokenAccountBalance(
+      const { value: vaultUsdcBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
       );
-      assert.ok(vaultUsdtBalance.uiAmount! >= pool.tokens[1].balance);
+      assert.ok(new BN(vaultUsdcBalance.amount).gte(new BN(pool.tokens[1].balance.amount)));
     });
   });
 
@@ -282,7 +283,7 @@ describe("Pool", () => {
       const { pool } = await weightedSwap.initialize({
         vault: weightedVault,
         mintAddresses,
-        maxCaps: [5000000000000, 2000000, 2000000],
+        maxCaps: [10000000000000, 4000000000, 4000000000],
         weights: [0.5, 0.3, "0.2"], // 50:30:20
         swapFee: "0.005", // 0.5%
       });
@@ -325,31 +326,26 @@ describe("Pool", () => {
         amounts: [usdcAmount / 5],
       });
 
-      // const { value: balance } = await provider.connection.getTokenAccountBalance(
-      //   weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
-      // );
-      // console.log("LP balance:", balance);
-
       // remove liquidity
       await weightedSwap.withdraw({
         pool,
         mintAddresses: [BONK_MINT_KP.publicKey],
-        amount: 100,
+        amount: 10000,
       });
       await weightedSwap.withdraw({
         pool,
         mintAddresses: [NATIVE_MINT],
-        amount: 100,
+        amount: 10000,
       });
       await weightedSwap.withdraw({
         pool,
         mintAddresses: [USDC_MINT_KP.publicKey],
-        amount: 100,
+        amount: 10000,
       });
       await weightedSwap.withdraw({
         pool,
         mintAddresses,
-        amount: 300,
+        amount: 30000,
       });
 
       const pools = await weightedSwap.findByVault(weightedVault);
@@ -358,12 +354,12 @@ describe("Pool", () => {
       const { value: vaultBonkBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool2.tokens[0].mintAddress),
       );
-      assert.ok(vaultBonkBalance.uiAmount! >= pool2.tokens[0].balance);
+      assert.ok(new BN(vaultBonkBalance.amount).gte(new BN(pool2.tokens[0].balance.amount)));
 
       const { value: vaultSolBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool2.tokens[1].mintAddress),
       );
-      assert.ok(vaultSolBalance.uiAmount! >= pool2.tokens[1].balance);
+      assert.ok(new BN(vaultSolBalance.amount).gte(new BN(pool2.tokens[1].balance.amount)));
     });
   });
 
@@ -396,7 +392,7 @@ describe("Pool", () => {
       const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
 
       const mintAddresses = pool.tokens.map((token) => token.mintAddress);
-      const bRatio_USDT_USDC = pool.tokens[0].balance / pool.tokens[1].balance;
+      const bRatio_USDT_USDC = pool.tokens[0].balance.uiAmount! / pool.tokens[1].balance.uiAmount!;
       const usdcAmount = 7710.61758;
       const usdtAmount = usdcAmount * bRatio_USDT_USDC;
 
@@ -456,7 +452,7 @@ describe("Pool", () => {
       const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
 
       const mintAddresses = pool.tokens.map((token) => token.mintAddress);
-      const bRatio_USDT_USDC = pool.tokens[0].balance / pool.tokens[1].balance;
+      const bRatio_USDT_USDC = pool.tokens[0].balance.uiAmount! / pool.tokens[1].balance.uiAmount!;
       const usdtAmount = 7710.61758;
       const usdcAmount = usdtAmount * bRatio_USDT_USDC;
 
@@ -584,12 +580,12 @@ describe("Pool", () => {
       const { value: vaultUsdcBalance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
       );
-      assert.ok(vaultUsdcBalance.uiAmount! >= pool.tokens[0].balance);
+      assert.ok(new BN(vaultUsdcBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
 
       const { value: vaultUsdtBalance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
       );
-      assert.ok(vaultUsdtBalance.uiAmount! >= pool.tokens[1].balance);
+      assert.ok(new BN(vaultUsdtBalance.amount).gte(new BN(pool.tokens[1].balance.amount)));
     });
   });
 });

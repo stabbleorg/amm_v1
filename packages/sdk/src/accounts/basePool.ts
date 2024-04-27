@@ -1,5 +1,5 @@
 import BN from "bn.js";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, TokenAmount } from "@solana/web3.js";
 import { Vault } from "./vault";
 
 export type PoolTokenData = {
@@ -22,7 +22,7 @@ export type PoolData = {
 
 export type PoolToken = {
   mintAddress: PublicKey;
-  balance: number;
+  balance: TokenAmount;
 };
 
 export interface Pool<T> {
