@@ -1011,10 +1011,10 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@stabbleorg/anchor-contrib@^0.6.0-beta.1":
-  version "0.6.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-0.6.0-beta.1.tgz#6fc9a2caa99262defd241c889fa2c909ebeba9a8"
-  integrity sha512-s3f+Gr5taLPUmNB8vaxummxywg2Lp8Uoa2g1eNrbMSRgRh6Va36YfemAbYBW0LmbB2VoI62gT0p2/Wd4vtEi/Q==
+"@stabbleorg/anchor-contrib@^0.6.0":
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-0.6.0.tgz#467d81991cc42e15ba5acb9f64aa48925cf76929"
+  integrity sha512-seFCuPyv4WqKdp9mmYD+t0KZ3J8fLlaQhXs0+4FkGOIruaoa0+jqukkORvK7Djo/bQD5fNOG+OP9iXR94dBV9A==
   dependencies:
     "@coral-xyz/anchor" "^0.30.0"
     "@solana/spl-token" "^0.4.0"

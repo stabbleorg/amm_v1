@@ -4,7 +4,7 @@ import {
   DataUpdatedEvent,
   SIMULATED_SIGNATURE,
   SignerProvider,
-  TransactionArgsWithPriority,
+  TransactionArgs,
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
 import { Vault, VaultData, WeightedPool, StablePool } from "../accounts";
@@ -38,7 +38,8 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     beneficiaryFee,
     kind,
     priorityLevel,
-  }: TransactionArgsWithPriority<{
+    altAccounts,
+  }: TransactionArgs<{
     keypair?: Keypair;
     beneficiaryAddress: PublicKey;
     beneficiaryFee: number;
@@ -84,25 +85,17 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    if ("sendAndConfirmWithBlockhash" in this.provider) {
-      return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
-        transaction,
-        [keypair],
-        { minContextSlot: slot },
-        recentBlock,
-      );
-    }
-
-    return this.provider.sendAndConfirm!(transaction, [keypair], { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
   }
 
   async createMissingTokenAccounts({
     vault,
     mintAddresses,
     priorityLevel,
-  }: TransactionArgsWithPriority<{
+    altAccounts,
+  }: TransactionArgs<{
     vault: Vault;
     mintAddresses: PublicKey[];
   }>): Promise<TransactionSignature> {
@@ -119,9 +112,9 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress, vault.beneficiaryAddress, true);
       if (createBeneficiaryTokenInstruction) instructions.push(createBeneficiaryTokenInstruction);
     }
-    const { transaction, slot } = await this.createTransaction(instructions, [], priorityLevel);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    return this.provider.sendAndConfirm!(transaction, [], { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
   }
 }
 

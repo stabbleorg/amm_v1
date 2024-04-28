@@ -23,7 +23,7 @@ import {
   DataUpdatedEvent,
   SIMULATED_SIGNATURE,
   SignerProvider,
-  TransactionArgsWithPriority,
+  TransactionArgs,
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID, Vault, StablePool, StablePoolData } from "../accounts";
@@ -65,7 +65,8 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     symbol = "",
     uri = "",
     priorityLevel,
-  }: TransactionArgsWithPriority<{
+    altAccounts,
+  }: TransactionArgs<{
     vault: Vault;
     keypair?: Keypair;
     poolMintKP?: Keypair;
@@ -150,19 +151,9 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    let signature: TransactionSignature;
-    if ("sendAndConfirmWithBlockhash" in this.provider) {
-      signature = await (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
-        transaction,
-        [keypair, poolMintKP],
-        { minContextSlot: slot },
-        recentBlock,
-      );
-    } else {
-      signature = await this.provider.sendAndConfirm!(transaction, [keypair, poolMintKP], { minContextSlot: slot });
-    }
+    const signature = await this.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair, poolMintKP]);
 
     const pool = new StablePool(vault, keypair.publicKey, await this.program.account.pool.fetch(keypair.publicKey));
 
@@ -175,7 +166,8 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     amounts,
     minimumAmountOut,
     priorityLevel,
-  }: TransactionArgsWithPriority<{
+    altAccounts,
+  }: TransactionArgs<{
     pool: StablePool;
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
@@ -194,13 +186,7 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
       if (mintAddress.equals(NATIVE_MINT)) {
         const keypair = Keypair.generate();
         signers.push(keypair);
-        instructions.push(
-          ...(await this.transferWSOLInstructions(
-            keypair.publicKey,
-            mintAddress,
-            BigInt(SafeNumber.toBigAmount(amounts[index], 9).toString()),
-          )),
-        );
+        instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, mintAddress, amounts[index])));
         userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
       } else {
         const userTokenAddress = this.getAssociatedTokenAddress(mintAddress);
@@ -238,18 +224,9 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 
     if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    if ("sendAndConfirmWithBlockhash" in this.provider) {
-      return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
-        transaction,
-        signers,
-        { minContextSlot: slot },
-        recentBlock,
-      );
-    }
-
-    return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, signers);
   }
 
   async withdraw({
@@ -258,7 +235,8 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     amount,
     minimumAmountsOut,
     priorityLevel,
-  }: TransactionArgsWithPriority<{
+    altAccounts,
+  }: TransactionArgs<{
     pool: StablePool;
     mintAddresses: PublicKey[];
     amount: FloatLike;
@@ -318,18 +296,9 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 
     if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    if ("sendAndConfirmWithBlockhash" in this.provider) {
-      return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
-        transaction,
-        signers,
-        { minContextSlot: slot },
-        recentBlock,
-      );
-    }
-
-    return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, signers);
   }
 
   async swap({
@@ -339,7 +308,8 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     amountIn,
     minimumAmountOut,
     priorityLevel,
-  }: TransactionArgsWithPriority<{
+    altAccounts,
+  }: TransactionArgs<{
     pool: StablePool;
     mintInAddress: PublicKey;
     mintOutAddress: PublicKey;
@@ -352,13 +322,7 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     let tokenInAddress;
     if (mintInAddress.equals(NATIVE_MINT)) {
       const keypair = Keypair.generate();
-      instructions.push(
-        ...(await this.transferWSOLInstructions(
-          keypair.publicKey,
-          mintInAddress,
-          BigInt(SafeNumber.toBigAmount(amountIn, 9).toString()),
-        )),
-      );
+      instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, mintInAddress, amountIn)));
       signers.push(keypair);
       tokenInAddress = keypair.publicKey;
     }
@@ -384,18 +348,9 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
       })),
     );
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    if ("sendAndConfirmWithBlockhash" in this.provider) {
-      return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
-        transaction,
-        signers,
-        { minContextSlot: slot },
-        recentBlock,
-      );
-    }
-
-    return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, signers);
   }
 
   async swapInstructions({
@@ -481,7 +436,7 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
   async changeAmpFactor({
     pool,
     adminKP,
-  }: TransactionArgsWithPriority<{ pool: StablePool; adminKP?: Keypair }>): Promise<TransactionSignature> {
+  }: TransactionArgs<{ pool: StablePool; adminKP?: Keypair }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
       .pause()
       .accountsStrict({

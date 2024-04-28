@@ -13,6 +13,6 @@
     "outDir": "dist",
     "strict": true
   },
-  "include": ["packages/sdk/**/*.ts", "packages/sdk/**/package.json"],
+  "include": ["packages/**/*.ts", "packages/**/package.json"],
   "exclude": ["dist", "node_modules"]
 }

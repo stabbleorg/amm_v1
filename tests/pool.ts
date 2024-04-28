@@ -135,8 +135,8 @@ describe("Pool", () => {
 
       const amountOut = postBalance.uiAmount! - balance.uiAmount!;
       const ratio = balance.uiAmount! / amountOut;
-      assert.ok(ratio > 99.99998);
-      assert.ok(ratio < 100.00002);
+      assert.ok(ratio > 100);
+      assert.ok(ratio < 100.00004);
 
       const { value: stbBalance } = await provider.connection.getTokenAccountBalance(
         weightedSwap.getAssociatedTokenAddress(STB_MINT_KP.publicKey),
