@@ -22,6 +22,7 @@ import {
 import {
   DataUpdatedEvent,
   SIMULATED_SIGNATURE,
+  SignerProvider,
   TransactionArgsWithPriority,
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
@@ -148,9 +149,20 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
 
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
 
-    const signature = await this.provider.sendAndConfirm!(transaction, [keypair, poolMintKP], { minContextSlot: slot });
+    let signature: TransactionSignature;
+    if ("sendAndConfirmWithBlockhash" in this.provider) {
+      signature = await (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
+        transaction,
+        [keypair, poolMintKP],
+        { minContextSlot: slot },
+        recentBlock,
+      );
+    } else {
+      signature = await this.provider.sendAndConfirm!(transaction, [keypair, poolMintKP], { minContextSlot: slot });
+    }
+
     const pool = new StablePool(vault, keypair.publicKey, await this.program.account.pool.fetch(keypair.publicKey));
 
     return { pool, signature };
@@ -224,7 +236,16 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 
     if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
+
+    if ("sendAndConfirmWithBlockhash" in this.provider) {
+      return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
+        transaction,
+        signers,
+        { minContextSlot: slot },
+        recentBlock,
+      );
+    }
 
     return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
   }
@@ -294,7 +315,16 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 
     if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
+
+    if ("sendAndConfirmWithBlockhash" in this.provider) {
+      return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
+        transaction,
+        signers,
+        { minContextSlot: slot },
+        recentBlock,
+      );
+    }
 
     return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
   }
@@ -350,7 +380,16 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
       })),
     );
 
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
+
+    if ("sendAndConfirmWithBlockhash" in this.provider) {
+      return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
+        transaction,
+        signers,
+        { minContextSlot: slot },
+        recentBlock,
+      );
+    }
 
     return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
   }

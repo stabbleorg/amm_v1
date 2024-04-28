@@ -3,6 +3,7 @@ import { Keypair, PublicKey, SystemProgram, TransactionInstruction, TransactionS
 import {
   DataUpdatedEvent,
   SIMULATED_SIGNATURE,
+  SignerProvider,
   TransactionArgsWithPriority,
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
@@ -82,7 +83,16 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
 
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
+
+    if ("sendAndConfirmWithBlockhash" in this.provider) {
+      return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
+        transaction,
+        [keypair],
+        { minContextSlot: slot },
+        recentBlock,
+      );
+    }
 
     return this.provider.sendAndConfirm!(transaction, [keypair], { minContextSlot: slot });
   }
