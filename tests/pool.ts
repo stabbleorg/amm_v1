@@ -60,6 +60,7 @@ describe("Pool", () => {
   let POOL_ID_BONK_SOL_USDC: PublicKey;
   let POOL_ID_USDT_USDC: PublicKey;
   let POOL_ID_MSOL_SOL: PublicKey;
+  let POOL_ID_DAI_USDC: PublicKey;
 
   before(async () => {
     const vaults = await guestVaultCtx.findAll();
@@ -541,6 +542,36 @@ describe("Pool", () => {
       assert.ok(usdcRatio < 1.000001);
     });
 
+    it("should swap USDT for USDC", async () => {
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))! as StablePool;
+
+      const amountIn = 10;
+      const slippage = 0.001; // 0.01%
+      const estimatedAmountOut = pool.getSwapAmountOut(USDT_MINT_KP.publicKey, USDC_MINT_KP.publicKey, amountIn);
+      // 1 USDT/USDC = estimatedAmountOut / amountIn
+      // 1 USDC/USDT = amountIn / estimatedAmountOut
+      const minimumAmountOut = estimatedAmountOut * (1 - slippage);
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      await stableSwap.swap({
+        pool,
+        mintInAddress: USDT_MINT_KP.publicKey,
+        mintOutAddress: USDC_MINT_KP.publicKey,
+        amountIn: amountIn,
+        minimumAmountOut,
+      });
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+      assert.ok(amountOut >= minimumAmountOut);
+      assert.ok(amountOut <= estimatedAmountOut);
+    });
+
     it("should make imbalanced deposit", async () => {
       const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))! as StablePool;
 
@@ -793,6 +824,7 @@ describe("Pool", () => {
         swapFee: "0.0004", // 0.04%
       });
       pools.push(pool);
+      POOL_ID_DAI_USDC = pool.address;
 
       await vaultCtx.createMissingTokenAccounts({ vault: stableVault, mintAddresses });
 
@@ -802,6 +834,45 @@ describe("Pool", () => {
         mintAddresses,
         amounts: [87485.12, 93921],
       });
+    });
+
+    it("should swap DAI for USDC", async () => {
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_DAI_USDC))! as StablePool;
+
+      const amountIn = 7.133;
+      const slippage = 0.001; // 0.01%
+      const estimatedAmountOut = pool.getSwapAmountOut(DAI_MINT_KP.publicKey, USDC_MINT_KP.publicKey, amountIn);
+      // 1 DAI/USDC = estimatedAmountOut / amountIn
+      // 1 USDC/DAI = amountIn / estimatedAmountOut
+      const minimumAmountOut = estimatedAmountOut * (1 - slippage);
+
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+
+      await stableSwap.swap({
+        pool,
+        mintInAddress: DAI_MINT_KP.publicKey,
+        mintOutAddress: USDC_MINT_KP.publicKey,
+        amountIn: amountIn,
+        minimumAmountOut,
+      });
+
+      const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+        stableSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+      );
+      const amountOut = postBalance.uiAmount! - balance.uiAmount!;
+      assert.ok(amountOut >= minimumAmountOut);
+      assert.ok(amountOut <= estimatedAmountOut);
+    });
+
+    it("should have more balance in vault than in pool", async () => {
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_DAI_USDC))! as StablePool;
+
+      const { value: vaultDaiBalance } = await provider.connection.getTokenAccountBalance(
+        stableVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
+      );
+      assert.ok(new BN(vaultDaiBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
     });
   });
 });
