@@ -8,12 +8,14 @@ import {
   Pool,
   WeightedPool,
   StablePool,
+  VaultData,
   WeightedPoolData,
   StablePoolData,
   WeightedMath,
   VaultContext,
   WeightedSwapContext,
   StableSwapContext,
+  VaultListener,
   WeightedSwapListener,
   StableSwapListener,
 } from "@stabbleorg/amm-sdk";
@@ -41,8 +43,11 @@ describe("Pool", () => {
   const weightedSwap = new WeightedSwapContext(provider);
   const stableSwap = new StableSwapContext(provider);
 
+  const guestVaultCtx = new VaultContext(guestProvider);
   const guestWeightedSwap = new WeightedSwapContext(guestProvider);
   const guestStableSwap = new StableSwapContext(guestProvider);
+
+  const vaultListener = new VaultListener(guestVaultCtx.program);
   const weightedSwapListener = new WeightedSwapListener(guestWeightedSwap.program);
   const stableSwapListener = new StableSwapListener(guestStableSwap.program);
 
@@ -57,7 +62,7 @@ describe("Pool", () => {
   let POOL_ID_MSOL_SOL: PublicKey;
 
   before(async () => {
-    const vaults = await vaultCtx.findAll();
+    const vaults = await guestVaultCtx.findAll();
     weightedVault = vaults.find((vault) => vault.address.equals(WEIGHTED_VAULT_KP.publicKey))!;
     stableVault = vaults.find((vault) => vault.address.equals(STABLE_VAULT_KP.publicKey))!;
 

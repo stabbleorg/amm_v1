@@ -17,10 +17,14 @@ export type VaultData = {
 };
 
 export class Vault {
+  data: VaultData;
+
   constructor(
     readonly address: PublicKey,
-    readonly data: VaultData,
-  ) {}
+    data: VaultData,
+  ) {
+    this.data = data;
+  }
 
   get adminAddress(): PublicKey {
     return this.data.admin;
@@ -44,6 +48,10 @@ export class Vault {
 
   get isActive(): boolean {
     return this.data.isActive;
+  }
+
+  refreshData(updatedData: Partial<VaultData>) {
+    this.data = { ...this.data, ...updatedData };
   }
 
   getAuthorityTokenAddress(mintAddress: PublicKey): PublicKey {
