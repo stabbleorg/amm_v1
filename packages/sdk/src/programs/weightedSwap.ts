@@ -64,6 +64,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
     name = "",
     symbol = "",
     uri = "",
+    priorityLevel,
   }: TransactionArgsWithPriority<{
     vault: Vault;
     keypair?: Keypair;
@@ -149,7 +150,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
 
     let signature: TransactionSignature;
     if ("sendAndConfirmWithBlockhash" in this.provider) {
@@ -173,12 +174,13 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
     mintAddresses,
     amounts,
     minimumAmountOut,
-  }: {
+    priorityLevel,
+  }: TransactionArgsWithPriority<{
     pool: WeightedPool;
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
     minimumAmountOut?: FloatLike;
-  }): Promise<TransactionSignature> {
+  }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
@@ -236,7 +238,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
 
     if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
 
     if ("sendAndConfirmWithBlockhash" in this.provider) {
       return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
@@ -255,6 +257,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
     mintAddresses,
     amount,
     minimumAmountsOut,
+    priorityLevel,
   }: TransactionArgsWithPriority<{
     pool: WeightedPool;
     mintAddresses: PublicKey[];
@@ -315,7 +318,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
 
     if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
 
     if ("sendAndConfirmWithBlockhash" in this.provider) {
       return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
@@ -335,6 +338,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
     mintOutAddress,
     amountIn,
     minimumAmountOut,
+    priorityLevel,
   }: TransactionArgsWithPriority<{
     pool: WeightedPool;
     mintInAddress: PublicKey;
@@ -380,7 +384,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
       })),
     );
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
 
     if ("sendAndConfirmWithBlockhash" in this.provider) {
       return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(

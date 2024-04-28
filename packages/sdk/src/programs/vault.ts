@@ -37,6 +37,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     beneficiaryAddress,
     beneficiaryFee,
     kind,
+    priorityLevel,
   }: TransactionArgsWithPriority<{
     keypair?: Keypair;
     beneficiaryAddress: PublicKey;
@@ -83,7 +84,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
 
-    const { transaction, slot, recentBlock } = await this.createTransaction(instructions);
+    const { transaction, slot, recentBlock } = await this.createTransaction(instructions, [], priorityLevel);
 
     if ("sendAndConfirmWithBlockhash" in this.provider) {
       return (this.provider as SignerProvider).sendAndConfirmWithBlockhash(
@@ -100,6 +101,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
   async createMissingTokenAccounts({
     vault,
     mintAddresses,
+    priorityLevel,
   }: TransactionArgsWithPriority<{
     vault: Vault;
     mintAddresses: PublicKey[];
@@ -117,7 +119,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress, vault.beneficiaryAddress, true);
       if (createBeneficiaryTokenInstruction) instructions.push(createBeneficiaryTokenInstruction);
     }
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, slot } = await this.createTransaction(instructions, [], priorityLevel);
 
     return this.provider.sendAndConfirm!(transaction, [], { minContextSlot: slot });
   }
