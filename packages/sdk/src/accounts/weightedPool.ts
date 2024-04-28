@@ -16,14 +16,17 @@ export type WeightedPoolData = PoolData & {
 
 export class WeightedPool implements Pool<WeightedPoolData> {
   static POOL_TOKEN_DECIMALS = 9;
-  static POOL_TOKEN_SIZE = 32 + 1 + 1 + 8 + 8 + 8;
+  static POOL_TOKEN_SIZE = 32 + 1 + 1 + 8 + 8 + 8 + 8;
+
+  data: WeightedPoolData;
 
   constructor(
     readonly vault: Vault,
     readonly address: PublicKey,
-    readonly data: WeightedPoolData,
+    data: WeightedPoolData,
   ) {
     if (!vault.address.equals(data.vault)) throw Error("Vault address does not match");
+    this.data = data;
   }
 
   get vaultAddress(): PublicKey {
@@ -71,6 +74,10 @@ export class WeightedPool implements Pool<WeightedPoolData> {
 
   get weights(): number[] {
     return this.data.tokens.map((data) => SafeNumber.toPercentage(data.weight));
+  }
+
+  refreshData(updatedData: Partial<WeightedPoolData>) {
+    this.data = { ...this.data, ...updatedData };
   }
 
   getSwapAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {

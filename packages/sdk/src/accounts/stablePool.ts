@@ -18,14 +18,17 @@ export type StablePoolData = PoolData & {
 
 export class StablePool implements Pool<StablePoolData> {
   static POOL_TOKEN_DECIMALS = 9;
-  static POOL_TOKEN_SIZE = 32 + 1 + 1 + 8 + 8;
+  static POOL_TOKEN_SIZE = 32 + 1 + 1 + 8 + 8 + 8;
+
+  data: StablePoolData;
 
   constructor(
     readonly vault: Vault,
     readonly address: PublicKey,
-    readonly data: StablePoolData,
+    data: StablePoolData,
   ) {
     if (!vault.address.equals(data.vault)) throw Error("Vault address does not match");
+    this.data = data;
   }
 
   get vaultAddress(): PublicKey {
@@ -86,6 +89,10 @@ export class StablePool implements Pool<StablePoolData> {
 
   get balances(): number[] {
     return this.tokens.map((token) => token.balance.uiAmount!);
+  }
+
+  refreshData(updatedData: Partial<StablePoolData>) {
+    this.data = { ...this.data, ...updatedData };
   }
 
   getSwapAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {

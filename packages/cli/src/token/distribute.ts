@@ -24,7 +24,7 @@ export function distribute(program: Command) {
     .requiredOption("--iou-mint-k <string>", "iou mint key", parseKey)
     .requiredOption("--path <path>", "path")
     .action(async ({ iouMintK, path }: { iouMintK: PublicKey; path: string }) => {
-      const { provider, walletContext } = useContext();
+      const { provider, vaultContext } = useContext();
 
       const items: WhitelistItem[] = JSON.parse(fs.readFileSync(path, { encoding: "utf8" }));
 
@@ -62,7 +62,7 @@ export function distribute(program: Command) {
         );
         if (index % BATCH_SIZE === 0 || index === items.length) {
           console.log("Batch #:", Math.ceil(index / BATCH_SIZE));
-          const { transaction, slot } = await walletContext.createTransaction(ixs);
+          const { transaction, slot } = await vaultContext.createTransaction(ixs);
           const signature = await provider.sendAndConfirm(transaction, [], { minContextSlot: slot });
           console.log("Signature:", signature);
           ixs = [];

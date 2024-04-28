@@ -3,7 +3,20 @@ import { BN } from "bn.js";
 import { AnchorProvider } from "@coral-xyz/anchor";
 import { NATIVE_MINT } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
-import { VaultContext, WeightedSwapContext, StableSwapContext, Vault, WeightedMath } from "@stabbleorg/amm-sdk";
+import {
+  Vault,
+  Pool,
+  WeightedPool,
+  StablePool,
+  WeightedPoolData,
+  StablePoolData,
+  WeightedMath,
+  VaultContext,
+  WeightedSwapContext,
+  StableSwapContext,
+  WeightedSwapListener,
+  StableSwapListener,
+} from "@stabbleorg/amm-sdk";
 import {
   WEIGHTED_VAULT_KP,
   STABLE_VAULT_KP,
@@ -25,6 +38,10 @@ describe("Pool", () => {
   const vaultCtx = new VaultContext(provider);
   const weightedSwap = new WeightedSwapContext(provider);
   const stableSwap = new StableSwapContext(provider);
+  const weightedSwapListener = new WeightedSwapListener(weightedSwap.program);
+  const stableSwapListener = new StableSwapListener(stableSwap.program);
+
+  const pools: Pool<WeightedPoolData | StablePoolData>[] = [];
 
   let weightedVault: Vault;
   let stableVault: Vault;
@@ -38,6 +55,20 @@ describe("Pool", () => {
     const vaults = await vaultCtx.findAll();
     weightedVault = vaults.find((vault) => vault.address.equals(WEIGHTED_VAULT_KP.publicKey))!;
     stableVault = vaults.find((vault) => vault.address.equals(STABLE_VAULT_KP.publicKey))!;
+
+    weightedSwapListener.addPoolListener((event) => {
+      const updatedPool = pools.find((pool) => event.pubkey.equals(pool.address));
+      if (updatedPool) updatedPool.refreshData(event.data);
+    });
+    stableSwapListener.addPoolListener((event) => {
+      const updatedPool = pools.find((pool) => event.pubkey.equals(pool.address));
+      if (updatedPool) updatedPool.refreshData(event.data);
+    });
+  });
+
+  after(() => {
+    weightedSwapListener.removePoolListener();
+    stableSwapListener.removePoolListener();
   });
 
   describe("STB50-USDC50", () => {
@@ -51,6 +82,7 @@ describe("Pool", () => {
         weights: [0.5, "0.5"], // 50:50
         swapFee: "0.005", // 0.5%
       });
+      pools.push(pool);
       POOL_ID_STB_USDC = pool.address;
 
       // STB: $0.03, USDC: $1
@@ -69,8 +101,7 @@ describe("Pool", () => {
     });
 
     it("should make balanced deposit", async () => {
-      const pools = await weightedSwap.findByVault(weightedVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))! as WeightedPool;
 
       const mintAddresses = pool.tokens.map((token) => token.mintAddress);
       const bRatio_STB_USDC = pool.tokens[0].balance.uiAmount! / pool.tokens[1].balance.uiAmount!;
@@ -129,8 +160,7 @@ describe("Pool", () => {
     });
 
     it("should swap STB for USDC", async () => {
-      const pools = await weightedSwap.findByVault(weightedVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))! as WeightedPool;
 
       const amountIn = 10000;
       const slippage = 0.003; // 0.03%
@@ -160,8 +190,7 @@ describe("Pool", () => {
     });
 
     it("should make imbalanced deposit", async () => {
-      const pools = await weightedSwap.findByVault(weightedVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))! as WeightedPool;
 
       const mintAddresses = pool.tokens.map((token) => token.mintAddress);
       const bRatio_STB_USDC = pool.tokens[0].balance.uiAmount! / pool.tokens[1].balance.uiAmount!;
@@ -213,8 +242,7 @@ describe("Pool", () => {
     });
 
     it("should make single deposit", async () => {
-      const pools = await weightedSwap.findByVault(weightedVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))! as WeightedPool;
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         weightedSwap.getAssociatedTokenAddress(pool.mintAddress),
@@ -285,8 +313,7 @@ describe("Pool", () => {
     });
 
     it("should have more balance in vault than in pool", async () => {
-      const pools = await weightedSwap.findByVault(weightedVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_STB_USDC))! as WeightedPool;
 
       const { value: vaultStbBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
@@ -311,6 +338,7 @@ describe("Pool", () => {
         weights: [0.5, 0.3, "0.2"], // 50:30:20
         swapFee: "0.005", // 0.5%
       });
+      pools.push(pool);
       POOL_ID_BONK_SOL_USDC = pool.address;
 
       // Bonk: $0.000001, SOL: $145, USDC: $1
@@ -375,8 +403,7 @@ describe("Pool", () => {
     });
 
     it("should swap SOL for USDC", async () => {
-      const pools = await weightedSwap.findByVault(weightedVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_BONK_SOL_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_BONK_SOL_USDC))! as WeightedPool;
 
       const amountIn = 10;
       const slippage = 0.003; // 0.03%
@@ -406,8 +433,7 @@ describe("Pool", () => {
     });
 
     it("should have more balance in vault than in pool", async () => {
-      const pools = await weightedSwap.findByVault(weightedVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_BONK_SOL_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_BONK_SOL_USDC))! as WeightedPool;
 
       const { value: vaultBonkBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
@@ -433,6 +459,7 @@ describe("Pool", () => {
         ampFactor,
         swapFee: "0.0001", // 0.01%
       });
+      pools.push(pool);
       POOL_ID_USDT_USDC = pool.address;
 
       await vaultCtx.createMissingTokenAccounts({ vault: stableVault, mintAddresses });
@@ -446,8 +473,7 @@ describe("Pool", () => {
     });
 
     it("should make balanced deposit", async () => {
-      const pools = await stableSwap.findByVault(stableVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))! as StablePool;
 
       const mintAddresses = pool.tokens.map((token) => token.mintAddress);
       const bRatio_USDT_USDC = pool.tokens[0].balance.uiAmount! / pool.tokens[1].balance.uiAmount!;
@@ -506,8 +532,7 @@ describe("Pool", () => {
     });
 
     it("should make imbalanced deposit", async () => {
-      const pools = await stableSwap.findByVault(stableVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))! as StablePool;
 
       const mintAddresses = pool.tokens.map((token) => token.mintAddress);
       const bRatio_USDT_USDC = pool.tokens[0].balance.uiAmount! / pool.tokens[1].balance.uiAmount!;
@@ -559,8 +584,7 @@ describe("Pool", () => {
     });
 
     it("should make single deposit", async () => {
-      const pools = await stableSwap.findByVault(stableVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))! as StablePool;
 
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         stableSwap.getAssociatedTokenAddress(pool.mintAddress),
@@ -632,8 +656,7 @@ describe("Pool", () => {
     });
 
     it("should have more balance in vault than in pool", async () => {
-      const pools = await stableSwap.findByVault(stableVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_USDT_USDC))! as StablePool;
 
       const { value: vaultUsdcBalance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
@@ -659,6 +682,7 @@ describe("Pool", () => {
         ampFactor,
         swapFee: "0.0001", // 0.01%
       });
+      pools.push(pool);
       POOL_ID_MSOL_SOL = pool.address;
 
       await vaultCtx.createMissingTokenAccounts({ vault: stableVault, mintAddresses });
@@ -706,8 +730,7 @@ describe("Pool", () => {
     });
 
     it("should swap MSOL for SOL", async () => {
-      const pools = await stableSwap.findByVault(stableVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_MSOL_SOL))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_MSOL_SOL))! as StablePool;
 
       const amountIn = 10;
       const slippage = 0.003; // 0.03%
@@ -733,8 +756,7 @@ describe("Pool", () => {
     });
 
     it("should have more balance in vault than in pool", async () => {
-      const pools = await stableSwap.findByVault(stableVault);
-      const pool = pools.find((pool) => pool.address.equals(POOL_ID_MSOL_SOL))!;
+      const pool = pools.find((pool) => pool.address.equals(POOL_ID_MSOL_SOL))! as StablePool;
 
       const { value: vaultMsolBalance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
@@ -760,6 +782,7 @@ describe("Pool", () => {
         ampFactor,
         swapFee: "0.0004", // 0.04%
       });
+      pools.push(pool);
 
       await vaultCtx.createMissingTokenAccounts({ vault: stableVault, mintAddresses });
 
