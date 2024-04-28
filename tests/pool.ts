@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { BN } from "bn.js";
-import { AnchorProvider } from "@coral-xyz/anchor";
+import { AnchorProvider, Provider } from "@coral-xyz/anchor";
 import { NATIVE_MINT } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
@@ -35,11 +35,16 @@ describe("Pool", () => {
   provider.opts.preflightCommitment = "confirmed";
   provider.opts.skipPreflight = true;
 
+  const guestProvider: Provider = { connection: provider.connection };
+
   const vaultCtx = new VaultContext(provider);
   const weightedSwap = new WeightedSwapContext(provider);
   const stableSwap = new StableSwapContext(provider);
-  const weightedSwapListener = new WeightedSwapListener(weightedSwap.program);
-  const stableSwapListener = new StableSwapListener(stableSwap.program);
+
+  const guestWeightedSwap = new WeightedSwapContext(guestProvider);
+  const guestStableSwap = new StableSwapContext(guestProvider);
+  const weightedSwapListener = new WeightedSwapListener(guestWeightedSwap.program);
+  const stableSwapListener = new StableSwapListener(guestStableSwap.program);
 
   const pools: Pool<WeightedPoolData | StablePoolData>[] = [];
 
