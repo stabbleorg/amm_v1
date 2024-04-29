@@ -16,14 +16,17 @@ export type WeightedPoolData = PoolData & {
 
 export class WeightedPool implements Pool<WeightedPoolData> {
   static POOL_TOKEN_DECIMALS = 9;
-  static POOL_TOKEN_SIZE = 32 + 1 + 1 + 8 + 8 + 8;
+  static POOL_TOKEN_SIZE = 32 + 1 + 1 + 8 + 8 + 8 + 8;
+
+  data: WeightedPoolData;
 
   constructor(
     readonly vault: Vault,
     readonly address: PublicKey,
-    readonly data: WeightedPoolData,
+    data: WeightedPoolData,
   ) {
     if (!vault.address.equals(data.vault)) throw Error("Vault address does not match");
+    this.data = data;
   }
 
   get vaultAddress(): PublicKey {
@@ -51,21 +54,30 @@ export class WeightedPool implements Pool<WeightedPoolData> {
   }
 
   get tokens(): PoolToken[] {
-    return this.data.tokens.map((token) => ({
-      mintAddress: token.mint,
-      balance: SafeNumber.toUiAmount(
-        token.scalingUp ? token.balance.div(token.scalingFactor) : token.balance.mul(token.scalingFactor),
-        token.decimals,
-      ),
-    }));
+    return this.data.tokens.map((token) => {
+      const balance = token.scalingUp ? token.balance.div(token.scalingFactor) : token.balance.mul(token.scalingFactor);
+      return {
+        mintAddress: token.mint,
+        balance: {
+          amount: balance.toString(),
+          decimals: token.decimals,
+          uiAmount: SafeNumber.toUiAmount(balance, token.decimals),
+          uiAmountString: SafeNumber.toUiAmountString(balance, token.decimals),
+        },
+      };
+    });
   }
 
   get balances(): number[] {
-    return this.tokens.map((token) => token.balance);
+    return this.tokens.map((token) => token.balance.uiAmount!);
   }
 
   get weights(): number[] {
     return this.data.tokens.map((data) => SafeNumber.toPercentage(data.weight));
+  }
+
+  refreshData(updatedData: Partial<WeightedPoolData>) {
+    this.data = { ...this.data, ...updatedData };
   }
 
   getSwapAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {

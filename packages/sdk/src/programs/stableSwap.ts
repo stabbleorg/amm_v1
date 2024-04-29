@@ -19,19 +19,16 @@ import {
   TransactionInstruction,
   TransactionSignature,
 } from "@solana/web3.js";
-import {
-  DataUpdatedEvent,
-  SIMULATED_SIGNATURE,
-  TransactionArgsWithPriority,
-  WalletContext,
-} from "@stabbleorg/anchor-contrib";
-import { AMM_VAULT_ID, StablePool, StablePoolData, Vault } from "../accounts";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, TransactionArgs, WalletContext } from "@stabbleorg/anchor-contrib";
+import { AMM_VAULT_ID, Vault, StablePool, StablePoolData } from "../accounts";
 import { FloatLike, SafeNumber } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
+export type StableSwapProgram = Program<IDLType>;
+
 export class StableSwapContext<T extends Provider> extends WalletContext<T> {
-  readonly program: Program<IDLType>;
+  readonly program: StableSwapProgram;
   readonly metaplex: Metaplex;
 
   constructor(provider: T) {
@@ -63,7 +60,9 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     name = "",
     symbol = "",
     uri = "",
-  }: TransactionArgsWithPriority<{
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{
     vault: Vault;
     keypair?: Keypair;
     poolMintKP?: Keypair;
@@ -148,9 +147,10 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
 
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    const signature = await this.provider.sendAndConfirm!(transaction, [keypair, poolMintKP], { minContextSlot: slot });
+    const signature = await this.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair, poolMintKP]);
+
     const pool = new StablePool(vault, keypair.publicKey, await this.program.account.pool.fetch(keypair.publicKey));
 
     return { pool, signature };
@@ -161,7 +161,9 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     mintAddresses,
     amounts,
     minimumAmountOut,
-  }: TransactionArgsWithPriority<{
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{
     pool: StablePool;
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
@@ -180,13 +182,7 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
       if (mintAddress.equals(NATIVE_MINT)) {
         const keypair = Keypair.generate();
         signers.push(keypair);
-        instructions.push(
-          ...(await this.transferWSOLInstructions(
-            keypair.publicKey,
-            mintAddress,
-            BigInt(SafeNumber.toBigAmount(amounts[index], 9).toString()),
-          )),
-        );
+        instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, amounts[index])));
         userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
       } else {
         const userTokenAddress = this.getAssociatedTokenAddress(mintAddress);
@@ -224,9 +220,9 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 
     if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, signers);
   }
 
   async withdraw({
@@ -234,7 +230,9 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     mintAddresses,
     amount,
     minimumAmountsOut,
-  }: TransactionArgsWithPriority<{
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{
     pool: StablePool;
     mintAddresses: PublicKey[];
     amount: FloatLike;
@@ -294,70 +292,148 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 
     if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, signers);
   }
 
-  // async swapInstructions({
-  //   beneficiaryAddress,
-  //   vaultAddress,
-  //   vaultAuthorityAddress,
-  //   vaultProgramAddress,
-  //   poolAddress,
-  //   mintInAddress,
-  //   mintOutAddress,
-  //   amountIn,
-  //   minimumAmountOut,
-  // }: {
-  //   beneficiaryAddress: PublicKey;
-  //   vaultAddress: PublicKey;
-  //   vaultAuthorityAddress: PublicKey;
-  //   vaultProgramAddress: PublicKey;
-  //   poolAddress: PublicKey;
-  //   mintInAddress: PublicKey;
-  //   mintOutAddress: PublicKey;
-  //   amountIn: BN;
-  //   minimumAmountOut: BN;
-  // }): Promise<TransactionInstruction[]> {
-  //   const instructions: TransactionInstruction[] = [];
+  async swap({
+    pool,
+    mintInAddress,
+    mintOutAddress,
+    amountIn,
+    minimumAmountOut,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{
+    pool: StablePool;
+    mintInAddress: PublicKey;
+    mintOutAddress: PublicKey;
+    amountIn: FloatLike;
+    minimumAmountOut: FloatLike;
+  }>): Promise<TransactionSignature> {
+    const instructions: TransactionInstruction[] = [];
+    const signers: Signer[] = [];
 
-  //   const { address: userTokenOutAddress, instruction: userTokenOutInstruction } =
-  //     await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress);
-  //   if (userTokenOutInstruction) instructions.push(userTokenOutInstruction);
+    let tokenInAddress;
+    if (mintInAddress.equals(NATIVE_MINT)) {
+      const keypair = Keypair.generate();
+      instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, amountIn)));
+      signers.push(keypair);
+      tokenInAddress = keypair.publicKey;
+    }
 
-  //   const { address: beneficiaryTokenOutAddress, instruction: beneficiaryTokenOutInstruction } =
-  //     await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress, beneficiaryAddress);
-  //   if (beneficiaryTokenOutInstruction) instructions.push(beneficiaryTokenOutInstruction);
+    let tokenOutAddress;
+    if (mintOutAddress.equals(NATIVE_MINT)) {
+      const keypair = Keypair.generate();
+      signers.push(keypair);
+      instructions.push(...(await this.createIntermediateTokenAccountInstructions(keypair.publicKey, mintOutAddress)));
+      signers.push(keypair);
+      tokenOutAddress = keypair.publicKey;
+    }
 
-  //   instructions.push(
-  //     await this.program.methods
-  //       .swap(amountIn, minimumAmountOut)
-  //       .accountsStrict({
-  //         user: this.walletAddress,
-  //         userXToken: null,
-  //         userTokenIn: this.getAssociatedTokenAddress(mintInAddress),
-  //         userTokenOut: userTokenOutAddress,
-  //         vaultTokenIn: this.getAssociatedTokenAddress(mintInAddress, vaultAuthorityAddress),
-  //         vaultTokenOut: this.getAssociatedTokenAddress(mintOutAddress, vaultAuthorityAddress),
-  //         beneficiaryTokenOut: beneficiaryTokenOutAddress,
-  //         pool: poolAddress,
-  //         withdrawAuthority: this.findWithdrawAuthorityAddress(vaultAddress),
-  //         vault: vaultAddress,
-  //         vaultAuthority: vaultAuthorityAddress,
-  //         tokenProgram: TOKEN_PROGRAM_ID,
-  //         vaultProgram: vaultProgramAddress,
-  //       })
-  //       .instruction(),
-  //   );
+    instructions.push(
+      ...(await this.swapInstructions({
+        pool,
+        mintInAddress,
+        mintOutAddress,
+        amountIn,
+        minimumAmountOut,
+        tokenInAddress,
+        tokenOutAddress,
+      })),
+    );
 
-  //   return instructions;
-  // }
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
+
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, signers);
+  }
+
+  async swapInstructions({
+    pool,
+    mintInAddress,
+    mintOutAddress,
+    tokenInAddress,
+    tokenOutAddress,
+    amountIn,
+    minimumAmountOut,
+  }: {
+    pool: StablePool;
+    mintInAddress: PublicKey;
+    mintOutAddress: PublicKey;
+    tokenInAddress?: PublicKey;
+    tokenOutAddress?: PublicKey;
+    amountIn?: FloatLike;
+    minimumAmountOut?: FloatLike;
+  }): Promise<TransactionInstruction[]> {
+    const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintInAddress));
+    if (!tokenIn) throw Error("Swap path not found");
+    const tokenOut = pool.tokens.find((token) => token.mintAddress.equals(mintOutAddress));
+    if (!tokenOut) throw Error("Swap path not found");
+
+    const instructions: TransactionInstruction[] = [];
+
+    let userTokenInAddress: PublicKey;
+    if (tokenInAddress) {
+      userTokenInAddress = tokenInAddress;
+    } else {
+      const { address: userTokenAddress, instruction: createUserTokenInstruction } =
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintInAddress);
+      if (createUserTokenInstruction) {
+        instructions.push(createUserTokenInstruction);
+      }
+      userTokenInAddress = userTokenAddress;
+    }
+
+    let userTokenOutAddress: PublicKey;
+    if (tokenOutAddress) {
+      userTokenOutAddress = tokenOutAddress;
+    } else {
+      const { address: userTokenAddress, instruction: createUserTokenInstruction } =
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress);
+      if (createUserTokenInstruction) {
+        instructions.push(createUserTokenInstruction);
+      }
+      userTokenOutAddress = userTokenAddress;
+    }
+
+    instructions.push(
+      await this.program.methods
+        .swap(
+          amountIn ? SafeNumber.toBigAmount(amountIn, tokenIn.balance.decimals) : null,
+          SafeNumber.toBigAmount(minimumAmountOut || 0, tokenOut.balance.decimals),
+        )
+        .accountsStrict({
+          user: this.walletAddress,
+          // TODO: assign xSTB token account for swap fee discount
+          userXToken: null,
+          userTokenIn: userTokenInAddress,
+          userTokenOut: userTokenOutAddress,
+          vaultTokenIn: pool.vault.getAuthorityTokenAddress(mintInAddress),
+          vaultTokenOut: pool.vault.getAuthorityTokenAddress(mintOutAddress),
+          beneficiaryTokenOut: pool.vault.getBeneficiaryTokenAddress(mintOutAddress),
+          pool: pool.address,
+          withdrawAuthority: pool.vault.withdrawAuthorityAddress,
+          vault: pool.vault.address,
+          vaultAuthority: pool.vault.authorityAddress,
+          vaultProgram: AMM_VAULT_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .instruction(),
+    );
+
+    // close intermediate token accounts
+    if (tokenInAddress) instructions.push(this.closeIntermediateTokenAccountInstruction(tokenInAddress));
+    if (tokenOutAddress && minimumAmountOut !== undefined)
+      instructions.push(this.closeIntermediateTokenAccountInstruction(tokenOutAddress));
+
+    return instructions;
+  }
 
   async changeAmpFactor({
     pool,
     adminKP,
-  }: TransactionArgsWithPriority<{ pool: StablePool; adminKP?: Keypair }>): Promise<TransactionSignature> {
+  }: TransactionArgs<{ pool: StablePool; adminKP?: Keypair }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
       .pause()
       .accountsStrict({
@@ -378,7 +454,7 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 export class StableSwapListener {
   private _listener?: number;
 
-  constructor(readonly program: Program<IDLType>) {}
+  constructor(readonly program: StableSwapProgram) {}
 
   addPoolListener(callback: (event: DataUpdatedEvent<Partial<StablePoolData>>) => void) {
     this.removePoolListener();

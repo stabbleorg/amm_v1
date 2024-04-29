@@ -1,362 +1,355 @@
-import BN from "bn.js";
-import { AnchorProvider } from "@coral-xyz/anchor";
-import { createAssociatedTokenAccount, getAssociatedTokenAddressSync, mintTo } from "@solana/spl-token";
+import { assert } from "chai";
+import { AnchorProvider, Provider } from "@coral-xyz/anchor";
+import { NATIVE_MINT } from "@solana/spl-token";
+import { Connection, Keypair, TransactionInstruction } from "@solana/web3.js";
 import {
-  VaultContext,
-  WeightedSwap,
-  StableSwap,
-  AmmPool,
-  WeightedPoolListener,
-  StablePoolListener,
+  Pool,
   WeightedPool,
   StablePool,
   WeightedPoolData,
   StablePoolData,
-  Amm,
-  SafeNumber,
-} from "@stabbleorg/solana-sdk";
+  VaultContext,
+  WeightedSwapContext,
+  StableSwapContext,
+  WeightedSwapListener,
+  StableSwapListener,
+} from "@stabbleorg/amm-sdk";
 import {
-  stableVaultKP,
-  weightedVaultKP,
-  adminKP,
-  daiMintKP,
-  usdcMintKP,
-  stbMintKP,
-  usdtMintKP,
-  bonkMintKP,
+  WEIGHTED_VAULT_KP,
+  STABLE_VAULT_KP,
+  USDC_MINT_KP,
+  USDT_MINT_KP,
+  DAI_MINT_KP,
+  MSOL_MINT_KP,
+  STB_MINT_KP,
 } from "./consts";
 
-describe("Swap", () => {
-  const provider = AnchorProvider.env();
-  const ctxVault = new VaultContext(provider);
-  const ctxWeighted = new WeightedSwap(provider);
-  const listenerWeighted = new WeightedPoolListener(ctxWeighted.program);
-  const ctxStable = new StableSwap(provider);
-  const listenerStable = new StablePoolListener(ctxStable.program);
+describe("Multi-hop Swap", () => {
+  const env = AnchorProvider.env();
 
-  let amm: Amm<AnchorProvider>;
-  let pools: AmmPool[];
+  const connection = new Connection(env.connection.rpcEndpoint, "confirmed");
+  const provider = new AnchorProvider(connection, env.wallet, {
+    commitment: "confirmed",
+    maxRetries: 1,
+    preflightCommitment: "confirmed",
+    skipPreflight: true,
+  });
+
+  const guestProvider: Provider = { connection };
+
+  const vaultCtx = new VaultContext(provider);
+  const weightedSwap = new WeightedSwapContext(provider);
+  const stableSwap = new StableSwapContext(provider);
+
+  const guestVaultCtx = new VaultContext(guestProvider);
+  const guestWeightedSwap = new WeightedSwapContext(guestProvider);
+  const guestStableSwap = new StableSwapContext(guestProvider);
+
+  const weightedSwapListener = new WeightedSwapListener(guestWeightedSwap.program);
+  const stableSwapListener = new StableSwapListener(guestStableSwap.program);
+
+  const pools: Pool<WeightedPoolData | StablePoolData>[] = [];
 
   before(async () => {
-    await mintTo(
-      provider.connection,
-      adminKP,
-      usdcMintKP.publicKey,
-      await createAssociatedTokenAccount(provider.connection, adminKP, usdcMintKP.publicKey, provider.publicKey),
-      adminKP,
-      BigInt("50000000000"), // 50K
-    );
+    const vaults = await guestVaultCtx.findAll();
+    const weightedVault = vaults.find((vault) => vault.address.equals(WEIGHTED_VAULT_KP.publicKey))!;
+    const stableVault = vaults.find((vault) => vault.address.equals(STABLE_VAULT_KP.publicKey))!;
 
-    amm = new Amm(
-      {
-        vault: ctxVault,
-        weighted: ctxWeighted,
-        stable: ctxStable,
-      },
-      // load vaults initially
-      await ctxVault.findMany([stableVaultKP.publicKey, weightedVaultKP.publicKey]),
-    );
+    pools.push(...(await guestWeightedSwap.findByVault(weightedVault)));
+    pools.push(...(await guestStableSwap.findByVault(stableVault)));
 
-    // load pools initially and update in real-time via listener
-    pools = [
-      ...(await ctxWeighted.findManyByVault(weightedVaultKP.publicKey)),
-      ...(await ctxStable.findManyByVault(stableVaultKP.publicKey)),
-    ];
-
-    listenerWeighted.addPoolListener((evt) => {
-      const index = pools.findIndex((pool) => pool.address.equals(evt.pubkey));
-      if (index !== -1) {
-        pools[index] = new WeightedPool(evt.pubkey, { ...pools[index].data, ...evt.data } as WeightedPoolData);
-      }
+    weightedSwapListener.addPoolListener((event) => {
+      const updatedPool = pools.find((pool) => event.pubkey.equals(pool.address));
+      if (updatedPool) updatedPool.refreshData(event.data);
     });
-    listenerStable.addPoolListener((evt) => {
-      const index = pools.findIndex((pool) => pool.address.equals(evt.pubkey));
-      if (index !== -1) {
-        pools[index] = new StablePool(evt.pubkey, { ...pools[index].data, ...evt.data } as StablePoolData);
-      }
+    stableSwapListener.addPoolListener((event) => {
+      const updatedPool = pools.find((pool) => event.pubkey.equals(pool.address));
+      if (updatedPool) updatedPool.refreshData(event.data);
     });
   });
 
   after(() => {
-    listenerWeighted.removePoolListener();
-    listenerStable.removePoolListener();
+    weightedSwapListener.removePoolListener();
+    stableSwapListener.removePoolListener();
   });
 
-  it("should swap USDC for DAI", async () => {
-    const mintInAddress = usdcMintKP.publicKey;
-    const mintOutAddress = daiMintKP.publicKey;
-    const amountIn = 10000;
-
-    // select the best route
-    const pool = pools.sort(
-      (a, b) =>
-        b.getEstAmountOut(mintInAddress, mintOutAddress, amountIn) -
-        a.getEstAmountOut(mintInAddress, mintOutAddress, amountIn),
-    )[0];
-    if (!pool) {
-      console.log("No route found");
-      return;
-    }
-    console.log("Swap @", pool.address.toBase58());
-
-    const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
-    console.log("1 USDC =", estAmountOut / amountIn, "DAI");
-    console.log("1 DAI =", amountIn / estAmountOut, "USDC");
-    console.log("Estimated out:", estAmountOut);
-    if (estAmountOut === 0) return;
-    // slippage tolarance 0.3% (0.003)
-    const minimumAmountOut = estAmountOut * (1 - 0.003);
-
-    const { transaction } = await amm.swap({
-      pool,
-      mintInAddress,
-      mintOutAddress,
-      amountIn,
-      minimumAmountOut,
-    });
-    await provider.sendAndConfirm(transaction);
-
-    const { value: balance } = await provider.connection.getTokenAccountBalance(
-      getAssociatedTokenAddressSync(daiMintKP.publicKey, provider.publicKey),
-    );
-    console.log("DAI out:", balance.uiAmountString);
-  });
-
-  it("should swap USDC for USDT", async () => {
-    const mintInAddress = usdcMintKP.publicKey;
-    const mintOutAddress = usdtMintKP.publicKey;
-    const amountIn = 10000;
-
-    // select the best route
-    const pool = pools.sort(
-      (a, b) =>
-        b.getEstAmountOut(mintInAddress, mintOutAddress, amountIn) -
-        a.getEstAmountOut(mintInAddress, mintOutAddress, amountIn),
-    )[0];
-    if (!pool) {
-      console.log("No route found");
-      return;
-    }
-    console.log("Swap @", pool.address.toBase58());
-
-    const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
-    console.log("1 USDC =", estAmountOut / amountIn, "USDT");
-    console.log("1 USDT =", amountIn / estAmountOut, "USDC");
-    console.log("Estimated out:", estAmountOut);
-    if (estAmountOut === 0) return;
-    // slippage tolarance 0.3% (0.003)
-    const minimumAmountOut = estAmountOut * (1 - 0.003);
-
-    const { transaction } = await amm.swap({
-      pool,
-      mintInAddress,
-      mintOutAddress,
-      amountIn,
-      minimumAmountOut,
-    });
-    await provider.sendAndConfirm(transaction);
-
-    const { value: balance } = await provider.connection.getTokenAccountBalance(
-      getAssociatedTokenAddressSync(usdtMintKP.publicKey, provider.publicKey),
-    );
-    console.log("USDT out:", balance.uiAmountString);
-  });
-
-  it("should swap USDC for STB", async () => {
-    const mintInAddress = usdcMintKP.publicKey;
-    const mintOutAddress = stbMintKP.publicKey;
+  it("DAI-USDC-USDT", async () => {
     const amountIn = 1000;
 
-    for (let i = 0; i < 10; i++) {
-      // select the best route
-      const pool = pools.sort(
-        (a, b) =>
-          b.getEstAmountOut(mintInAddress, mintOutAddress, amountIn) -
-          a.getEstAmountOut(mintInAddress, mintOutAddress, amountIn),
-      )[0];
-      if (!pool) {
-        console.log("No route found");
-        return;
-      }
-      console.log("Swap @", pool.address.toBase58());
+    // best DAI-USDC pool
+    const pool_DAI_USDC = pools.sort(
+      (p1, p2) =>
+        p2.getSwapAmountOut(DAI_MINT_KP.publicKey, USDC_MINT_KP.publicKey, amountIn) -
+        p1.getSwapAmountOut(DAI_MINT_KP.publicKey, USDC_MINT_KP.publicKey, amountIn),
+    )[0];
+    const intermediateAmountIn = pool_DAI_USDC.getSwapAmountOut(
+      DAI_MINT_KP.publicKey,
+      USDC_MINT_KP.publicKey,
+      amountIn,
+    );
+    // console.log("Estimated USDC out:", intermediateAmountIn);
 
-      const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
-      console.log("1 USDC =", estAmountOut / amountIn, "STB");
-      console.log("1 STB =", amountIn / estAmountOut, "USDC");
-      console.log("Estimated out:", estAmountOut);
-      if (estAmountOut === 0) return;
-      // slippage tolarance 0.3% (0.003)
-      const minimumAmountOut = estAmountOut * (1 - 0.003);
+    // best USDC-USDT pool
+    const pool_USDC_USDT = pools.sort(
+      (p1, p2) =>
+        p2.getSwapAmountOut(USDC_MINT_KP.publicKey, USDT_MINT_KP.publicKey, intermediateAmountIn) -
+        p1.getSwapAmountOut(USDC_MINT_KP.publicKey, USDT_MINT_KP.publicKey, intermediateAmountIn),
+    )[0];
 
-      if (i > 0) {
-        const { value: balance } = await provider.connection.getTokenAccountBalance(
-          getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
-        );
+    const amountOut = pool_USDC_USDT.getSwapAmountOut(
+      USDC_MINT_KP.publicKey,
+      USDT_MINT_KP.publicKey,
+      intermediateAmountIn,
+    );
+    // console.log("Estimated USDT out:", amountOut);
 
-        const { transaction } = await amm.swap({
-          pool,
-          mintInAddress,
-          mintOutAddress,
-          amountIn,
-          minimumAmountOut,
-        });
-        await provider.sendAndConfirm(transaction);
+    // DAI/USDT = amountOut / amountIn
+    // USDT/DAI = amountIn / amountOut
 
-        const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-          getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
-        );
-        console.log(
-          "STB out:",
-          SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-        );
-      } else {
-        const { transaction } = await amm.swap({
-          pool,
-          mintInAddress,
-          mintOutAddress,
-          amountIn,
-          minimumAmountOut,
-        });
-        await provider.sendAndConfirm(transaction);
+    const minimumAmountOut = amountOut * (1 - 0.001); // slippage 0.1%
 
-        const { value: balance } = await provider.connection.getTokenAccountBalance(
-          getAssociatedTokenAddressSync(stbMintKP.publicKey, provider.publicKey),
-        );
-        console.log("STB out:", balance.uiAmountString);
-      }
+    const { value: balance } = await provider.connection.getTokenAccountBalance(
+      weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+    );
+
+    const keypair = Keypair.generate();
+    const instructions: TransactionInstruction[] = [
+      ...(await stableSwap.createIntermediateTokenAccountInstructions(keypair.publicKey, USDC_MINT_KP.publicKey)),
+      ...(await stableSwap.swapInstructions({
+        pool: pool_DAI_USDC as StablePool,
+        mintInAddress: DAI_MINT_KP.publicKey,
+        mintOutAddress: USDC_MINT_KP.publicKey,
+        amountIn,
+        tokenOutAddress: keypair.publicKey,
+      })),
+      ...(await stableSwap.swapInstructions({
+        pool: pool_USDC_USDT as StablePool,
+        mintInAddress: USDC_MINT_KP.publicKey,
+        mintOutAddress: USDT_MINT_KP.publicKey,
+        minimumAmountOut,
+        tokenInAddress: keypair.publicKey,
+      })),
+    ];
+    const { transaction, recentBlock, slot } = await vaultCtx.createTransaction(instructions);
+    await vaultCtx.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
+
+    const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+      weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+    );
+    const usdtAmountOut = postBalance.uiAmount! - balance.uiAmount!;
+
+    // console.log("USDT out:", postBalance.uiAmount! - balance.uiAmount!);
+    assert.ok(usdtAmountOut <= amountOut);
+    assert.ok(usdtAmountOut >= minimumAmountOut);
+  });
+
+  it("STB-USDC-USDT", async () => {
+    const amountIn = 1000000;
+
+    // best STB-USDC pool
+    const pool_STB_USDC = pools.sort(
+      (p1, p2) =>
+        p2.getSwapAmountOut(STB_MINT_KP.publicKey, USDC_MINT_KP.publicKey, amountIn) -
+        p1.getSwapAmountOut(STB_MINT_KP.publicKey, USDC_MINT_KP.publicKey, amountIn),
+    )[0];
+    const intermediateAmountIn = pool_STB_USDC.getSwapAmountOut(
+      STB_MINT_KP.publicKey,
+      USDC_MINT_KP.publicKey,
+      amountIn,
+    );
+    // console.log("Estimated USDC out:", intermediateAmountIn);
+
+    // best USDC-USDT pool
+    const pool_USDC_USDT = pools.sort(
+      (p1, p2) =>
+        p2.getSwapAmountOut(USDC_MINT_KP.publicKey, USDT_MINT_KP.publicKey, intermediateAmountIn) -
+        p1.getSwapAmountOut(USDC_MINT_KP.publicKey, USDT_MINT_KP.publicKey, intermediateAmountIn),
+    )[0];
+
+    const amountOut = pool_USDC_USDT.getSwapAmountOut(
+      USDC_MINT_KP.publicKey,
+      USDT_MINT_KP.publicKey,
+      intermediateAmountIn,
+    );
+    // console.log("Estimated USDT out:", amountOut);
+
+    // STB/USDT = amountOut / amountIn
+    // USDT/STB = amountIn / amountOut
+
+    const minimumAmountOut = amountOut * (1 - 0.001); // slippage 0.1%
+
+    const { value: balance } = await provider.connection.getTokenAccountBalance(
+      weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+    );
+
+    const keypair = Keypair.generate();
+    const instructions: TransactionInstruction[] = [
+      ...(await weightedSwap.createIntermediateTokenAccountInstructions(keypair.publicKey, USDC_MINT_KP.publicKey)),
+      ...(await weightedSwap.swapInstructions({
+        pool: pool_STB_USDC as WeightedPool,
+        mintInAddress: STB_MINT_KP.publicKey,
+        mintOutAddress: USDC_MINT_KP.publicKey,
+        amountIn,
+        tokenOutAddress: keypair.publicKey,
+      })),
+      ...(await stableSwap.swapInstructions({
+        pool: pool_USDC_USDT as StablePool,
+        mintInAddress: USDC_MINT_KP.publicKey,
+        mintOutAddress: USDT_MINT_KP.publicKey,
+        minimumAmountOut,
+        tokenInAddress: keypair.publicKey,
+      })),
+    ];
+    const { transaction, recentBlock, slot } = await vaultCtx.createTransaction(instructions);
+    await vaultCtx.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
+
+    const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+      weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+    );
+    const usdtAmountOut = postBalance.uiAmount! - balance.uiAmount!;
+
+    // console.log("USDT out:", postBalance.uiAmount! - balance.uiAmount!);
+    assert.ok(usdtAmountOut <= amountOut);
+    assert.ok(usdtAmountOut >= minimumAmountOut);
+  });
+
+  it("MSOL-SOL-USDC", async () => {
+    const amountIn = 10;
+
+    // best MSOL-SOL pool
+    const pool_MSOL_SOL = pools.sort(
+      (p1, p2) =>
+        p2.getSwapAmountOut(MSOL_MINT_KP.publicKey, NATIVE_MINT, amountIn) -
+        p1.getSwapAmountOut(MSOL_MINT_KP.publicKey, NATIVE_MINT, amountIn),
+    )[0];
+    const intermediateAmountIn = pool_MSOL_SOL.getSwapAmountOut(MSOL_MINT_KP.publicKey, NATIVE_MINT, amountIn);
+    // console.log("Estimated SOL out:", intermediateAmountIn);
+
+    // best SOL-USDC pool
+    const pool_SOL_USDC = pools.sort(
+      (p1, p2) =>
+        p2.getSwapAmountOut(NATIVE_MINT, USDC_MINT_KP.publicKey, intermediateAmountIn) -
+        p1.getSwapAmountOut(NATIVE_MINT, USDC_MINT_KP.publicKey, intermediateAmountIn),
+    )[0];
+
+    const amountOut = pool_SOL_USDC.getSwapAmountOut(NATIVE_MINT, USDC_MINT_KP.publicKey, intermediateAmountIn);
+    // console.log("Estimated USDC out:", amountOut);
+
+    // MSOL/USDC = amountOut / amountIn
+    // USDC/MSOL = amountIn / amountOut
+
+    const minimumAmountOut = amountOut * (1 - 0.001); // slippage 0.1%
+
+    const { value: balance } = await provider.connection.getTokenAccountBalance(
+      weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+    );
+
+    const keypair = Keypair.generate();
+    const instructions: TransactionInstruction[] = [
+      ...(await stableSwap.createIntermediateTokenAccountInstructions(keypair.publicKey, NATIVE_MINT)),
+      ...(await stableSwap.swapInstructions({
+        pool: pool_MSOL_SOL as StablePool,
+        mintInAddress: MSOL_MINT_KP.publicKey,
+        mintOutAddress: NATIVE_MINT,
+        amountIn,
+        tokenOutAddress: keypair.publicKey,
+      })),
+      ...(await weightedSwap.swapInstructions({
+        pool: pool_SOL_USDC as WeightedPool,
+        mintInAddress: NATIVE_MINT,
+        mintOutAddress: USDC_MINT_KP.publicKey,
+        minimumAmountOut,
+        tokenInAddress: keypair.publicKey,
+      })),
+    ];
+    const { transaction, recentBlock, slot } = await vaultCtx.createTransaction(instructions);
+    await vaultCtx.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
+
+    const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+      weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
+    );
+    const usdcAmountOut = postBalance.uiAmount! - balance.uiAmount!;
+
+    // console.log("USDC out:", postBalance.uiAmount! - balance.uiAmount!);
+    assert.ok(usdcAmountOut <= amountOut);
+    assert.ok(usdcAmountOut >= minimumAmountOut);
+  });
+
+  it("SOL-USDC-USDT", async () => {
+    const amountIn = 10;
+
+    // best SOL-USDC pool
+    const pool_SOL_USDC = pools.sort(
+      (p1, p2) =>
+        p2.getSwapAmountOut(NATIVE_MINT, USDC_MINT_KP.publicKey, amountIn) -
+        p1.getSwapAmountOut(NATIVE_MINT, USDC_MINT_KP.publicKey, amountIn),
+    )[0];
+    const intermediateAmountIn = pool_SOL_USDC.getSwapAmountOut(NATIVE_MINT, USDC_MINT_KP.publicKey, amountIn);
+    // console.log("Estimated USDC out:", intermediateAmountIn);
+
+    // best USDC-USDT pool
+    const pool_USDC_USDT = pools.sort(
+      (p1, p2) =>
+        p2.getSwapAmountOut(USDC_MINT_KP.publicKey, USDT_MINT_KP.publicKey, intermediateAmountIn) -
+        p1.getSwapAmountOut(USDC_MINT_KP.publicKey, USDT_MINT_KP.publicKey, intermediateAmountIn),
+    )[0];
+
+    const amountOut = pool_USDC_USDT.getSwapAmountOut(
+      USDC_MINT_KP.publicKey,
+      USDT_MINT_KP.publicKey,
+      intermediateAmountIn,
+    );
+    // console.log("Estimated USDT out:", amountOut);
+
+    // SOL/USDT = amountOut / amountIn
+    // USDT/SOL = amountIn / amountOut
+
+    const minimumAmountOut = amountOut * (1 - 0.001); // slippage 0.1%
+
+    const { value: balance } = await provider.connection.getTokenAccountBalance(
+      weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
+    );
+
+    const keypair0 = Keypair.generate();
+    {
+      // transfer WSOL first because transaction size is too big without Address Lookup Table
+      const { transaction, recentBlock, slot } = await weightedSwap.createTransaction(
+        await weightedSwap.transferWSOLInstructions(keypair0.publicKey, amountIn),
+      );
+      await weightedSwap.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair0]);
     }
-  });
 
-  it("should swap USDC for BONK", async () => {
-    const mintInAddress = usdcMintKP.publicKey;
-    const mintOutAddress = bonkMintKP.publicKey;
-    const amountIn = 1000;
+    const keypair = Keypair.generate();
+    const instructions: TransactionInstruction[] = [
+      // TODO: Address Lookup Table should be setup
+      // ...(await weightedSwap.transferWSOLInstructions(keypair0.publicKey, amountIn)),
+      ...(await weightedSwap.createIntermediateTokenAccountInstructions(keypair.publicKey, USDC_MINT_KP.publicKey)),
+      ...(await weightedSwap.swapInstructions({
+        pool: pool_SOL_USDC as WeightedPool,
+        mintInAddress: NATIVE_MINT,
+        mintOutAddress: USDC_MINT_KP.publicKey,
+        amountIn,
+        tokenInAddress: keypair0.publicKey,
+        tokenOutAddress: keypair.publicKey,
+      })),
+      ...(await stableSwap.swapInstructions({
+        pool: pool_USDC_USDT as StablePool,
+        mintInAddress: USDC_MINT_KP.publicKey,
+        mintOutAddress: USDT_MINT_KP.publicKey,
+        minimumAmountOut,
+        tokenInAddress: keypair.publicKey,
+      })),
+    ];
+    const { transaction, recentBlock, slot } = await vaultCtx.createTransaction(instructions);
+    await vaultCtx.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
 
-    for (let i = 0; i < 10; i++) {
-      // select the best route
-      const pool = pools.sort(
-        (a, b) =>
-          b.getEstAmountOut(mintInAddress, mintOutAddress, amountIn) -
-          a.getEstAmountOut(mintInAddress, mintOutAddress, amountIn),
-      )[0];
-      if (!pool) {
-        console.log("No route found");
-        return;
-      }
-      console.log("Swap @", pool.address.toBase58());
-
-      const estAmountOut = pool.getEstAmountOut(mintInAddress, mintOutAddress, amountIn);
-      console.log("1 USDC =", (estAmountOut / amountIn).toFixed(5), "Bonk");
-      console.log("1 Bonk =", (amountIn / estAmountOut).toFixed(9), "USDC");
-      console.log("Estimated out:", estAmountOut);
-      if (estAmountOut === 0) return;
-      // slippage tolarance 0.3% (0.003)
-      const minimumAmountOut = estAmountOut * (1 - 0.003);
-
-      if (i > 0) {
-        const { value: balance } = await provider.connection.getTokenAccountBalance(
-          getAssociatedTokenAddressSync(bonkMintKP.publicKey, provider.publicKey),
-        );
-
-        const { transaction } = await amm.swap({
-          pool,
-          mintInAddress,
-          mintOutAddress,
-          amountIn,
-          minimumAmountOut,
-        });
-        await provider.sendAndConfirm(transaction);
-
-        const { value: postBalance } = await provider.connection.getTokenAccountBalance(
-          getAssociatedTokenAddressSync(bonkMintKP.publicKey, provider.publicKey),
-        );
-        console.log(
-          "Bonk out:",
-          SafeNumber.toUiAmountString(new BN(postBalance.amount!).sub(new BN(balance.amount!)), postBalance.decimals),
-        );
-      } else {
-        const { transaction } = await amm.swap({
-          pool,
-          mintInAddress,
-          mintOutAddress,
-          amountIn,
-          minimumAmountOut,
-        });
-        await provider.sendAndConfirm(transaction);
-
-        const { value: balance } = await provider.connection.getTokenAccountBalance(
-          getAssociatedTokenAddressSync(bonkMintKP.publicKey, provider.publicKey),
-        );
-        console.log("Bonk out:", balance.uiAmountString);
-      }
-    }
-  });
-
-  it("should match liquidity with reserves in weighted vault", async () => {
-    const vaultAuthorityAddress = amm.ctxVault.findVaultAuthorityAddress(amm.vaults[1].address);
-
-    const liqSTB = pools
-      .filter((pool) => pool.vaultAddress.equals(amm.vaults[1].address))
-      .reduce(
-        (liquidity, pool) =>
-          (pool.tokens.find((token) => token.mintAddress.equals(stbMintKP.publicKey))?.balance || 0) + liquidity,
-        0,
-      );
-    const {
-      value: { uiAmount: balSTB },
-    } = await provider.connection.getTokenAccountBalance(
-      getAssociatedTokenAddressSync(stbMintKP.publicKey, vaultAuthorityAddress, true),
+    const { value: postBalance } = await provider.connection.getTokenAccountBalance(
+      weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
     );
-    console.log("STB Balance:", liqSTB);
-    console.log("STB Reserve:", balSTB);
+    const usdtAmountOut = postBalance.uiAmount! - balance.uiAmount!;
 
-    const liqBonk = pools
-      .filter((pool) => pool.vaultAddress.equals(amm.vaults[1].address))
-      .reduce(
-        (liquidity, pool) =>
-          (pool.tokens.find((token) => token.mintAddress.equals(bonkMintKP.publicKey))?.balance || 0) + liquidity,
-        0,
-      );
-    const {
-      value: { uiAmount: balBonk },
-    } = await provider.connection.getTokenAccountBalance(
-      getAssociatedTokenAddressSync(bonkMintKP.publicKey, vaultAuthorityAddress, true),
-    );
-    console.log("Bonk Balance:", liqBonk);
-    console.log("Bonk Reserve:", balBonk);
-
-    const liqUSDC = pools
-      .filter((pool) => pool.vaultAddress.equals(amm.vaults[1].address))
-      .reduce(
-        (liquidity, pool) =>
-          (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,
-        0,
-      );
-    const {
-      value: { uiAmount: balUSDC },
-    } = await provider.connection.getTokenAccountBalance(
-      getAssociatedTokenAddressSync(usdcMintKP.publicKey, vaultAuthorityAddress, true),
-    );
-    console.log("USDC Balance:", liqUSDC);
-    console.log("USDC Reserve:", balUSDC);
-  });
-
-  it("should match liquidity with reserves in stable vault", async () => {
-    const vaultAuthorityAddress = amm.ctxVault.findVaultAuthorityAddress(amm.vaults[0].address);
-
-    const liqUSDC = pools
-      .filter((pool) => pool.vaultAddress.equals(amm.vaults[0].address))
-      .reduce(
-        (liquidity, pool) =>
-          (pool.tokens.find((token) => token.mintAddress.equals(usdcMintKP.publicKey))?.balance || 0) + liquidity,
-        0,
-      );
-    const {
-      value: { uiAmount: balUSDC },
-    } = await provider.connection.getTokenAccountBalance(
-      getAssociatedTokenAddressSync(usdcMintKP.publicKey, vaultAuthorityAddress, true),
-    );
-    console.log("USDC Balance:", liqUSDC);
-    console.log("USDC Reserve:", balUSDC);
+    // console.log("USDT out:", postBalance.uiAmount! - balance.uiAmount!);
+    assert.ok(usdtAmountOut <= amountOut);
+    assert.ok(usdtAmountOut >= minimumAmountOut);
   });
 });

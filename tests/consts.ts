@@ -6,6 +6,7 @@ export const BENEFICIARY_KP = Keypair.generate();
 export const USDC_MINT_KP = Keypair.generate();
 export const USDT_MINT_KP = Keypair.generate();
 export const DAI_MINT_KP = Keypair.generate();
+export const MSOL_MINT_KP = Keypair.generate();
 export const STB_MINT_KP = Keypair.generate();
 export const BONK_MINT_KP = Keypair.generate();
 

@@ -6,7 +6,7 @@ export type IntegerLike = BN | number | string;
 
 export class SafeNumber {
   static toBigAmount(uiAmount: FloatLike, decimals: number): BN {
-    return new BN(new Decimal(uiAmount).mul(new Decimal(10).pow(decimals)).toDP(0, Decimal.ROUND_UP).toString());
+    return new BN(new Decimal(uiAmount).mul(new Decimal(10).pow(decimals)).toDP(0, Decimal.ROUND_DOWN).toString());
   }
 
   static toUiAmountString(amount: IntegerLike, decimals: number): string {

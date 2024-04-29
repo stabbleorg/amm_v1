@@ -1,6 +1,6 @@
-import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider } from "@coral-xyz/anchor";
 import { createAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
-import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { AddressLookupTableProgram, Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { VaultContext } from "@stabbleorg/amm-sdk";
 import {
   WEIGHTED_VAULT_KP,
@@ -9,16 +9,21 @@ import {
   USDC_MINT_KP,
   USDT_MINT_KP,
   DAI_MINT_KP,
+  MSOL_MINT_KP,
   STB_MINT_KP,
   BONK_MINT_KP,
 } from "./consts";
 
 describe("Vault", () => {
-  const provider = AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
-  provider.opts.maxRetries = 1;
-  provider.opts.preflightCommitment = "confirmed";
-  provider.opts.skipPreflight = true;
+  const env = AnchorProvider.env();
+
+  const connection = new Connection(env.connection.rpcEndpoint, "confirmed");
+  const provider = new AnchorProvider(connection, env.wallet, {
+    commitment: "confirmed",
+    maxRetries: 1,
+    preflightCommitment: "confirmed",
+    skipPreflight: true,
+  });
 
   const vaultCtx = new VaultContext(provider);
 
@@ -56,6 +61,16 @@ describe("Vault", () => {
       await createAssociatedTokenAccount(provider.connection, MINT_AUTH_KP, DAI_MINT_KP.publicKey, provider.publicKey),
       MINT_AUTH_KP,
       BigInt("70000000000000"), // 700K
+    );
+
+    await createMint(provider.connection, MINT_AUTH_KP, MINT_AUTH_KP.publicKey, null, 9, MSOL_MINT_KP);
+    await mintTo(
+      provider.connection,
+      MINT_AUTH_KP,
+      MSOL_MINT_KP.publicKey,
+      await createAssociatedTokenAccount(provider.connection, MINT_AUTH_KP, MSOL_MINT_KP.publicKey, provider.publicKey),
+      MINT_AUTH_KP,
+      BigInt("850000000000000000"), // 850M
     );
 
     await createMint(provider.connection, MINT_AUTH_KP, MINT_AUTH_KP.publicKey, null, 9, STB_MINT_KP);

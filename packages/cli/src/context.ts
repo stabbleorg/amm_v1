@@ -1,10 +1,14 @@
 import type { VersionedTransaction } from "@solana/web3.js";
 import { AnchorProvider } from "@coral-xyz/anchor";
-import { WalletContext } from "@stabbleorg/anchor-contrib";
+import { VaultContext, WeightedSwapContext, StableSwapContext } from "@stabbleorg/amm-sdk";
+import { Helius } from "helius-sdk";
 
 export interface Context {
-  walletContext: WalletContext<AnchorProvider>;
+  vaultContext: VaultContext<AnchorProvider>;
+  weightedSwap: WeightedSwapContext<AnchorProvider>;
+  stableSwap: StableSwapContext<AnchorProvider>;
   provider: AnchorProvider;
+  helius?: Helius;
   simulate: boolean;
   tx?: VersionedTransaction;
 }
@@ -31,7 +35,7 @@ export const processTX = async (tx: VersionedTransaction) => {
     console.log(value.logs?.join("\n"));
   } else {
     try {
-      const signature = await provider.sendAndConfirm!(tx);
+      const signature = await provider.sendAndConfirm(tx);
       console.log(signature);
     } catch (err) {
       console.error(err);

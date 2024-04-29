@@ -1,0 +1,275 @@
+import bs58 from "bs58";
+import { BorshInstructionCoder } from "@coral-xyz/anchor";
+import {
+  DecodedTransferInstruction,
+  decodeBurnInstruction,
+  decodeMintToInstruction,
+  decodeTransferInstruction,
+  getMultipleAccounts,
+} from "@solana/spl-token";
+import { AddressLookupTableAccount, Connection, PublicKey, TransactionSignature } from "@solana/web3.js";
+import { WeightedSwapProgram, StableSwapProgram } from "@stabbleorg/amm-sdk";
+import { ParseInstructionArg } from "@stabbleorg/anchor-contrib";
+
+export type InitializedPool = {
+  address: string;
+  mintAddress: string;
+  mintAddresses: string[];
+};
+
+export type ChangedTokenAmount = {
+  mintAddress: string;
+  amount: bigint;
+};
+
+export type ChangedBalance = {
+  poolAddress: string;
+  userAddress: string;
+  amounts: ChangedTokenAmount[];
+  beneficiaryAddress?: string;
+  beneficiaryAmount?: bigint;
+};
+
+export type ParsedResult = InitializedPool | ChangedBalance;
+
+export class SwapParser {
+  constructor(readonly program: WeightedSwapProgram | StableSwapProgram) {}
+
+  get connection(): Connection {
+    return this.program.provider.connection;
+  }
+
+  get coder(): BorshInstructionCoder {
+    return new BorshInstructionCoder(this.program.idl);
+  }
+
+  async parse(signature: TransactionSignature): Promise<ParsedResult[]> {
+    const data = await this.connection.getTransaction(signature, { maxSupportedTransactionVersion: 0 });
+
+    if (!data) throw Error("Transaction not found");
+    if (data.meta?.err) throw data.meta.err;
+
+    const result: ParsedResult[] = [];
+
+    const atlKeys = data.transaction.message.addressTableLookups.map((atl) => atl.accountKey);
+    const atlAccounts = await this.connection.getMultipleAccountsInfo(atlKeys);
+    const altAccounts = atlAccounts
+      .filter((info) => info !== null)
+      .map(
+        (info, index) =>
+          new AddressLookupTableAccount({
+            state: AddressLookupTableAccount.deserialize(info!.data),
+            key: atlKeys[index],
+          }),
+      );
+
+    const accountKeys = data.transaction.message.getAccountKeys({ addressLookupTableAccounts: altAccounts });
+
+    for (const [i, compiledInstruction] of data.transaction.message.compiledInstructions.entries()) {
+      const keyIndexes = compiledInstruction.accountKeyIndexes;
+      const compiledInstructions = data.meta?.innerInstructions?.find(({ index }) => index === i)?.instructions;
+      const instructionMeta = this.coder.decode(Buffer.from(compiledInstruction.data));
+
+      if (instructionMeta) {
+        switch (instructionMeta.name) {
+          case "initialize":
+            result.push(this.parseInitializeInstruction({ accountKeys, keyIndexes }));
+            break;
+          case "deposit":
+            result.push(await this.parseDepositInstruction({ accountKeys, keyIndexes, compiledInstructions }));
+            break;
+          case "withdraw":
+            result.push(await this.parseWithdrawInstruction({ accountKeys, keyIndexes, compiledInstructions }));
+            break;
+          case "swap":
+            result.push(await this.parseSwapInstruction({ accountKeys, keyIndexes, compiledInstructions }));
+            break;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  parseInitializeInstruction({ accountKeys, keyIndexes }: ParseInstructionArg): InitializedPool {
+    return {
+      address: accountKeys.get(keyIndexes[2])!.toBase58(),
+      mintAddress: accountKeys.get(keyIndexes[1])!.toBase58(),
+      mintAddresses: keyIndexes.slice(6).map((keyIndex) => accountKeys.get(keyIndex)!.toBase58()),
+    };
+  }
+
+  async parseDepositInstruction({
+    accountKeys,
+    keyIndexes,
+    compiledInstructions = [],
+  }: ParseInstructionArg): Promise<ChangedBalance> {
+    const transfers = compiledInstructions
+      .slice(0, compiledInstructions.length - 1)
+      .map((transferInstruction) =>
+        decodeTransferInstruction({
+          programId: accountKeys.get(transferInstruction.programIdIndex)!,
+          keys: transferInstruction.accounts.map((index) => ({
+            pubkey: accountKeys.get(index)!,
+            isSigner: false,
+            isWritable: true,
+          })),
+          data: Buffer.from(bs58.decode(transferInstruction.data)),
+        }),
+      )
+      .map((transfer) => ({
+        toAddress: transfer.keys.destination.pubkey,
+        amount: transfer.data.amount,
+      }));
+    const tokenAccounts = await getMultipleAccounts(
+      this.connection,
+      transfers.map((transfer) => transfer.toAddress),
+    );
+
+    const mintToInstruction = compiledInstructions[compiledInstructions.length - 1];
+    const mintTo = decodeMintToInstruction({
+      programId: accountKeys.get(mintToInstruction.programIdIndex)!,
+      keys: mintToInstruction.accounts.map((index) => ({
+        pubkey: accountKeys.get(index)!,
+        isSigner: false,
+        isWritable: true,
+      })),
+      data: Buffer.from(bs58.decode(mintToInstruction.data)),
+    });
+
+    return {
+      poolAddress: accountKeys.get(keyIndexes[3])!.toBase58(),
+      userAddress: accountKeys.get(keyIndexes[0])!.toBase58(),
+      amounts: [
+        ...transfers.map((transfer, index) => ({
+          mintAddress: tokenAccounts[index].mint.toBase58(),
+          amount: transfer.amount,
+        })),
+        {
+          mintAddress: mintTo.keys.mint.pubkey.toBase58(),
+          amount: -mintTo.data.amount,
+        },
+      ],
+    };
+  }
+
+  async parseWithdrawInstruction({
+    accountKeys,
+    keyIndexes,
+    compiledInstructions = [],
+  }: ParseInstructionArg): Promise<ChangedBalance> {
+    const transfers = compiledInstructions
+      .slice(0, compiledInstructions.length - 1)
+      .filter((_, index) => index % 2 === 1)
+      .map((transferInstruction) =>
+        decodeTransferInstruction({
+          programId: accountKeys.get(transferInstruction.programIdIndex)!,
+          keys: transferInstruction.accounts.map((index) => ({
+            pubkey: accountKeys.get(index)!,
+            isSigner: false,
+            isWritable: true,
+          })),
+          data: Buffer.from(bs58.decode(transferInstruction.data)),
+        }),
+      )
+      .map((transfer) => ({
+        fromAddress: transfer.keys.source.pubkey,
+        amount: transfer.data.amount,
+      }));
+    const tokenAccounts = await getMultipleAccounts(
+      this.connection,
+      transfers.map((transfer) => transfer.fromAddress),
+    );
+
+    const burnInstruction = compiledInstructions[compiledInstructions.length - 1];
+    const burn = decodeBurnInstruction({
+      programId: accountKeys.get(burnInstruction.programIdIndex)!,
+      keys: burnInstruction.accounts.map((index) => ({
+        pubkey: accountKeys.get(index)!,
+        isSigner: false,
+        isWritable: true,
+      })),
+      data: Buffer.from(bs58.decode(burnInstruction.data)),
+    });
+
+    return {
+      poolAddress: accountKeys.get(keyIndexes[3])!.toBase58(),
+      userAddress: accountKeys.get(keyIndexes[0])!.toBase58(),
+      amounts: [
+        ...transfers.map((transfer, index) => ({
+          mintAddress: tokenAccounts[index].mint.toBase58(),
+          amount: -transfer.amount,
+        })),
+        {
+          mintAddress: burn.keys.mint.pubkey.toBase58(),
+          amount: burn.data.amount,
+        },
+      ],
+    };
+  }
+
+  async parseSwapInstruction({
+    accountKeys,
+    keyIndexes,
+    compiledInstructions = [],
+  }: ParseInstructionArg): Promise<ChangedBalance> {
+    const hasFee = compiledInstructions.length === 5;
+    const transferAInstruction = compiledInstructions[0];
+    const transferBInstruction = hasFee ? compiledInstructions[4] : compiledInstructions[2];
+    const transferCInstruction = hasFee ? compiledInstructions[2] : null;
+
+    const transferA = decodeTransferInstruction({
+      programId: accountKeys.get(transferAInstruction.programIdIndex)!,
+      keys: transferAInstruction.accounts.map((index) => ({
+        pubkey: accountKeys.get(index)!,
+        isSigner: false,
+        isWritable: true,
+      })),
+      data: Buffer.from(bs58.decode(transferAInstruction.data)),
+    });
+    const accountAddresses: PublicKey[] = [transferA.keys.destination.pubkey];
+    const transferB = decodeTransferInstruction({
+      programId: accountKeys.get(transferBInstruction.programIdIndex)!,
+      keys: transferBInstruction.accounts.map((index) => ({
+        pubkey: accountKeys.get(index)!,
+        isSigner: false,
+        isWritable: true,
+      })),
+      data: Buffer.from(bs58.decode(transferBInstruction.data)),
+    });
+    let transferC: DecodedTransferInstruction | null = null;
+    if (transferCInstruction) {
+      transferC = decodeTransferInstruction({
+        programId: accountKeys.get(transferCInstruction.programIdIndex)!,
+        keys: transferCInstruction.accounts.map((index) => ({
+          pubkey: accountKeys.get(index)!,
+          isSigner: false,
+          isWritable: true,
+        })),
+        data: Buffer.from(bs58.decode(transferCInstruction.data)),
+      });
+      accountAddresses.push(transferC.keys.destination.pubkey);
+    } else {
+      accountAddresses.push(transferB.keys.source.pubkey);
+    }
+    const tokenAccounts = await getMultipleAccounts(this.connection, accountAddresses);
+
+    let beneficiaryAddress;
+    let beneficiaryAmount;
+    if (transferC) {
+      beneficiaryAddress = tokenAccounts[1].owner.toBase58();
+      beneficiaryAmount = -transferC.data.amount;
+    }
+
+    return {
+      poolAddress: accountKeys.get(keyIndexes[7])!.toBase58(),
+      userAddress: accountKeys.get(keyIndexes[0])!.toBase58(),
+      amounts: [
+        { mintAddress: tokenAccounts[0].mint.toBase58(), amount: transferA.data.amount },
+        { mintAddress: tokenAccounts[1].mint.toBase58(), amount: -transferB.data.amount },
+      ],
+      beneficiaryAddress,
+      beneficiaryAmount,
+    };
+  }
+}

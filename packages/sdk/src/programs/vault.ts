@@ -1,20 +1,16 @@
 import { Program, Provider } from "@coral-xyz/anchor";
 import { Keypair, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
-import {
-  DataUpdatedEvent,
-  SIMULATED_SIGNATURE,
-  TransactionArgsWithPriority,
-  WalletContext,
-} from "@stabbleorg/anchor-contrib";
-import { StablePool, Vault, VaultData, WeightedPool } from "../accounts";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, TransactionArgs, WalletContext } from "@stabbleorg/anchor-contrib";
+import { Vault, VaultData, WeightedPool, StablePool } from "../accounts";
 import { SafeNumber } from "../utils";
 import { type Vault as IDLType } from "../generated/vault";
 import IDL from "../generated/idl/vault.json";
 
 export type PoolKind = "stable_swap" | "weighted_swap";
+export type VaultProgram = Program<IDLType>;
 
 export class VaultContext<T extends Provider> extends WalletContext<T> {
-  readonly program: Program<IDLType>;
+  readonly program: VaultProgram;
 
   constructor(provider: T) {
     super(provider);
@@ -36,7 +32,9 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     beneficiaryAddress,
     beneficiaryFee,
     kind,
-  }: TransactionArgsWithPriority<{
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{
     keypair?: Keypair;
     beneficiaryAddress: PublicKey;
     beneficiaryFee: number;
@@ -82,15 +80,17 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
 
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    return this.provider.sendAndConfirm!(transaction, [keypair], { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
   }
 
   async createMissingTokenAccounts({
     vault,
     mintAddresses,
-  }: TransactionArgsWithPriority<{
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{
     vault: Vault;
     mintAddresses: PublicKey[];
   }>): Promise<TransactionSignature> {
@@ -107,16 +107,16 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress, vault.beneficiaryAddress, true);
       if (createBeneficiaryTokenInstruction) instructions.push(createBeneficiaryTokenInstruction);
     }
-    const { transaction, slot } = await this.createTransaction(instructions);
+    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    return this.provider.sendAndConfirm!(transaction, [], { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
   }
 }
 
 export class VaultListener {
   private _listener?: number;
 
-  constructor(readonly program: Program<IDLType>) {}
+  constructor(readonly program: VaultProgram) {}
 
   addVaultListener(callback: (event: DataUpdatedEvent<Partial<VaultData>>) => void) {
     this.removeVaultListener();
