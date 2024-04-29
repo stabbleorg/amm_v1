@@ -1,6 +1,6 @@
 import { AnchorProvider } from "@coral-xyz/anchor";
 import { createAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
-import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { VaultContext } from "@stabbleorg/amm-sdk";
 import {
   WEIGHTED_VAULT_KP,
@@ -15,11 +15,15 @@ import {
 } from "./consts";
 
 describe("Vault", () => {
-  const provider = AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
-  provider.opts.maxRetries = 1;
-  provider.opts.preflightCommitment = "confirmed";
-  provider.opts.skipPreflight = true;
+  const env = AnchorProvider.env();
+
+  const connection = new Connection(env.connection.rpcEndpoint, "confirmed");
+  const provider = new AnchorProvider(connection, env.wallet, {
+    commitment: "confirmed",
+    maxRetries: 1,
+    preflightCommitment: "confirmed",
+    skipPreflight: true,
+  });
 
   const vaultCtx = new VaultContext(provider);
 

@@ -19,20 +19,16 @@ import {
   TransactionInstruction,
   TransactionSignature,
 } from "@solana/web3.js";
-import {
-  DataUpdatedEvent,
-  SIMULATED_SIGNATURE,
-  SignerProvider,
-  TransactionArgs,
-  WalletContext,
-} from "@stabbleorg/anchor-contrib";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, TransactionArgs, WalletContext } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID, Vault, StablePool, StablePoolData } from "../accounts";
 import { FloatLike, SafeNumber } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
+export type StableSwapProgram = Program<IDLType>;
+
 export class StableSwapContext<T extends Provider> extends WalletContext<T> {
-  readonly program: Program<IDLType>;
+  readonly program: StableSwapProgram;
   readonly metaplex: Metaplex;
 
   constructor(provider: T) {
@@ -457,7 +453,7 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 export class StableSwapListener {
   private _listener?: number;
 
-  constructor(readonly program: Program<IDLType>) {}
+  constructor(readonly program: StableSwapProgram) {}
 
   addPoolListener(callback: (event: DataUpdatedEvent<Partial<StablePoolData>>) => void) {
     this.removePoolListener();

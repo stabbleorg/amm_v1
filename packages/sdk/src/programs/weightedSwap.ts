@@ -19,20 +19,16 @@ import {
   TransactionInstruction,
   TransactionSignature,
 } from "@solana/web3.js";
-import {
-  DataUpdatedEvent,
-  SIMULATED_SIGNATURE,
-  SignerProvider,
-  TransactionArgs,
-  WalletContext,
-} from "@stabbleorg/anchor-contrib";
+import { DataUpdatedEvent, SIMULATED_SIGNATURE, TransactionArgs, WalletContext } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID, Vault, WeightedPool, WeightedPoolData } from "../accounts";
 import { FloatLike, SafeNumber } from "../utils";
 import { type WeightedSwap as IDLType } from "../generated/weighted_swap";
 import IDL from "../generated/idl/weighted_swap.json";
 
+export type WeightedSwapProgram = Program<IDLType>;
+
 export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
-  readonly program: Program<IDLType>;
+  readonly program: WeightedSwapProgram;
   readonly metaplex: Metaplex;
 
   constructor(provider: T) {
@@ -437,7 +433,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
 export class WeightedSwapListener {
   private _listener?: number;
 
-  constructor(readonly program: Program<IDLType>) {}
+  constructor(readonly program: WeightedSwapProgram) {}
 
   addPoolListener(callback: (event: DataUpdatedEvent<Partial<WeightedPoolData>>) => void) {
     this.removePoolListener();

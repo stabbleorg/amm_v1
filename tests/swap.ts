@@ -2,7 +2,7 @@ import { assert } from "chai";
 import { BN } from "bn.js";
 import { AnchorProvider, Provider } from "@coral-xyz/anchor";
 import { NATIVE_MINT } from "@solana/spl-token";
-import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
   Pool,
   WeightedPool,
@@ -28,13 +28,17 @@ import {
 } from "./consts";
 
 describe("Swap", () => {
-  const provider = AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
-  provider.opts.maxRetries = 1;
-  provider.opts.preflightCommitment = "confirmed";
-  provider.opts.skipPreflight = true;
+  const env = AnchorProvider.env();
 
-  const guestProvider: Provider = { connection: provider.connection };
+  const connection = new Connection(env.connection.rpcEndpoint, "confirmed");
+  const provider = new AnchorProvider(connection, env.wallet, {
+    commitment: "confirmed",
+    maxRetries: 1,
+    preflightCommitment: "confirmed",
+    skipPreflight: true,
+  });
+
+  const guestProvider: Provider = { connection };
 
   const weightedSwap = new WeightedSwapContext(provider);
   const stableSwap = new StableSwapContext(provider);
