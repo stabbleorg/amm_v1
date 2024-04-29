@@ -1,8 +1,10 @@
+import BN from "bn.js";
 import { assert } from "chai";
 import { AnchorProvider, Provider } from "@coral-xyz/anchor";
 import { NATIVE_MINT } from "@solana/spl-token";
-import { Connection, Keypair, TransactionInstruction } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, TransactionInstruction } from "@solana/web3.js";
 import {
+  Vault,
   Pool,
   WeightedPool,
   StablePool,
@@ -50,10 +52,13 @@ describe("Multi-hop Swap", () => {
 
   const pools: Pool<WeightedPoolData | StablePoolData>[] = [];
 
+  let weightedVault: Vault;
+  let stableVault: Vault;
+
   before(async () => {
     const vaults = await guestVaultCtx.findAll();
-    const weightedVault = vaults.find((vault) => vault.address.equals(WEIGHTED_VAULT_KP.publicKey))!;
-    const stableVault = vaults.find((vault) => vault.address.equals(STABLE_VAULT_KP.publicKey))!;
+    weightedVault = vaults.find((vault) => vault.address.equals(WEIGHTED_VAULT_KP.publicKey))!;
+    stableVault = vaults.find((vault) => vault.address.equals(STABLE_VAULT_KP.publicKey))!;
 
     pools.push(...(await guestWeightedSwap.findByVault(weightedVault)));
     pools.push(...(await guestStableSwap.findByVault(stableVault)));
@@ -351,5 +356,57 @@ describe("Multi-hop Swap", () => {
     // console.log("USDT out:", postBalance.uiAmount! - balance.uiAmount!);
     assert.ok(usdtAmountOut <= amountOut);
     assert.ok(usdtAmountOut >= minimumAmountOut);
+  });
+
+  it("assert weighted vault balance", async () => {
+    const pools = await guestWeightedSwap.findByVault(weightedVault);
+    const balances = pools.reduce(
+      (result, pool) => {
+        for (const token of pool.tokens) {
+          const id = token.mintAddress.toBase58();
+          if (result[id] === undefined) {
+            result[id] = new BN(token.balance.amount);
+          } else {
+            result[id] = result[id].add(new BN(token.balance.amount));
+          }
+        }
+        return result;
+      },
+      {} as Record<string, BN>,
+    );
+
+    for (const address of Object.keys(balances)) {
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        weightedVault.getAuthorityTokenAddress(new PublicKey(address)),
+      );
+      assert.ok(new BN(balance.amount).gte(balances[address]));
+      assert.ok(new BN(balance.amount).sub(balances[address]).lte(new BN(5)));
+    }
+  });
+
+  it("assert stable vault balance", async () => {
+    const pools = await guestStableSwap.findByVault(stableVault);
+    const balances = pools.reduce(
+      (result, pool) => {
+        for (const token of pool.tokens) {
+          const id = token.mintAddress.toBase58();
+          if (result[id] === undefined) {
+            result[id] = new BN(token.balance.amount);
+          } else {
+            result[id] = result[id].add(new BN(token.balance.amount));
+          }
+        }
+        return result;
+      },
+      {} as Record<string, BN>,
+    );
+
+    for (const address of Object.keys(balances)) {
+      const { value: balance } = await provider.connection.getTokenAccountBalance(
+        stableVault.getAuthorityTokenAddress(new PublicKey(address)),
+      );
+      assert.ok(new BN(balance.amount).gte(balances[address]));
+      assert.ok(new BN(balance.amount).sub(balances[address]).lte(new BN(10)));
+    }
   });
 });
