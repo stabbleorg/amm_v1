@@ -2,8 +2,8 @@ import type { Command } from "commander";
 import { Metaplex } from "@metaplex-foundation/js";
 import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
 import { Keypair, PublicKey, SYSVAR_RENT_PUBKEY, SystemProgram } from "@solana/web3.js";
-import { useContext, submitTX } from "../context";
-import { parseKey, parseKeypair, getPriorityFeeEstimate } from "../utils";
+import { useContext, submit } from "../context";
+import { parseKey, parseKeypair } from "../utils";
 
 export function createMetadata(program: Command) {
   program
@@ -28,7 +28,7 @@ export function createMetadata(program: Command) {
         metadataSymbol: string;
         metadataUri: string;
       }) => {
-        const { provider, amm } = useContext();
+        const { provider, vaultContext } = useContext();
 
         console.log("Mint:", mintK.toBase58());
         console.log("Name:", metadataName);
@@ -67,16 +67,8 @@ export function createMetadata(program: Command) {
           ),
         ];
 
-        const { transaction: preTX } = await amm.ctxWeighted.newTX(ixs);
-        if (authorityKP) preTX.sign([authorityKP]);
-        const priorityFee = await getPriorityFeeEstimate(provider.connection.rpcEndpoint, preTX);
-
-        console.log("Priority Fee:", priorityFee);
-
-        const { transaction } = await amm.ctxWeighted.newPrioritizedTX(ixs, priorityFee);
-        if (authorityKP) transaction.sign([authorityKP]);
-
-        submitTX(transaction);
+        const pending = await vaultContext.createTransaction(ixs);
+        submit(pending);
       },
     );
 }

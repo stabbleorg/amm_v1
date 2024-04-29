@@ -2,7 +2,7 @@ import { Program, Provider } from "@coral-xyz/anchor";
 import { Keypair, PublicKey, SystemProgram, TransactionInstruction, TransactionSignature } from "@solana/web3.js";
 import { DataUpdatedEvent, SIMULATED_SIGNATURE, TransactionArgs, WalletContext } from "@stabbleorg/anchor-contrib";
 import { Vault, VaultData, WeightedPool, StablePool } from "../accounts";
-import { SafeNumber } from "../utils";
+import { FloatLike, SafeNumber } from "../utils";
 import { type Vault as IDLType } from "../generated/vault";
 import IDL from "../generated/idl/vault.json";
 
@@ -37,7 +37,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
   }: TransactionArgs<{
     keypair?: Keypair;
     beneficiaryAddress: PublicKey;
-    beneficiaryFee: number;
+    beneficiaryFee: FloatLike;
     kind: PoolKind;
   }>): Promise<TransactionSignature> {
     let withdrawAuthorityAddress: PublicKey;
