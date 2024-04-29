@@ -129,8 +129,8 @@ export class StableMath {
       prevBalance = balance;
       balance = (prevBalance * prevBalance + c) / (prevBalance * 2 + b - invariant);
       if (balance > prevBalance) {
-        if (balance - prevBalance <= 1e-9) return balance;
-      } else if (prevBalance - balance <= 1e-9) return balance;
+        if (balance - prevBalance <= 1e-8) return balance;
+      } else if (prevBalance - balance <= 1e-8) return balance;
     }
 
     return balances[tokenIndex];

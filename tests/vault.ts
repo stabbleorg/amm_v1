@@ -1,6 +1,6 @@
 import { AnchorProvider } from "@coral-xyz/anchor";
 import { createAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
-import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { AddressLookupTableProgram, Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { VaultContext } from "@stabbleorg/amm-sdk";
 import {
   WEIGHTED_VAULT_KP,

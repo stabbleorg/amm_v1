@@ -182,7 +182,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
       if (mintAddress.equals(NATIVE_MINT)) {
         const keypair = Keypair.generate();
         signers.push(keypair);
-        instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, mintAddress, amounts[index])));
+        instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, amounts[index])));
         userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
       } else {
         const userTokenAddress = this.getAssociatedTokenAddress(mintAddress);
@@ -318,7 +318,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
     let tokenInAddress;
     if (mintInAddress.equals(NATIVE_MINT)) {
       const keypair = Keypair.generate();
-      instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, mintInAddress, amountIn)));
+      instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, amountIn)));
       signers.push(keypair);
       tokenInAddress = keypair.publicKey;
     }
@@ -353,18 +353,18 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
     pool,
     mintInAddress,
     mintOutAddress,
-    amountIn,
-    minimumAmountOut,
     tokenInAddress,
     tokenOutAddress,
+    amountIn,
+    minimumAmountOut,
   }: {
     pool: WeightedPool;
     mintInAddress: PublicKey;
     mintOutAddress: PublicKey;
-    amountIn?: FloatLike;
-    minimumAmountOut: FloatLike;
     tokenInAddress?: PublicKey;
     tokenOutAddress?: PublicKey;
+    amountIn?: FloatLike;
+    minimumAmountOut?: FloatLike;
   }): Promise<TransactionInstruction[]> {
     const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintInAddress));
     if (!tokenIn) throw Error("Swap path not found");
@@ -401,7 +401,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
       await this.program.methods
         .swap(
           amountIn ? SafeNumber.toBigAmount(amountIn, tokenIn.balance.decimals) : null,
-          SafeNumber.toBigAmount(minimumAmountOut, tokenOut.balance.decimals),
+          SafeNumber.toBigAmount(minimumAmountOut || 0, tokenOut.balance.decimals),
         )
         .accountsStrict({
           user: this.walletAddress,
@@ -424,7 +424,8 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
 
     // close intermediate token accounts
     if (tokenInAddress) instructions.push(this.closeIntermediateTokenAccountInstruction(tokenInAddress));
-    if (tokenOutAddress) instructions.push(this.closeIntermediateTokenAccountInstruction(tokenOutAddress));
+    if (tokenOutAddress && minimumAmountOut !== undefined)
+      instructions.push(this.closeIntermediateTokenAccountInstruction(tokenOutAddress));
 
     return instructions;
   }
