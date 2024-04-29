@@ -1,6 +1,6 @@
 {
   "name": "@stabbleorg/amm-parser",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "main": "src",
   "types": "src/index.d.ts",
   "license": "MIT",
