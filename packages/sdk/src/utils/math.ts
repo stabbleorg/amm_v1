@@ -1,6 +1,8 @@
 export class WeightedMath {
   static MAX_INVARIANT_RATIO = 3;
   static MIN_INVARIANT_RATIO = 0.7;
+  static MAX_IN_RATIO = 0.3;
+  static MAX_OUT_RATIO = 0.3;
 
   static calcOutGivenIn(
     balanceIn: number,
@@ -10,7 +12,7 @@ export class WeightedMath {
     amountIn: number,
     swapFee: number = 0,
   ): number {
-    if (amountIn > balanceIn * 0.3) return 0;
+    if (amountIn > balanceIn * this.MAX_IN_RATIO) return 0;
     return balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut)) * (1 - swapFee);
   }
 
