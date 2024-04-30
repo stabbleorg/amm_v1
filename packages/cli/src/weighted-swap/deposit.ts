@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import { PublicKey } from "@solana/web3.js";
-import { useContext, submitTX } from "../context";
+import { WeightedPool } from "@stabbleorg/amm-sdk";
+import { useContext } from "../context";
 import { parseKey } from "../utils";
 
 export function deposit(program: Command) {
@@ -8,19 +9,23 @@ export function deposit(program: Command) {
     .command("weighted-deposit")
     .description("add liquidity to weighted pool")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
-    .requiredOption("--amounts <numbers...>", "amounts")
     .requiredOption("--mints <strings...>", "mint keys")
-    .action(async ({ poolK, amounts, mints }: { poolK: PublicKey; amounts: number[]; mints: string[] }) => {
-      const { amm } = useContext();
+    .requiredOption("--amounts <numbers...>", "amounts")
+    .action(async ({ poolK, mints, amounts }: { poolK: PublicKey; mints: string[]; amounts: string[] }) => {
+      const { vaultContext, weightedSwap } = useContext();
 
-      const pool = await amm.ctxWeighted.findOne(poolK);
+      const mintAddresses = mints.map((mint) => new PublicKey(mint));
 
-      const { transaction } = await amm.deposit({
+      const data = await weightedSwap.program.account.pool.fetch(poolK);
+      const vault = await vaultContext.findOne(data.vault);
+      const pool = new WeightedPool(vault, poolK, data);
+
+      const signature = await weightedSwap.deposit({
         pool,
+        mintAddresses,
         amounts,
-        mintAddresses: mints.map((pubkey) => new PublicKey(pubkey)),
       });
 
-      submitTX(transaction);
+      console.log(signature);
     });
 }

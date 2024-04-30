@@ -11,6 +11,7 @@ export type WeightedPoolTokenData = PoolTokenData & {
 };
 
 export type WeightedPoolData = PoolData & {
+  invariant: BN;
   tokens: WeightedPoolTokenData[];
 };
 
@@ -43,6 +44,10 @@ export class WeightedPool implements Pool<WeightedPoolData> {
 
   get authorityAddress(): PublicKey {
     return WeightedPool.getAuthorityAddress(this.address);
+  }
+
+  get invariant(): number {
+    return SafeNumber.toUiAmount(this.data.invariant, WeightedPool.POOL_TOKEN_DECIMALS);
   }
 
   get swapFee(): number {

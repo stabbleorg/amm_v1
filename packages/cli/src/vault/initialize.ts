@@ -1,39 +1,39 @@
 import type { Command } from "commander";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { useContext, submitTX } from "../context";
+import { PoolKind } from "@stabbleorg/amm-sdk";
+import { useContext } from "../context";
 import { parseKey, parseKeypair } from "../utils";
 
 export function initialize(program: Command) {
   program
     .command("vault-init")
     .description("initialize vault")
-    .option("--vault-k-p <string>", "vault keypair", parseKeypair)
-    .requiredOption("--pool-kind <string>", "pool kind")
+    .requiredOption("--kind <string>", "pool kind")
+    .requiredOption("--beneficiary-fee <number>", "beneficiary fee")
     .requiredOption("--beneficiary-k <string>", "beneficiary key", parseKey)
-    .requiredOption("--beneficiary-fee <string>", "beneficiary fee")
+    .option("--vault-k-p <path>", "vault keypair", parseKeypair)
     .action(
       async ({
-        vaultKP,
-        poolKind,
-        beneficiaryK,
+        kind,
         beneficiaryFee,
+        beneficiaryK,
+        vaultKP,
       }: {
-        vaultKP?: Keypair;
-        poolKind: "weighted" | "stable";
-        beneficiaryK: PublicKey;
+        kind: PoolKind;
         beneficiaryFee: string;
+        beneficiaryK: PublicKey;
+        vaultKP?: Keypair;
       }) => {
-        const { amm } = useContext();
+        const { vaultContext } = useContext();
 
-        const { transaction, address } = await amm.createVaultAndAddress({
+        const signature = await vaultContext.initialize({
+          keypair: vaultKP,
           beneficiaryAddress: beneficiaryK,
           beneficiaryFee,
-          poolKind,
-          vaultKP,
+          kind,
         });
 
-        submitTX(transaction);
-        console.log("Vault:", address.toBase58());
+        console.log("Signature:", signature);
       },
     );
 }

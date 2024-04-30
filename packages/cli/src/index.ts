@@ -2,25 +2,24 @@ import type { Command } from "commander";
 import { program } from "commander";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-import { WalletContext } from "@stabbleorg/anchor-contrib";
 import { VaultContext, WeightedSwapContext, StableSwapContext } from "@stabbleorg/amm-sdk";
 import { Helius } from "helius-sdk";
-import { setContext, useContext, processTX } from "./context";
-// import { setupVaultProgram } from "./vault";
-// import { setupWeightedPoolProgram } from "./weighted-swap";
-// import { setupStablePoolProgram } from "./stable-swap";
+import { setupVaultProgram } from "./vault";
+import { setupWeightedSwapProgram } from "./weighted-swap";
+import { setupStableSwapProgram } from "./stable-swap";
 import { setupTokenProgram } from "./token";
-import { parseKeypair } from "./utils";
+import { setContext, run } from "./context";
+import { parseKey, parseKeypair } from "./utils";
 
 program
-  .version("0.5.0")
+  .version("0.7.1")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
-  .option("--helius-key <string>")
+  .option("-p, --helius-key <string>", "Helius API key")
+  .option("-a, --alt-key <string>", "Address Lookup Table key", parseKey)
   .option("-s, --simulate", "simulate transaction")
   .hook("preAction", async (cmd: Command) => {
-    const { keypair, url, heliusKey, simulate } = cmd.opts();
-    const payer = keypair || Keypair.generate();
+    const { keypair, url, heliusKey, altKey, simulate } = cmd.opts();
 
     let rpcEndpoint: string;
     let helius;
@@ -40,7 +39,8 @@ program
         break;
     }
 
-    const provider = new AnchorProvider(new Connection(rpcEndpoint), new Wallet(payer), {
+    const connection = new Connection(rpcEndpoint, "confirmed");
+    const provider = new AnchorProvider(connection, new Wallet(keypair || Keypair.generate()), {
       commitment: "confirmed",
       maxRetries: 1,
       preflightCommitment: "confirmed",
@@ -50,29 +50,26 @@ program
     const weightedSwap = new WeightedSwapContext(provider);
     const stableSwap = new StableSwapContext(provider);
 
+    let altAccounts;
+    if (altKey) {
+      const { value } = await connection.getAddressLookupTable(altKey);
+      if (value) altAccounts = [value];
+    }
+
     setContext({
       vaultContext,
       weightedSwap,
       stableSwap,
       provider,
       helius,
+      altAccounts,
       simulate: Boolean(simulate),
     });
   });
 
-// setupVaultProgram(program);
-// setupWeightedPoolProgram(program);
-// setupStablePoolProgram(program);
+setupVaultProgram(program);
+setupWeightedSwapProgram(program);
+setupStableSwapProgram(program);
 setupTokenProgram(program);
 
-program
-  .parseAsync(process.argv)
-  .then(async () => {
-    const { tx } = useContext();
-    if (tx) await processTX(tx);
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+program.parseAsync(process.argv).then(run);

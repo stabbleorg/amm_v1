@@ -1,39 +1,35 @@
 import type { Command } from "commander";
 import { PublicKey } from "@solana/web3.js";
-import { SafeNumber } from "@stabbleorg/solana-sdk";
-import { useContext, submitTX } from "../context";
+import { StablePool } from "@stabbleorg/amm-sdk";
+import { useContext } from "../context";
 import { parseKey } from "../utils";
 
-export function pause(program: Command) {
+export function changeAmpFactor(program: Command) {
   program
-    .command("stable-pause")
-    .description("pause stable pool")
+    .command("stable-amp-factor")
+    .description("change amplification factor")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
-    .action(async ({ poolK }: { poolK: PublicKey }) => {
-      const { amm } = useContext();
+    .requiredOption("--amp-factor <number>", "new amplification factor", Number)
+    .requiredOption("--ramp-duration <number>", "ramp duration", Number)
+    .action(
+      async ({ poolK, ampFactor, rampDuration }: { poolK: PublicKey; ampFactor: number; rampDuration: number }) => {
+        const { vaultContext, stableSwap, simulate } = useContext();
 
-      const { transaction } = await amm.ctxStable.newTX(await amm.ctxStable.pauseInstructions({ poolAddress: poolK }));
+        const data = await stableSwap.program.account.pool.fetch(poolK);
+        const vault = await vaultContext.findOne(data.vault);
+        const pool = new StablePool(vault, poolK, data);
 
-      submitTX(transaction);
-    });
-}
+        console.log("Current amplification:", pool.amplification);
 
-export function changeSwapFee(program: Command) {
-  program
-    .command("stable-swap-fee")
-    .description("change swap fee given a stable pool")
-    .requiredOption("--pool-k <string>", "pool key", parseKey)
-    .requiredOption("--new-swap-fee <string>", "new swap fee")
-    .action(async ({ poolK, newSwapFee }: { poolK: PublicKey; newSwapFee: string }) => {
-      const { amm } = useContext();
+        if (simulate) return;
 
-      const { transaction } = await amm.ctxStable.newTX(
-        await amm.ctxStable.changeSwapFeeInstructions({
-          poolAddress: poolK,
-          newSwapFee: SafeNumber.toBasisPoints(newSwapFee),
-        }),
-      );
+        const signature = await stableSwap.changeAmpFactor({
+          pool,
+          ampFactor,
+          rampDuration,
+        });
 
-      submitTX(transaction);
-    });
+        console.log(signature);
+      },
+    );
 }
