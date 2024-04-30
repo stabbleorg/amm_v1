@@ -31,8 +31,11 @@ export function swap(program: Command) {
         const pool = new StablePool(vault, poolK, data);
 
         const amountOut = pool.getSwapAmountOut(mintInK, mintOutK, amount);
-        // console.log("Balances:");
-        // console.log(pool.balances.join("\n"));
+
+        for (const [index, balance] of pool.balances.entries()) {
+          console.log("b[%d]: %f", index, balance);
+        }
+        console.log("Amplification:", pool.amplification);
         console.log("Price:", amountOut / amount);
         console.log("Estimation:", amountOut);
 

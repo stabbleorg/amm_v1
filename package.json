@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "cli": "ts-node --files packages/cli",
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "format": "rustfmt programs/**/src/lib.rs libraries/**/src/lib.rs"
