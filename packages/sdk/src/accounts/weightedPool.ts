@@ -113,8 +113,8 @@ export class WeightedPool implements Pool<WeightedPoolData> {
         this.weights[tokenIndex],
         amountIn,
         totalSupply,
-        this.swapFee
-      )
+        this.swapFee,
+      );
       return [amountOut];
     }
 
