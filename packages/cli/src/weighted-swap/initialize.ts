@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { useContext, submitTX } from "../context";
+import { useContext } from "../context";
 import { parseKey, parseKeypair } from "../utils";
 
 export function initialize(program: Command) {
@@ -9,10 +9,10 @@ export function initialize(program: Command) {
     .description("initialize a weighted pool")
     .requiredOption("--vault-k <string>", "vault key", parseKey)
     .requiredOption("--mints <strings...>", "mint keys")
-    .requiredOption("--weights <strings...>", "weights")
-    .requiredOption("--swap-fee <string>", "swap fee")
-    .option("--pool-k-p <string>", "pool keypair", parseKeypair)
-    .option("--pool-mint-k-p <string>", "pool mint keypair", parseKeypair)
+    .requiredOption("--weights <numbers...>", "weights")
+    .requiredOption("--swap-fee <number>", "swap fee")
+    .option("--pool-k-p <path>", "pool keypair", parseKeypair)
+    .option("--pool-mint-k-p <path>", "pool mint keypair", parseKeypair)
     .action(
       async ({
         vaultK,
@@ -26,23 +26,28 @@ export function initialize(program: Command) {
         mints: string[];
         weights: string[];
         swapFee: string;
-        ticks: string[];
         poolKP?: Keypair;
         poolMintKP?: Keypair;
       }) => {
-        const { amm } = useContext();
+        const { vaultContext, weightedSwap } = useContext();
 
-        const { transaction, address } = await amm.createWeightedPoolAndAddress({
-          vaultAddress: vaultK,
-          swapFee,
+        const mintAddresses = mints.map((mint) => new PublicKey(mint));
+
+        const vault = await vaultContext.findOne(vaultK);
+
+        const { pool } = await weightedSwap.initialize({
+          vault,
+          mintAddresses,
+          maxCaps: [4000000000, 4000000000],
           weights,
-          mintAddresses: mints.map((pubkey) => new PublicKey(pubkey)),
-          poolKP,
+          swapFee,
           poolMintKP,
+          keypair: poolKP,
         });
 
-        submitTX(transaction);
-        console.log("Pool:", address.toBase58());
+        await vaultContext.createMissingTokenAccounts({ vault, mintAddresses });
+
+        console.log("Pool:", pool.address.toBase58());
       },
     );
 }

@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import { PublicKey } from "@solana/web3.js";
-import { useContext, submitTX } from "../context";
+import { StablePool } from "@stabbleorg/amm-sdk";
+import { useContext } from "../context";
 import { parseKey } from "../utils";
 
 export function deposit(program: Command) {
@@ -8,19 +9,23 @@ export function deposit(program: Command) {
     .command("stable-deposit")
     .description("add liquidity to stable pool")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
-    .requiredOption("--amounts <numbers...>", "amounts")
     .requiredOption("--mints <strings...>", "mint keys")
-    .action(async ({ poolK, amounts, mints }: { poolK: PublicKey; amounts: number[]; mints: string[] }) => {
-      const { amm } = useContext();
+    .requiredOption("--amounts <numbers...>", "amounts")
+    .action(async ({ poolK, mints, amounts }: { poolK: PublicKey; mints: string[]; amounts: string[] }) => {
+      const { vaultContext, stableSwap } = useContext();
 
-      const pool = await amm.ctxStable.findOne(poolK);
+      const mintAddresses = mints.map((mint) => new PublicKey(mint));
 
-      const { transaction } = await amm.deposit({
+      const data = await stableSwap.program.account.pool.fetch(poolK);
+      const vault = await vaultContext.findOne(data.vault);
+      const pool = new StablePool(vault, poolK, data);
+
+      const signature = await stableSwap.deposit({
         pool,
+        mintAddresses,
         amounts,
-        mintAddresses: mints.map((pubkey) => new PublicKey(pubkey)),
       });
 
-      submitTX(transaction);
+      console.log(signature);
     });
 }

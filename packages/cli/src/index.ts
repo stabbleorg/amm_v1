@@ -4,21 +4,22 @@ import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
 import { VaultContext, WeightedSwapContext, StableSwapContext } from "@stabbleorg/amm-sdk";
 import { Helius } from "helius-sdk";
-import { setContext, run } from "./context";
 import { setupVaultProgram } from "./vault";
-// import { setupWeightedPoolProgram } from "./weighted-swap";
-// import { setupStablePoolProgram } from "./stable-swap";
+import { setupWeightedSwapProgram } from "./weighted-swap";
+import { setupStableSwapProgram } from "./stable-swap";
 import { setupTokenProgram } from "./token";
-import { parseKeypair } from "./utils";
+import { setContext, run } from "./context";
+import { parseKey, parseKeypair } from "./utils";
 
 program
   .version("0.7.1")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
-  .option("-p, --helius-key <string>")
+  .option("-p, --helius-key <string>", "Helius API key")
+  .option("-a, --alt-key <string>", "Address Lookup Table key", parseKey)
   .option("-s, --simulate", "simulate transaction")
   .hook("preAction", async (cmd: Command) => {
-    const { keypair, url, heliusKey, simulate } = cmd.opts();
+    const { keypair, url, heliusKey, altKey, simulate } = cmd.opts();
 
     let rpcEndpoint: string;
     let helius;
@@ -49,19 +50,26 @@ program
     const weightedSwap = new WeightedSwapContext(provider);
     const stableSwap = new StableSwapContext(provider);
 
+    let altAccounts;
+    if (altKey) {
+      const { value } = await connection.getAddressLookupTable(altKey);
+      if (value) altAccounts = [value];
+    }
+
     setContext({
       vaultContext,
       weightedSwap,
       stableSwap,
       provider,
       helius,
+      altAccounts,
       simulate: Boolean(simulate),
     });
   });
 
 setupVaultProgram(program);
-// setupWeightedPoolProgram(program);
-// setupStablePoolProgram(program);
+setupWeightedSwapProgram(program);
+setupStableSwapProgram(program);
 setupTokenProgram(program);
 
 program.parseAsync(process.argv).then(run);

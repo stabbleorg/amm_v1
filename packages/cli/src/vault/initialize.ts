@@ -8,26 +8,26 @@ export function initialize(program: Command) {
   program
     .command("vault-init")
     .description("initialize vault")
-    .option("--k-p <string>", "vault keypair", parseKeypair)
     .requiredOption("--kind <string>", "pool kind")
+    .requiredOption("--beneficiary-fee <number>", "beneficiary fee")
     .requiredOption("--beneficiary-k <string>", "beneficiary key", parseKey)
-    .requiredOption("--beneficiary-fee <string>", "beneficiary fee")
+    .option("--vault-k-p <path>", "vault keypair", parseKeypair)
     .action(
       async ({
-        keypair,
         kind,
-        beneficiaryK,
         beneficiaryFee,
+        beneficiaryK,
+        vaultKP,
       }: {
-        keypair?: Keypair;
         kind: PoolKind;
-        beneficiaryK: PublicKey;
         beneficiaryFee: string;
+        beneficiaryK: PublicKey;
+        vaultKP?: Keypair;
       }) => {
         const { vaultContext } = useContext();
 
         const signature = await vaultContext.initialize({
-          keypair,
+          keypair: vaultKP,
           beneficiaryAddress: beneficiaryK,
           beneficiaryFee,
           kind,

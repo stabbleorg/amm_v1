@@ -1,11 +1,10 @@
 import type { Command } from "commander";
 import { initialize } from "./initialize";
 import { deposit } from "./deposit";
-import { pause, changeSwapFee } from "./config";
+import { swap } from "./swap";
 
-export const setupStablePoolProgram = (program: Command) => {
+export const setupStableSwapProgram = (program: Command) => {
   initialize(program);
   deposit(program);
-  pause(program);
-  changeSwapFee(program);
+  swap(program);
 };

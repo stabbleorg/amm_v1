@@ -1,4 +1,5 @@
 import { AnchorProvider } from "@coral-xyz/anchor";
+import { AddressLookupTableAccount } from "@solana/web3.js";
 import { VaultContext, WeightedSwapContext, StableSwapContext } from "@stabbleorg/amm-sdk";
 import { TransactionWithRecentBlockAndSlot } from "@stabbleorg/anchor-contrib";
 import { Helius } from "helius-sdk";
@@ -9,8 +10,9 @@ export interface Context {
   stableSwap: StableSwapContext<AnchorProvider>;
   provider: AnchorProvider;
   helius?: Helius;
-  simulate: boolean;
+  altAccounts?: AddressLookupTableAccount[];
   pending?: TransactionWithRecentBlockAndSlot;
+  simulate: boolean;
 }
 
 let context: Context;
