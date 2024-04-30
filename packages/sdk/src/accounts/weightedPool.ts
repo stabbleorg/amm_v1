@@ -105,7 +105,17 @@ export class WeightedPool implements Pool<WeightedPoolData> {
 
   getWithdrawalAmountsOut(amountIn: number, totalSupply: number, tokenAddress?: PublicKey): number[] {
     if (tokenAddress) {
-      return [0];
+      const tokenIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenAddress));
+      if (tokenIndex === -1) return [0];
+
+      const amountOut = WeightedMath.calcTokenOutGivenExactPoolTokenIn(
+        this.balances[tokenIndex],
+        this.weights[tokenIndex],
+        amountIn,
+        totalSupply,
+        this.swapFee
+      )
+      return [amountOut];
     }
 
     return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply);
