@@ -58,7 +58,7 @@ export class WeightedMath {
     let invariantRatio = (poolTokenSupply - amountIn) / poolTokenSupply;
 
     if (invariantRatio < this.MIN_INVARIANT_RATIO) {
-      throw new Error("MinInvariantRatio");
+      return 0;
     }
 
     let balanceRatio = Math.pow(invariantRatio, 1 / normalizedWeight);

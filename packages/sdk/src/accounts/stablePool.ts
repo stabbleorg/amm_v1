@@ -128,8 +128,10 @@ export class StablePool implements Pool<StablePoolData> {
         currentInvariant,
         this.swapFee,
       );
+
       return [amountOut];
     }
+
     return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply);
   }
 

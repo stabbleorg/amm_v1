@@ -115,6 +115,7 @@ export class WeightedPool implements Pool<WeightedPoolData> {
         totalSupply,
         this.swapFee,
       );
+
       return [amountOut];
     }
 
