@@ -1,8 +1,9 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
+import { SafeNumber } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./basePool";
 import { Vault } from "./vault";
-import { BasicMath, SafeNumber, StableMath } from "../utils";
+import { BasicMath, StableMath } from "../utils";
 
 export const STABLE_SWAP_ID: PublicKey = new PublicKey("swapNyd8XiQwJ6ianp9snpu4brUqFxadzvHebnAXjJZ");
 
@@ -65,7 +66,7 @@ export class StablePool implements Pool<StablePoolData> {
   }
 
   get swapFee(): number {
-    return SafeNumber.toPercentage(this.data.swapFee);
+    return SafeNumber.toNano(this.data.swapFee);
   }
 
   get isActive(): boolean {

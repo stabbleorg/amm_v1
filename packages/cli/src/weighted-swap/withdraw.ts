@@ -1,7 +1,8 @@
 import type { Command } from "commander";
 import { getMint } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { SafeNumber, WeightedPool } from "@stabbleorg/amm-sdk";
+import { WeightedPool } from "@stabbleorg/amm-sdk";
+import { SafeNumber } from "@stabbleorg/anchor-contrib";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 

@@ -1,6 +1,6 @@
 {
   "name": "@stabbleorg/amm-sdk",
-  "version": "0.7.2-beta.1",
+  "version": "0.7.2",
   "main": "src",
   "types": "src/index.d.ts",
   "license": "MIT",
@@ -10,9 +10,8 @@
     "@metaplex-foundation/mpl-token-metadata": "^2.11.0",
     "@solana/spl-token": "^0.4.0",
     "@solana/web3.js": "^1.91.0",
-    "@stabbleorg/anchor-contrib": "^0.7.2-beta",
-    "bn.js": "^5.2.0",
-    "decimal.js": "^10.4.3"
+    "@stabbleorg/anchor-contrib": "^0.7.2",
+    "bn.js": "^5.2.0"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0"

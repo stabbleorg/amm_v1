@@ -19,9 +19,15 @@ import {
   TransactionInstruction,
   TransactionSignature,
 } from "@solana/web3.js";
-import { DataUpdatedEvent, SIMULATED_SIGNATURE, TransactionArgs, WalletContext } from "@stabbleorg/anchor-contrib";
+import {
+  DataUpdatedEvent,
+  SIMULATED_SIGNATURE,
+  FloatLike,
+  SafeNumber,
+  TransactionArgs,
+  WalletContext,
+} from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID, Vault, StablePool, StablePoolData } from "../accounts";
-import { FloatLike, SafeNumber } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
@@ -132,7 +138,7 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
       await this.program.methods
         .initialize(
           ampFactor,
-          SafeNumber.toBasisPoints(swapFee),
+          SafeNumber.toGiga(swapFee),
           maxCaps.map((maxCap) => new BN(maxCap)),
         )
         .accountsStrict({
@@ -197,12 +203,12 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
       await this.program.methods
         .deposit(
           amounts.map((amount, index) =>
-            SafeNumber.toBigAmount(
+            SafeNumber.toU64Amount(
               amount,
               pool.data.tokens.find((data) => data.mint.equals(mintAddresses[index]))!.decimals,
             ),
           ),
-          SafeNumber.toBigAmount(minimumAmountOut || 0, StablePool.POOL_TOKEN_DECIMALS),
+          SafeNumber.toU64Amount(minimumAmountOut || 0, StablePool.POOL_TOKEN_DECIMALS),
         )
         .accountsStrict({
           user: this.walletAddress,
@@ -265,10 +271,10 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     instructions.push(
       await this.program.methods
         .withdraw(
-          SafeNumber.toBigAmount(amount, StablePool.POOL_TOKEN_DECIMALS),
+          SafeNumber.toU64Amount(amount, StablePool.POOL_TOKEN_DECIMALS),
           minimumAmountsOut !== undefined
             ? minimumAmountsOut.map((amount, index) =>
-                SafeNumber.toBigAmount(
+                SafeNumber.toU64Amount(
                   amount,
                   pool.data.tokens.find((data) => data.mint.equals(mintAddresses[index]))!.decimals,
                 ),
@@ -400,8 +406,8 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     instructions.push(
       await this.program.methods
         .swap(
-          amountIn ? SafeNumber.toBigAmount(amountIn, tokenIn.balance.decimals) : null,
-          SafeNumber.toBigAmount(minimumAmountOut || 0, tokenOut.balance.decimals),
+          amountIn ? SafeNumber.toU64Amount(amountIn, tokenIn.balance.decimals) : null,
+          SafeNumber.toU64Amount(minimumAmountOut || 0, tokenOut.balance.decimals),
         )
         .accountsStrict({
           user: this.walletAddress,

@@ -1,7 +1,7 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { SafeNumber } from "../utils";
+import { SafeNumber } from "@stabbleorg/anchor-contrib";
 
 export const AMM_VAULT_ID: PublicKey = new PublicKey("vo1tWgqZMjG61Z2T9qUaMYKqZ75CYzMuaZ2LZP1n7HV");
 
@@ -43,7 +43,7 @@ export class Vault {
   }
 
   get beneficiaryFee(): number {
-    return SafeNumber.toPercentage(this.data.beneficiaryFee);
+    return SafeNumber.toNano(this.data.beneficiaryFee);
   }
 
   get isActive(): boolean {

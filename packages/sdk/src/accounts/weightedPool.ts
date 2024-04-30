@@ -1,8 +1,9 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
+import { SafeNumber } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./basePool";
 import { Vault } from "./vault";
-import { BasicMath, SafeNumber, WeightedMath } from "../utils";
+import { BasicMath, WeightedMath } from "../utils";
 
 export const WEIGHTED_SWAP_ID: PublicKey = new PublicKey("swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW");
 
@@ -51,7 +52,7 @@ export class WeightedPool implements Pool<WeightedPoolData> {
   }
 
   get swapFee(): number {
-    return SafeNumber.toPercentage(this.data.swapFee);
+    return SafeNumber.toNano(this.data.swapFee);
   }
 
   get isActive(): boolean {
@@ -78,7 +79,7 @@ export class WeightedPool implements Pool<WeightedPoolData> {
   }
 
   get weights(): number[] {
-    return this.data.tokens.map((data) => SafeNumber.toPercentage(data.weight));
+    return this.data.tokens.map((data) => SafeNumber.toNano(data.weight));
   }
 
   refreshData(updatedData: Partial<WeightedPoolData>) {
