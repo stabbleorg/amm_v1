@@ -432,22 +432,22 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
 
   async changeAmpFactor({
     pool,
-    adminKP,
-  }: TransactionArgs<{ pool: StablePool; adminKP?: Keypair }>): Promise<TransactionSignature> {
+    ampFactor,
+    rampDuration,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ pool: StablePool; ampFactor: number; rampDuration: number }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
-      .pause()
+      .changeAmpFactor(ampFactor, rampDuration)
       .accountsStrict({
         owner: this.walletAddress,
         pool: pool.address,
       })
       .instruction();
 
-    const signers: Signer[] = [];
-    if (adminKP) signers.push(adminKP);
+    const { transaction, recentBlock, slot } = await this.createTransaction([instruction], altAccounts, priorityLevel);
 
-    const { transaction, slot } = await this.createTransaction([instruction]);
-
-    return this.provider.sendAndConfirm!(transaction, signers, { minContextSlot: slot });
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
   }
 }
 
