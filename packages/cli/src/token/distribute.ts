@@ -10,7 +10,7 @@ import {
   getMint,
 } from "@solana/spl-token";
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { SafeNumber } from "@stabbleorg/anchor-contrib";
+import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
@@ -55,7 +55,7 @@ export function distribute(program: Command) {
             iouMintK,
             tokenAddress,
             provider.publicKey,
-            BigInt(SafeNumber.toU64Amount(item.amount, decimals).toString()),
+            BigInt(SafeAmount.toU64Amount(item.amount, decimals).toString()),
             decimals,
           ),
           createFreezeAccountInstruction(tokenAddress, iouMintK, provider.publicKey),

@@ -1,5 +1,5 @@
 import bs58 from "bs58";
-import { BorshInstructionCoder } from "@coral-xyz/anchor";
+import { BorshInstructionCoder, Instruction } from "@coral-xyz/anchor";
 import {
   DecodedTransferInstruction,
   decodeBurnInstruction,
@@ -30,7 +30,7 @@ export type ChangedBalance = {
   beneficiaryAmount?: bigint;
 };
 
-export type ParsedResult = InitializedPool | ChangedBalance;
+export type ParsedResult = { meta: Instruction } | (InitializedPool | ChangedBalance);
 
 export class SwapParser {
   constructor(readonly program: WeightedSwapProgram | StableSwapProgram) {}
@@ -66,23 +66,42 @@ export class SwapParser {
     const accountKeys = data.transaction.message.getAccountKeys({ addressLookupTableAccounts: altAccounts });
 
     for (const [i, compiledInstruction] of data.transaction.message.compiledInstructions.entries()) {
+      if (!accountKeys.get(compiledInstruction.programIdIndex)?.equals(this.program.programId)) continue;
+
       const keyIndexes = compiledInstruction.accountKeyIndexes;
-      const compiledInstructions = data.meta?.innerInstructions?.find(({ index }) => index === i)?.instructions;
+      const instructions = data.meta?.innerInstructions?.find(({ index }) => index === i)?.instructions;
       const instructionMeta = this.coder.decode(Buffer.from(compiledInstruction.data));
 
       if (instructionMeta) {
         switch (instructionMeta.name) {
           case "initialize":
-            result.push(this.parseInitializeInstruction({ accountKeys, keyIndexes }));
+            result.push({
+              meta: instructionMeta,
+              ...this.parseInitializeInstruction({ accountKeys, keyIndexes }),
+            });
             break;
           case "deposit":
-            result.push(await this.parseDepositInstruction({ accountKeys, keyIndexes, compiledInstructions }));
+            result.push({
+              meta: instructionMeta,
+              ...(await this.parseDepositInstruction({ accountKeys, keyIndexes, instructions })),
+            });
             break;
           case "withdraw":
-            result.push(await this.parseWithdrawInstruction({ accountKeys, keyIndexes, compiledInstructions }));
+            result.push({
+              meta: instructionMeta,
+              ...(await this.parseWithdrawInstruction({ accountKeys, keyIndexes, instructions })),
+            });
             break;
           case "swap":
-            result.push(await this.parseSwapInstruction({ accountKeys, keyIndexes, compiledInstructions }));
+            result.push({
+              meta: instructionMeta,
+              ...(await this.parseSwapInstruction({ accountKeys, keyIndexes, instructions })),
+            });
+            break;
+          default:
+            result.push({
+              meta: instructionMeta,
+            });
             break;
         }
       }
@@ -102,10 +121,10 @@ export class SwapParser {
   async parseDepositInstruction({
     accountKeys,
     keyIndexes,
-    compiledInstructions = [],
+    instructions = [],
   }: ParseInstructionArg): Promise<ChangedBalance> {
-    const transfers = compiledInstructions
-      .slice(0, compiledInstructions.length - 1)
+    const transfers = instructions
+      .slice(0, instructions.length - 1)
       .map((transferInstruction) =>
         decodeTransferInstruction({
           programId: accountKeys.get(transferInstruction.programIdIndex)!,
@@ -126,7 +145,7 @@ export class SwapParser {
       transfers.map((transfer) => transfer.toAddress),
     );
 
-    const mintToInstruction = compiledInstructions[compiledInstructions.length - 1];
+    const mintToInstruction = instructions[instructions.length - 1];
     const mintTo = decodeMintToInstruction({
       programId: accountKeys.get(mintToInstruction.programIdIndex)!,
       keys: mintToInstruction.accounts.map((index) => ({
@@ -156,10 +175,10 @@ export class SwapParser {
   async parseWithdrawInstruction({
     accountKeys,
     keyIndexes,
-    compiledInstructions = [],
+    instructions = [],
   }: ParseInstructionArg): Promise<ChangedBalance> {
-    const transfers = compiledInstructions
-      .slice(0, compiledInstructions.length - 1)
+    const transfers = instructions
+      .slice(0, instructions.length - 1)
       .filter((_, index) => index % 2 === 1)
       .map((transferInstruction) =>
         decodeTransferInstruction({
@@ -181,7 +200,7 @@ export class SwapParser {
       transfers.map((transfer) => transfer.fromAddress),
     );
 
-    const burnInstruction = compiledInstructions[compiledInstructions.length - 1];
+    const burnInstruction = instructions[instructions.length - 1];
     const burn = decodeBurnInstruction({
       programId: accountKeys.get(burnInstruction.programIdIndex)!,
       keys: burnInstruction.accounts.map((index) => ({
@@ -211,12 +230,12 @@ export class SwapParser {
   async parseSwapInstruction({
     accountKeys,
     keyIndexes,
-    compiledInstructions = [],
+    instructions = [],
   }: ParseInstructionArg): Promise<ChangedBalance> {
-    const hasFee = compiledInstructions.length === 5;
-    const transferAInstruction = compiledInstructions[0];
-    const transferBInstruction = hasFee ? compiledInstructions[4] : compiledInstructions[2];
-    const transferCInstruction = hasFee ? compiledInstructions[2] : null;
+    const hasFee = instructions.length === 5;
+    const transferAInstruction = instructions[0];
+    const transferBInstruction = hasFee ? instructions[4] : instructions[2];
+    const transferCInstruction = hasFee ? instructions[2] : null;
 
     const transferA = decodeTransferInstruction({
       programId: accountKeys.get(transferAInstruction.programIdIndex)!,

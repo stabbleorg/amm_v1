@@ -4,7 +4,7 @@ import {
   DataUpdatedEvent,
   SIMULATED_SIGNATURE,
   FloatLike,
-  SafeNumber,
+  SafeAmount,
   TransactionArgs,
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
@@ -76,7 +76,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
           withdrawAuthorityAddress,
           withdrawAuthorityBump,
           beneficiaryAddress,
-          SafeNumber.toGiga(beneficiaryFee),
+          SafeAmount.toGiga(beneficiaryFee),
         )
         .accountsStrict({
           admin: this.walletAddress,

@@ -1011,10 +1011,47 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
+"@stabbleorg/amm-parser@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/amm-parser/-/amm-parser-0.7.2.tgz#38421480ba3b1131dee948101e2bc1be92208142"
+  integrity sha512-X478OVt1n/AhjR1JOyTFpRZ6Z72WWt5397ob1XFuFiEJOgeaGEevtHHTWu60VYqghWeCNbmBi6S2S2ySk/C/sg==
+  dependencies:
+    "@coral-xyz/anchor" "^0.30.0"
+    "@solana/spl-token" "^0.4.0"
+    "@solana/web3.js" "^1.91.0"
+    "@stabbleorg/amm-sdk" "^0.7.2"
+    "@stabbleorg/anchor-contrib" "^0.7.2"
+    bs58 "^5.0.0"
+
+"@stabbleorg/amm-sdk@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/amm-sdk/-/amm-sdk-0.7.2.tgz#f8507c3d36fd9b5490fd50221fb1249b472cd4da"
+  integrity sha512-0cYgXArU8q6uX/LfFjs2LPv0Skxd2qsMJJKWC05NJXlEo2+FnJnFLvZli5ctbRQH9KaKRotVadWVFnfv5RCzzQ==
+  dependencies:
+    "@coral-xyz/anchor" "^0.30.0"
+    "@metaplex-foundation/js" "^0.20.0"
+    "@metaplex-foundation/mpl-token-metadata" "^2.11.0"
+    "@solana/spl-token" "^0.4.0"
+    "@solana/web3.js" "^1.91.0"
+    "@stabbleorg/anchor-contrib" "^0.7.2"
+    bn.js "^5.2.0"
+
 "@stabbleorg/anchor-contrib@^0.7.2":
   version "0.7.2"
   resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-0.7.2.tgz#97d2bdca56d2c6a480cd87657a32754068576906"
   integrity sha512-0FIwUEN8vUaLhfTGTDILmHngdAe4wU3E4fNxRilnQWC7vutERa4FLZOLbtRkdanBtGJWziP8qN5NeAAtBtsU/Q==
+  dependencies:
+    "@coral-xyz/anchor" "^0.30.0"
+    "@solana/spl-token" "^0.4.0"
+    "@solana/web3.js" "^1.91.0"
+    bn.js "^5.2.1"
+    bs58 "^5.0.0"
+    decimal.js "^10.4.3"
+
+"@stabbleorg/anchor-contrib@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-0.8.0.tgz#8c92f96dc1f465df0d0bc5d5e27350ff9ffa8641"
+  integrity sha512-CNWr/gZ4BsItZPZQmOKyd/KEmM10KQd/p0CWy6nw7M3nk3zW2tl8qcf59V+F3R/mUVPpCLf6QPOT1GfBVFA0Hg==
   dependencies:
     "@coral-xyz/anchor" "^0.30.0"
     "@solana/spl-token" "^0.4.0"

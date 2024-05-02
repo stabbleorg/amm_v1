@@ -1,6 +1,6 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import { SafeNumber } from "@stabbleorg/anchor-contrib";
+import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./basePool";
 import { Vault } from "./vault";
 import { BasicMath, StableMath } from "../utils";
@@ -66,7 +66,7 @@ export class StablePool implements Pool<StablePoolData> {
   }
 
   get swapFee(): number {
-    return SafeNumber.toNano(this.data.swapFee);
+    return SafeAmount.toNano(this.data.swapFee);
   }
 
   get isActive(): boolean {
@@ -81,8 +81,8 @@ export class StablePool implements Pool<StablePoolData> {
         balance: {
           amount: balance.toString(),
           decimals: token.decimals,
-          uiAmount: SafeNumber.toUiAmount(balance, token.decimals),
-          uiAmountString: SafeNumber.toUiAmountString(balance, token.decimals),
+          uiAmount: SafeAmount.toUiAmount(balance, token.decimals),
+          uiAmountString: SafeAmount.toUiAmountString(balance, token.decimals),
         },
       };
     });

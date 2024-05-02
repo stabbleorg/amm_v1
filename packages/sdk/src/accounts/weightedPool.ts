@@ -1,6 +1,6 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import { SafeNumber } from "@stabbleorg/anchor-contrib";
+import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./basePool";
 import { Vault } from "./vault";
 import { BasicMath, WeightedMath } from "../utils";
@@ -48,11 +48,11 @@ export class WeightedPool implements Pool<WeightedPoolData> {
   }
 
   get invariant(): number {
-    return SafeNumber.toUiAmount(this.data.invariant, WeightedPool.POOL_TOKEN_DECIMALS);
+    return SafeAmount.toUiAmount(this.data.invariant, WeightedPool.POOL_TOKEN_DECIMALS);
   }
 
   get swapFee(): number {
-    return SafeNumber.toNano(this.data.swapFee);
+    return SafeAmount.toNano(this.data.swapFee);
   }
 
   get isActive(): boolean {
@@ -67,8 +67,8 @@ export class WeightedPool implements Pool<WeightedPoolData> {
         balance: {
           amount: balance.toString(),
           decimals: token.decimals,
-          uiAmount: SafeNumber.toUiAmount(balance, token.decimals),
-          uiAmountString: SafeNumber.toUiAmountString(balance, token.decimals),
+          uiAmount: SafeAmount.toUiAmount(balance, token.decimals),
+          uiAmountString: SafeAmount.toUiAmountString(balance, token.decimals),
         },
       };
     });
@@ -79,7 +79,7 @@ export class WeightedPool implements Pool<WeightedPoolData> {
   }
 
   get weights(): number[] {
-    return this.data.tokens.map((data) => SafeNumber.toNano(data.weight));
+    return this.data.tokens.map((data) => SafeAmount.toNano(data.weight));
   }
 
   refreshData(updatedData: Partial<WeightedPoolData>) {

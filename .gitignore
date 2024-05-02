@@ -1,5 +1,6 @@
 .anchor
 .DS_Store
+.npmrc
 target
 **/*.rs.bk
 dist

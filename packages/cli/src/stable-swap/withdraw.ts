@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { getMint } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { StablePool } from "@stabbleorg/amm-sdk";
-import { SafeNumber } from "@stabbleorg/anchor-contrib";
+import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
@@ -23,7 +23,7 @@ export function withdraw(program: Command) {
       const pool = new StablePool(vault, poolK, data);
 
       const mint = await getMint(provider.connection, pool.mintAddress);
-      const supply = SafeNumber.toUiAmount(mint.supply.toString(), mint.decimals);
+      const supply = SafeAmount.toUiAmount(mint.supply.toString(), mint.decimals);
       const balances = await stableSwap.getTokenBalances();
 
       console.log("Total LP:", supply);
