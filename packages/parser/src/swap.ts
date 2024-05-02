@@ -30,7 +30,12 @@ export type ChangedBalance = {
   beneficiaryAmount?: bigint;
 };
 
-export type ParsedResult = { meta: Instruction } | (InitializedPool | ChangedBalance);
+export type InstructionMeta = { meta: Instruction };
+export type ParsedResultWithMeta<T> = InstructionMeta & T;
+export type ParsedResult =
+  | InstructionMeta
+  | ParsedResultWithMeta<InitializedPool>
+  | ParsedResultWithMeta<ChangedBalance>;
 
 export class SwapParser {
   constructor(readonly program: WeightedSwapProgram | StableSwapProgram) {}
