@@ -7,7 +7,9 @@
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "format": "rustfmt programs/**/src/lib.rs libraries/**/src/lib.rs"
   },
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "devDependencies": {
     "@coral-xyz/anchor": "^0.30.0",
     "@solana/spl-token": "^0.4.0",
