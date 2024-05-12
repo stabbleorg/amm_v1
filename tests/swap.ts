@@ -15,6 +15,7 @@ import {
   StableSwapContext,
   WeightedSwapListener,
   StableSwapListener,
+  Swap,
 } from "@stabbleorg/amm-sdk";
 import {
   WEIGHTED_VAULT_KP,
@@ -117,33 +118,31 @@ describe("Multi-hop Swap", () => {
       weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
     );
 
-    const keypair = Keypair.generate();
-    const instructions: TransactionInstruction[] = [
-      ...(await stableSwap.createIntermediateTokenAccountInstructions(keypair.publicKey, USDC_MINT_KP.publicKey)),
-      ...(await stableSwap.swapInstructions({
-        pool: pool_DAI_USDC as StablePool,
-        mintInAddress: DAI_MINT_KP.publicKey,
-        mintOutAddress: USDC_MINT_KP.publicKey,
-        amountIn,
-        tokenOutAddress: keypair.publicKey,
-      })),
-      ...(await stableSwap.swapInstructions({
-        pool: pool_USDC_USDT as StablePool,
-        mintInAddress: USDC_MINT_KP.publicKey,
-        mintOutAddress: USDT_MINT_KP.publicKey,
-        minimumAmountOut,
-        tokenInAddress: keypair.publicKey,
-      })),
-    ];
-    const { transaction, recentBlock, slot } = await vaultCtx.createTransaction(instructions);
-    await vaultCtx.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
+    await Swap.batch({
+      weightedSwap,
+      stableSwap,
+      routes: [
+        {
+          pool: pool_DAI_USDC,
+          mintInAddress: DAI_MINT_KP.publicKey,
+          mintOutAddress: USDC_MINT_KP.publicKey,
+        },
+        {
+          pool: pool_USDC_USDT,
+          mintInAddress: USDC_MINT_KP.publicKey,
+          mintOutAddress: USDT_MINT_KP.publicKey,
+        },
+      ],
+      amountIn,
+      minimumAmountOut,
+    });
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
       weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
     );
     const usdtAmountOut = postBalance.uiAmount! - balance.uiAmount!;
 
-    // console.log("USDT out:", postBalance.uiAmount! - balance.uiAmount!);
+    // console.log("USDT out:", usdtAmountOut);
     assert.ok(usdtAmountOut <= amountOut);
     assert.ok(usdtAmountOut >= minimumAmountOut);
   });
@@ -187,33 +186,31 @@ describe("Multi-hop Swap", () => {
       weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
     );
 
-    const keypair = Keypair.generate();
-    const instructions: TransactionInstruction[] = [
-      ...(await weightedSwap.createIntermediateTokenAccountInstructions(keypair.publicKey, USDC_MINT_KP.publicKey)),
-      ...(await weightedSwap.swapInstructions({
-        pool: pool_STB_USDC as WeightedPool,
-        mintInAddress: STB_MINT_KP.publicKey,
-        mintOutAddress: USDC_MINT_KP.publicKey,
-        amountIn,
-        tokenOutAddress: keypair.publicKey,
-      })),
-      ...(await stableSwap.swapInstructions({
-        pool: pool_USDC_USDT as StablePool,
-        mintInAddress: USDC_MINT_KP.publicKey,
-        mintOutAddress: USDT_MINT_KP.publicKey,
-        minimumAmountOut,
-        tokenInAddress: keypair.publicKey,
-      })),
-    ];
-    const { transaction, recentBlock, slot } = await vaultCtx.createTransaction(instructions);
-    await vaultCtx.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
+    await Swap.batch({
+      weightedSwap,
+      stableSwap,
+      routes: [
+        {
+          pool: pool_STB_USDC,
+          mintInAddress: STB_MINT_KP.publicKey,
+          mintOutAddress: USDC_MINT_KP.publicKey,
+        },
+        {
+          pool: pool_USDC_USDT,
+          mintInAddress: USDC_MINT_KP.publicKey,
+          mintOutAddress: USDT_MINT_KP.publicKey,
+        },
+      ],
+      amountIn,
+      minimumAmountOut,
+    });
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
       weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
     );
     const usdtAmountOut = postBalance.uiAmount! - balance.uiAmount!;
 
-    // console.log("USDT out:", postBalance.uiAmount! - balance.uiAmount!);
+    // console.log("USDT out:", usdtAmountOut);
     assert.ok(usdtAmountOut <= amountOut);
     assert.ok(usdtAmountOut >= minimumAmountOut);
   });
@@ -249,33 +246,31 @@ describe("Multi-hop Swap", () => {
       weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
     );
 
-    const keypair = Keypair.generate();
-    const instructions: TransactionInstruction[] = [
-      ...(await stableSwap.createIntermediateTokenAccountInstructions(keypair.publicKey, NATIVE_MINT)),
-      ...(await stableSwap.swapInstructions({
-        pool: pool_MSOL_SOL as StablePool,
-        mintInAddress: MSOL_MINT_KP.publicKey,
-        mintOutAddress: NATIVE_MINT,
-        amountIn,
-        tokenOutAddress: keypair.publicKey,
-      })),
-      ...(await weightedSwap.swapInstructions({
-        pool: pool_SOL_USDC as WeightedPool,
-        mintInAddress: NATIVE_MINT,
-        mintOutAddress: USDC_MINT_KP.publicKey,
-        minimumAmountOut,
-        tokenInAddress: keypair.publicKey,
-      })),
-    ];
-    const { transaction, recentBlock, slot } = await vaultCtx.createTransaction(instructions);
-    await vaultCtx.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
+    await Swap.batch({
+      weightedSwap,
+      stableSwap,
+      routes: [
+        {
+          pool: pool_MSOL_SOL,
+          mintInAddress: MSOL_MINT_KP.publicKey,
+          mintOutAddress: NATIVE_MINT,
+        },
+        {
+          pool: pool_SOL_USDC,
+          mintInAddress: NATIVE_MINT,
+          mintOutAddress: USDC_MINT_KP.publicKey,
+        },
+      ],
+      amountIn,
+      minimumAmountOut,
+    });
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
       weightedSwap.getAssociatedTokenAddress(USDC_MINT_KP.publicKey),
     );
     const usdcAmountOut = postBalance.uiAmount! - balance.uiAmount!;
 
-    // console.log("USDC out:", postBalance.uiAmount! - balance.uiAmount!);
+    // console.log("USDC out:", usdcAmountOut);
     assert.ok(usdcAmountOut <= amountOut);
     assert.ok(usdcAmountOut >= minimumAmountOut);
   });
@@ -353,7 +348,7 @@ describe("Multi-hop Swap", () => {
     );
     const usdtAmountOut = postBalance.uiAmount! - balance.uiAmount!;
 
-    // console.log("USDT out:", postBalance.uiAmount! - balance.uiAmount!);
+    // console.log("USDT out:", usdtAmountOut);
     assert.ok(usdtAmountOut <= amountOut);
     assert.ok(usdtAmountOut >= minimumAmountOut);
   });

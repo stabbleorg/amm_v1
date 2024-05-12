@@ -28,12 +28,13 @@ import {
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID, Vault, WeightedPool, WeightedPoolData } from "../accounts";
+import { SwapInstructionArgs } from "../utils";
 import { type WeightedSwap as IDLType } from "../generated/weighted_swap";
 import IDL from "../generated/idl/weighted_swap.json";
 
 export type WeightedSwapProgram = Program<IDLType>;
 
-export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
+export class WeightedSwapContext<T extends Provider = Provider> extends WalletContext<T> {
   readonly program: WeightedSwapProgram;
   readonly metaplex: Metaplex;
 
@@ -363,15 +364,7 @@ export class WeightedSwapContext<T extends Provider> extends WalletContext<T> {
     tokenOutAddress,
     amountIn,
     minimumAmountOut,
-  }: {
-    pool: WeightedPool;
-    mintInAddress: PublicKey;
-    mintOutAddress: PublicKey;
-    tokenInAddress?: PublicKey;
-    tokenOutAddress?: PublicKey;
-    amountIn?: FloatLike;
-    minimumAmountOut?: FloatLike;
-  }): Promise<TransactionInstruction[]> {
+  }: SwapInstructionArgs): Promise<TransactionInstruction[]> {
     const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintInAddress));
     if (!tokenIn) throw Error("Swap path not found");
     const tokenOut = pool.tokens.find((token) => token.mintAddress.equals(mintOutAddress));

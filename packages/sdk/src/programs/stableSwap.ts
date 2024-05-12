@@ -28,12 +28,13 @@ import {
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID, Vault, StablePool, StablePoolData } from "../accounts";
+import { SwapInstructionArgs } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
 export type StableSwapProgram = Program<IDLType>;
 
-export class StableSwapContext<T extends Provider> extends WalletContext<T> {
+export class StableSwapContext<T extends Provider = Provider> extends WalletContext<T> {
   readonly program: StableSwapProgram;
   readonly metaplex: Metaplex;
 
@@ -363,15 +364,7 @@ export class StableSwapContext<T extends Provider> extends WalletContext<T> {
     tokenOutAddress,
     amountIn,
     minimumAmountOut,
-  }: {
-    pool: StablePool;
-    mintInAddress: PublicKey;
-    mintOutAddress: PublicKey;
-    tokenInAddress?: PublicKey;
-    tokenOutAddress?: PublicKey;
-    amountIn?: FloatLike;
-    minimumAmountOut?: FloatLike;
-  }): Promise<TransactionInstruction[]> {
+  }: SwapInstructionArgs): Promise<TransactionInstruction[]> {
     const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintInAddress));
     if (!tokenIn) throw Error("Swap path not found");
     const tokenOut = pool.tokens.find((token) => token.mintAddress.equals(mintOutAddress));
