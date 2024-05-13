@@ -12,8 +12,8 @@ export class WeightedMath {
     amountIn: number,
     swapFee: number = 0,
   ): number {
-    if (amountIn > balanceIn * this.MAX_IN_RATIO) return 0;
-    return balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut)) * (1 - swapFee);
+    if (amountIn > balanceIn * WeightedMath.MAX_IN_RATIO) return 0;
+    return balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut) * 1.0000000005) * (1 - swapFee);
   }
 
   static calcPriceImpact(
@@ -59,7 +59,7 @@ export class WeightedMath {
   ): number {
     let invariantRatio = (poolTokenSupply - amountIn) / poolTokenSupply;
 
-    if (invariantRatio < this.MIN_INVARIANT_RATIO) {
+    if (invariantRatio < WeightedMath.MIN_INVARIANT_RATIO) {
       return 0;
     }
 

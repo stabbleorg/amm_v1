@@ -28,7 +28,7 @@ import {
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID, Vault, StablePool, StablePoolData } from "../accounts";
-import { SwapInstructionArgs } from "../utils";
+import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
@@ -312,13 +312,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     minimumAmountOut,
     priorityLevel,
     altAccounts,
-  }: TransactionArgs<{
-    pool: StablePool;
-    mintInAddress: PublicKey;
-    mintOutAddress: PublicKey;
-    amountIn: FloatLike;
-    minimumAmountOut: FloatLike;
-  }>): Promise<TransactionSignature> {
+  }: TransactionArgs<SwapArgs>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
 

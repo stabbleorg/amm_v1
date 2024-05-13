@@ -28,7 +28,7 @@ import {
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID, Vault, WeightedPool, WeightedPoolData } from "../accounts";
-import { SwapInstructionArgs } from "../utils";
+import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type WeightedSwap as IDLType } from "../generated/weighted_swap";
 import IDL from "../generated/idl/weighted_swap.json";
 
@@ -312,13 +312,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     minimumAmountOut,
     priorityLevel,
     altAccounts,
-  }: TransactionArgs<{
-    pool: WeightedPool;
-    mintInAddress: PublicKey;
-    mintOutAddress: PublicKey;
-    amountIn: FloatLike;
-    minimumAmountOut: FloatLike;
-  }>): Promise<TransactionSignature> {
+  }: TransactionArgs<SwapArgs>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
 
