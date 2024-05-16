@@ -12,7 +12,10 @@ export class WeightedMath {
     amountIn: number,
     swapFee: number = 0,
   ): number {
+    if (!amountIn) return 0;
+
     if (amountIn > balanceIn * WeightedMath.MAX_IN_RATIO) return 0;
+
     return (
       balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut) * 1.0000000005) * (1 - swapFee)
     );
@@ -116,6 +119,8 @@ export class StableMath {
     amountIn: number,
     swapFee: number = 0,
   ): number {
+    if (!amountIn) return 0;
+
     const invariant = this.calcInvariant(balances, amplification);
 
     balances[tokenIndexIn] = balances[tokenIndexIn] + amountIn;

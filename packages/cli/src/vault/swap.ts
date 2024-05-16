@@ -33,6 +33,18 @@ export function swap(program: Command) {
         (pool) => pool.address.toBase58() === "3h5TeTeWZZbwW8WhuQZtCTVjTGVf3XMPLhzFcz7WmQct",
       )!;
 
+      // const amountOut_0 = pool_WBTC_USDC.getSwapAmountOut(
+      //   new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
+      //   new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
+      //   1,
+      // );
+      // const amountOut = pool_USDT_USDC.getSwapAmountOut(
+      //   new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
+      //   new PublicKey("8zL6cUxfgXdWyM7N7nePEKsdKb6WNZdsuXboHvuU8EfV"),
+      //   amountOut_0,
+      // );
+      // console.log("USDT out:", amountOut);
+
       try {
         const signature = await Swap.batch({
           weightedSwap,
