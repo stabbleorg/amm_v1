@@ -401,9 +401,9 @@ describe("Pool", () => {
       pools.push(pool);
       POOL_ID_BONK_SOL_USDC = pool.address;
 
-      // Bonk: $0.000001, SOL: $145, USDC: $1
+      // Bonk: $0.000001, SOL: $148, USDC: $1
       const bRatio_Bonk_USDC = WeightedMath.calcBalanceRatio(0.5, 0.000001, 0.2, 1);
-      const bRatio_SOL_USDC = WeightedMath.calcBalanceRatio(0.3, 148.163869, 0.2, 1);
+      const bRatio_SOL_USDC = WeightedMath.calcBalanceRatio(0.3, 148, 0.2, 1);
       const usdcAmount = 500000;
       const bonkAmount = usdcAmount * bRatio_Bonk_USDC;
       const solAmount = usdcAmount * bRatio_SOL_USDC;

@@ -1011,47 +1011,10 @@
     rpc-websockets "^7.11.0"
     superstruct "^0.14.2"
 
-"@stabbleorg/amm-parser@^0.7.2":
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/amm-parser/-/amm-parser-0.7.2.tgz#38421480ba3b1131dee948101e2bc1be92208142"
-  integrity sha512-X478OVt1n/AhjR1JOyTFpRZ6Z72WWt5397ob1XFuFiEJOgeaGEevtHHTWu60VYqghWeCNbmBi6S2S2ySk/C/sg==
-  dependencies:
-    "@coral-xyz/anchor" "^0.30.0"
-    "@solana/spl-token" "^0.4.0"
-    "@solana/web3.js" "^1.91.0"
-    "@stabbleorg/amm-sdk" "^0.7.2"
-    "@stabbleorg/anchor-contrib" "^0.7.2"
-    bs58 "^5.0.0"
-
-"@stabbleorg/amm-sdk@^0.7.2":
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/amm-sdk/-/amm-sdk-0.7.2.tgz#f8507c3d36fd9b5490fd50221fb1249b472cd4da"
-  integrity sha512-0cYgXArU8q6uX/LfFjs2LPv0Skxd2qsMJJKWC05NJXlEo2+FnJnFLvZli5ctbRQH9KaKRotVadWVFnfv5RCzzQ==
-  dependencies:
-    "@coral-xyz/anchor" "^0.30.0"
-    "@metaplex-foundation/js" "^0.20.0"
-    "@metaplex-foundation/mpl-token-metadata" "^2.11.0"
-    "@solana/spl-token" "^0.4.0"
-    "@solana/web3.js" "^1.91.0"
-    "@stabbleorg/anchor-contrib" "^0.7.2"
-    bn.js "^5.2.0"
-
-"@stabbleorg/anchor-contrib@^0.7.2":
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-0.7.2.tgz#97d2bdca56d2c6a480cd87657a32754068576906"
-  integrity sha512-0FIwUEN8vUaLhfTGTDILmHngdAe4wU3E4fNxRilnQWC7vutERa4FLZOLbtRkdanBtGJWziP8qN5NeAAtBtsU/Q==
-  dependencies:
-    "@coral-xyz/anchor" "^0.30.0"
-    "@solana/spl-token" "^0.4.0"
-    "@solana/web3.js" "^1.91.0"
-    bn.js "^5.2.1"
-    bs58 "^5.0.0"
-    decimal.js "^10.4.3"
-
-"@stabbleorg/anchor-contrib@^0.8.1":
-  version "0.8.1"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-0.8.1.tgz#4606a491770cb38fa36be2fe31bcc9c2698b8960"
-  integrity sha512-y6Vz1/kWXxWhyozQ2s+fQZeO6BRa+ISQxI4v8vfsWtdvzY5TlG3AOCddLTDBBzpevZLI0/RBxRtHt3Zyh/LRsQ==
+"@stabbleorg/anchor-contrib@^0.9.0-beta":
+  version "0.9.0-beta"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-0.9.0-beta.tgz#dd0ee4413cd5eff15579a2330332919d4dacd2fc"
+  integrity sha512-2ZayIPEvZlNhpcWCyoail+RvjJF853wOt2md+pmqNb6lHlEp6wAqCmZAQ3rr/ZbUH52gAyQyHBbq0SrmrxBY9w==
   dependencies:
     "@coral-xyz/anchor" "^0.30.0"
     "@solana/spl-token" "^0.4.0"
@@ -1095,9 +1058,9 @@
   integrity sha512-dJvrYWxP/UcXm36Qn36fxhUKu8A/xMRXVT2cliFF1Z7UA9liG5Psj3ezNSZw+5puH2czDXRLcXQxf8JbJt0ejg==
 
 "@types/node@*":
-  version "20.12.11"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.12.11.tgz#c4ef00d3507000d17690643278a60dc55a9dc9be"
-  integrity sha512-vDg9PZ/zi+Nqp6boSOT7plNuthRugEKixDv5sFTIpkE89MmNtEArAShI4mxuX2+UrLEe9pxC1vm2cjm9YlWbJw==
+  version "20.12.12"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.12.12.tgz#7cbecdf902085cec634fdb362172dfe12b8f2050"
+  integrity sha512-eWLDGF/FOSPtAvEqeRAQ4C8LSA7M1I7i0ky1I8U7kD1J5ITyW3AsRhQrKVoWf5pFKZ2kILsEGJhsI9r93PYnOw==
   dependencies:
     undici-types "~5.26.4"
 
