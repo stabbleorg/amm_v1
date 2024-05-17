@@ -53,8 +53,7 @@ describe("Pool", () => {
   const weightedSwapListener = new WeightedSwapListener(guestWeightedSwap.program);
   const stableSwapListener = new StableSwapListener(guestStableSwap.program);
 
-  const weightedSwapParser = new SwapParser(guestWeightedSwap.program);
-  const stableSwapParser = new SwapParser(guestStableSwap.program);
+  const parser = new SwapParser(guestWeightedSwap.program);
 
   const pools: Pool<WeightedPoolData | StablePoolData>[] = [];
 
@@ -101,7 +100,7 @@ describe("Pool", () => {
       pools.push(pool);
       POOL_ID_STB_USDC = pool.address;
 
-      const parsedResults = await weightedSwapParser.parse(signature);
+      const parsedResults = await parser.parse(signature);
       const parsedResult = parsedResults[0] as InitializedPool;
       assert.equal(parsedResult.address, pool.address.toBase58());
       assert.equal(parsedResult.mintAddress, pool.mintAddress.toBase58());
@@ -149,7 +148,7 @@ describe("Pool", () => {
       assert.ok(ratio > 100);
       assert.ok(ratio < 100.00004);
 
-      const parsedResults = await weightedSwapParser.parse(signature);
+      const parsedResults = await parser.parse(signature);
       const parsedResult = parsedResults[0] as ChangedBalance;
       assert.equal(parsedResult.poolAddress, pool.address.toBase58());
       assert.equal(parsedResult.userAddress, weightedSwap.walletAddress.toBase58());
@@ -221,7 +220,7 @@ describe("Pool", () => {
       // assert.ok(amountOut <= estimatedAmountOut * 1.0001);
       assert.ok(amountOut >= minimumAmountOut);
 
-      const parsedResults = await weightedSwapParser.parse(signature);
+      const parsedResults = await parser.parse(signature);
       const parsedResult = parsedResults[0] as ChangedBalance;
       assert.equal(parsedResult.poolAddress, pool.address.toBase58());
       assert.equal(parsedResult.userAddress, weightedSwap.walletAddress.toBase58());
@@ -285,7 +284,7 @@ describe("Pool", () => {
       const usdcAmountOut = postUsdcBalance.uiAmount! - usdcBalance.uiAmount!;
       assert.ok(usdcAmount > usdcAmountOut);
 
-      const parsedResults = await weightedSwapParser.parse(signature);
+      const parsedResults = await parser.parse(signature);
       const parsedResult = parsedResults[0] as ChangedBalance;
       assert.equal(parsedResult.poolAddress, pool.address.toBase58());
       assert.equal(parsedResult.userAddress, weightedSwap.walletAddress.toBase58());

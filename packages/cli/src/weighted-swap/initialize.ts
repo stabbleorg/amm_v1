@@ -10,6 +10,7 @@ export function initialize(program: Command) {
     .requiredOption("--vault-k <string>", "vault key", parseKey)
     .requiredOption("--mints <strings...>", "mint keys")
     .requiredOption("--weights <numbers...>", "weights")
+    .option("--max-caps <numbers...>", "max caps")
     .requiredOption("--swap-fee <number>", "swap fee")
     .option("--pool-k-p <path>", "pool keypair", parseKeypair)
     .option("--pool-mint-k-p <path>", "pool mint keypair", parseKeypair)
@@ -18,6 +19,7 @@ export function initialize(program: Command) {
         vaultK,
         mints,
         weights,
+        maxCaps,
         swapFee,
         poolKP,
         poolMintKP,
@@ -25,6 +27,7 @@ export function initialize(program: Command) {
         vaultK: PublicKey;
         mints: string[];
         weights: string[];
+        maxCaps?: string[];
         swapFee: string;
         poolKP?: Keypair;
         poolMintKP?: Keypair;
@@ -38,7 +41,7 @@ export function initialize(program: Command) {
         const { pool } = await weightedSwap.initialize({
           vault,
           mintAddresses,
-          maxCaps: [4000000000, 4000000000],
+          maxCaps: maxCaps ?? [4000000000, 4000000000],
           weights,
           swapFee,
           poolMintKP,
