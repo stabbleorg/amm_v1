@@ -1,9 +1,9 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_pro::validate::*;
-use anchor_spl::token::{
-    accessor::{authority as get_token_owner, mint as get_token_mint},
-    mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer,
+use anchor_spl::{
+    associated_token,
+    token::{accessor::mint as get_token_mint, mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer},
 };
 use math::stable_math;
 use vault::{state::Vault, ID as VAULT_PROGRAM_ID};
@@ -155,7 +155,12 @@ impl<'info> Deposit<'info> {
         self.pool.tokens[token_index].balance = self.pool.tokens[token_index].balance + balance_in;
 
         // check vault token owner
-        assert_eq!(get_token_owner(vault_account)?, self.vault_authority.key());
+        let expected_vault_account_key = associated_token::get_associated_token_address(
+            &self.vault_authority.key(),
+            &get_token_mint(vault_account)?,
+        );
+        assert_eq!(expected_vault_account_key, vault_account.key());
+
         transfer(
             CpiContext::new(
                 self.token_program.to_account_info(),
@@ -185,12 +190,12 @@ pub struct Deposit<'info> {
     #[account(mut, has_one = vault, has_one = mint)]
     pub pool: Account<'info, Pool>,
     /// CHECK: OK
-    #[account(seeds = [Pool::AUTHORITY_PREFIX, pool.key().as_ref()], bump = pool.authority_bump)]
+    #[account(seeds = [Pool::AUTHORITY_PREFIX, &pool.key().to_bytes()], bump = pool.authority_bump)]
     pub pool_authority: UncheckedAccount<'info>,
 
     pub vault: Account<'info, Vault>,
     /// CHECK: OK
-    #[account(seeds = [Vault::AUTHORITY_PREFIX, vault.key().as_ref()], bump = vault.authority_bump, seeds::program = VAULT_PROGRAM_ID)]
+    #[account(seeds = [Vault::AUTHORITY_PREFIX, &vault.key().to_bytes()], bump = vault.authority_bump, seeds::program = VAULT_PROGRAM_ID)]
     pub vault_authority: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,

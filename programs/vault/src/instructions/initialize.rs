@@ -29,6 +29,6 @@ pub struct Initialize<'info> {
     pub vault: Account<'info, Vault>,
 
     /// CHECK: OK
-    #[account(seeds = [Vault::AUTHORITY_PREFIX, vault.key().as_ref()], bump)]
+    #[account(seeds = [Vault::AUTHORITY_PREFIX, &vault.key().to_bytes()], bump)]
     pub vault_authority: UncheckedAccount<'info>,
 }

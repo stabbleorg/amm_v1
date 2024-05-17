@@ -83,11 +83,11 @@ pub struct Initialize<'info> {
     #[account(zero, rent_exempt = enforce)]
     pub pool: Account<'info, Pool>,
     /// CHECK: OK
-    #[account(seeds = [Pool::AUTHORITY_PREFIX, pool.key().as_ref()], bump)]
+    #[account(seeds = [Pool::AUTHORITY_PREFIX, &pool.key().to_bytes()], bump)]
     pub pool_authority: UncheckedAccount<'info>,
 
     /// CHECK: OK
-    #[account(seeds = [Vault::WITHDRAW_AUTHORITY_PREFIX, vault.key().as_ref()], bump = vault.withdraw_authority_bump)]
+    #[account(seeds = [Vault::WITHDRAW_AUTHORITY_PREFIX, &vault.key().to_bytes()], bump = vault.withdraw_authority_bump)]
     pub withdraw_authority: UncheckedAccount<'info>,
 
     #[account(has_one = withdraw_authority)]

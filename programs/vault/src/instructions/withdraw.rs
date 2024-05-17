@@ -26,7 +26,7 @@ pub struct Withdraw<'info> {
     #[account(has_one = withdraw_authority)]
     pub vault: Account<'info, Vault>,
     /// CHECK: OK
-    #[account(seeds = [Vault::AUTHORITY_PREFIX, vault.key().as_ref()], bump = vault.authority_bump)]
+    #[account(seeds = [Vault::AUTHORITY_PREFIX, &vault.key().to_bytes()], bump = vault.authority_bump)]
     pub vault_authority: UncheckedAccount<'info>,
 
     /// CHECK: OK

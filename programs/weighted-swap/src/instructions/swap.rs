@@ -131,7 +131,6 @@ impl<'info> Validate<'info> for Swap<'info> {
         assert!(self.vault.is_active);
         assert!(self.pool.is_active);
 
-        assert_eq!(self.vault_token_in.owner, self.vault_authority.key());
         assert_eq!(self.beneficiary_token_out.owner, self.vault.beneficiary);
 
         Ok(())
@@ -153,7 +152,10 @@ pub struct Swap<'info> {
     pub user_token_out: UncheckedAccount<'info>,
 
     /// CHECK: OK
-    #[account(mut)]
+    #[account(mut,
+        associated_token::mint = vault_token_in.mint,
+        associated_token::authority = vault_authority,
+    )]
     pub vault_token_in: Account<'info, TokenAccount>,
     /// CHECK: OK
     #[account(mut)]
