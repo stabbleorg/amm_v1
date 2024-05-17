@@ -1,8 +1,7 @@
 import type { Command } from "commander";
 import { Swap } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
-import { PublicKey } from "@metaplex-foundation/js";
-import { AddressLookupTableAccount } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 
 export function swap(program: Command) {
   program
@@ -29,6 +28,9 @@ export function swap(program: Command) {
       const pool_WBTC_USDC = pools.find(
         (pool) => pool.address.toBase58() === "2wvr84azf3wcwo2vMcKrTgT7PgiXxDKzwC2E5rmCimiX",
       )!;
+      const pool_JUP_BONK_USDC = pools.find(
+        (pool) => pool.address.toBase58() === "59myzAbJnzVjvba83XiYTe94x5VxCDosWxhjJGfCKWz1",
+      )!;
       const pool_USDT_USDC = pools.find(
         (pool) => pool.address.toBase58() === "3h5TeTeWZZbwW8WhuQZtCTVjTGVf3XMPLhzFcz7WmQct",
       )!;
@@ -51,14 +53,19 @@ export function swap(program: Command) {
           stableSwap,
           // SOL -> WBTC -> USDC -> USDT
           routes: [
+            // {
+            //   pool: pool_WBTC_SOL,
+            //   mintInAddress: new PublicKey("So11111111111111111111111111111111111111112"),
+            //   mintOutAddress: new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
+            // },
+            // {
+            //   pool: pool_WBTC_USDC,
+            //   mintInAddress: new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
+            //   mintOutAddress: new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
+            // },
             {
-              pool: pool_WBTC_SOL,
-              mintInAddress: new PublicKey("So11111111111111111111111111111111111111112"),
-              mintOutAddress: new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
-            },
-            {
-              pool: pool_WBTC_USDC,
-              mintInAddress: new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
+              pool: pool_JUP_BONK_USDC,
+              mintInAddress: new PublicKey("3m7SaH9PWu5j7hpApdFjGhD32WwWjNTEiKhWwYYyybRQ"),
               mintOutAddress: new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
             },
             {
@@ -67,7 +74,7 @@ export function swap(program: Command) {
               mintOutAddress: new PublicKey("8zL6cUxfgXdWyM7N7nePEKsdKb6WNZdsuXboHvuU8EfV"),
             },
           ],
-          amountIn: 0.123456789,
+          // amountIn: 0.123456789,
           // USDT -> USDC -> WBTC -> SOL
           // routes: [
           //   {
@@ -86,14 +93,14 @@ export function swap(program: Command) {
           //     mintOutAddress: new PublicKey("So11111111111111111111111111111111111111112"),
           //   },
           // ],
-          // amountIn: 123.456789,
+          amountIn: 123.456789,
           minimumAmountOut: 0, // ignore slippage
           altAccounts: [altAccount!],
         });
 
         console.log("Signature:", signature);
       } catch (err) {
-        process.stderr.write(Buffer.from(JSON.stringify(err)));
+        console.log(err);
       }
     });
 }

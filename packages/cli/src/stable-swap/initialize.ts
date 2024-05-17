@@ -9,6 +9,7 @@ export function initialize(program: Command) {
     .description("initialize a stable pool")
     .requiredOption("--vault-k <string>", "vault key", parseKey)
     .requiredOption("--mints <strings...>", "mint keys")
+    .option("--max-caps <numbers...>", "max caps")
     .requiredOption("--amp-factor <number>", "weights", Number)
     .requiredOption("--swap-fee <number>", "swap fee")
     .option("--pool-k-p <path>", "pool keypair", parseKeypair)
@@ -17,6 +18,7 @@ export function initialize(program: Command) {
       async ({
         vaultK,
         mints,
+        maxCaps,
         ampFactor,
         swapFee,
         poolKP,
@@ -24,6 +26,7 @@ export function initialize(program: Command) {
       }: {
         vaultK: PublicKey;
         mints: string[];
+        maxCaps: string[];
         ampFactor: number;
         swapFee: string;
         poolKP?: Keypair;
@@ -38,7 +41,7 @@ export function initialize(program: Command) {
         const { pool } = await stableSwap.initialize({
           vault,
           mintAddresses,
-          maxCaps: [3000000000, 3000000000],
+          maxCaps: maxCaps ?? [3000000000, 3000000000],
           ampFactor,
           swapFee,
           poolMintKP,

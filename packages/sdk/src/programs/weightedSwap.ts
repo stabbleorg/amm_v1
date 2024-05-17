@@ -422,6 +422,50 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
 
     return instructions;
   }
+
+  async changeSwapFee({
+    pool,
+    swapFee,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ pool: WeightedPool; swapFee: number }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .changeSwapFee(SafeAmount.toGiga(swapFee))
+      .accountsStrict({
+        owner: this.walletAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    const { transaction, recentBlock, slot } = await this.createTransaction([instruction], altAccounts, priorityLevel);
+
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
+  }
+
+  async shutdown({
+    pool,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ pool: WeightedPool }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .shutdown()
+      .accountsStrict({
+        owner: this.walletAddress,
+        pool: pool.address,
+      })
+      .remainingAccounts([
+        {
+          pubkey: this.walletAddress,
+          isSigner: false,
+          isWritable: true,
+        },
+      ])
+      .instruction();
+
+    const { transaction, recentBlock, slot } = await this.createTransaction([instruction], altAccounts, priorityLevel);
+
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
+  }
 }
 
 export class WeightedSwapListener {

@@ -442,6 +442,50 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
 
     return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
   }
+
+  async changeSwapFee({
+    pool,
+    swapFee,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ pool: StablePool; swapFee: number }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .changeSwapFee(SafeAmount.toGiga(swapFee))
+      .accountsStrict({
+        owner: this.walletAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    const { transaction, recentBlock, slot } = await this.createTransaction([instruction], altAccounts, priorityLevel);
+
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
+  }
+
+  async shutdown({
+    pool,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ pool: StablePool }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .shutdown()
+      .accountsStrict({
+        owner: this.walletAddress,
+        pool: pool.address,
+      })
+      .remainingAccounts([
+        {
+          pubkey: this.walletAddress,
+          isSigner: false,
+          isWritable: true,
+        },
+      ])
+      .instruction();
+
+    const { transaction, recentBlock, slot } = await this.createTransaction([instruction], altAccounts, priorityLevel);
+
+    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
+  }
 }
 
 export class StableSwapListener {
