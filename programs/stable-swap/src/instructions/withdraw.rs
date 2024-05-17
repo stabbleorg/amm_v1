@@ -1,5 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_pro::validate::*;
 use anchor_spl::token::{
     accessor::mint as get_token_mint,
     {burn, Burn, Mint, Token, TokenAccount},
@@ -81,15 +82,16 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     )
 }
 
-impl<'info> Withdraw<'info> {
-    pub fn validate(ctx: &Context<Withdraw>) -> Result<()> {
-        assert!(ctx.accounts.vault.is_active);
-
-        assert!(ctx.accounts.pool.is_active);
+impl<'info> Validate<'info> for Withdraw<'info> {
+    fn validate(&self) -> Result<()> {
+        assert!(self.vault.is_active);
+        assert!(self.pool.is_active);
 
         Ok(())
     }
+}
 
+impl<'info> Withdraw<'info> {
     fn transfer_to_user(
         &mut self,
         amount: u64,

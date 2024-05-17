@@ -1,5 +1,5 @@
-use crate::located::*;
 use anchor_lang::prelude::*;
+use anchor_pro::located::*;
 
 #[account]
 pub struct Vault {

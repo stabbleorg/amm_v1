@@ -1,10 +1,10 @@
 pub mod instructions;
-pub mod located;
 pub mod state;
 pub mod x_token;
 
 use crate::instructions::*;
 use anchor_lang::prelude::*;
+use anchor_pro::validate::*;
 
 declare_id!("vo1tWgqZMjG61Z2T9qUaMYKqZ75CYzMuaZ2LZP1n7HV");
 
@@ -52,12 +52,12 @@ pub mod vault {
         process_transfer_admin(ctx, new_admin)
     }
 
-    #[access_control(PendingAdminOnly::validate(&ctx))]
+    #[access_control(ctx.accounts.validate())]
     pub fn accept_admin<'info>(ctx: Context<PendingAdminOnly<'info>>) -> Result<()> {
         process_accept_admin(ctx)
     }
 
-    #[access_control(PendingAdminOnly::validate(&ctx))]
+    #[access_control(ctx.accounts.validate())]
     pub fn reject_admin<'info>(ctx: Context<PendingAdminOnly<'info>>) -> Result<()> {
         process_reject_admin(ctx)
     }

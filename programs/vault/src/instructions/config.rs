@@ -1,5 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_pro::validate::*;
 
 pub fn process_change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary_fee: u64) -> Result<()> {
     assert_ne!(ctx.accounts.vault.beneficiary_fee, new_beneficiary_fee);
@@ -79,13 +80,10 @@ pub struct PendingAdminOnly<'info> {
     pub vault: Account<'info, Vault>,
 }
 
-impl<'info> PendingAdminOnly<'info> {
-    pub fn validate(ctx: &Context<PendingAdminOnly>) -> Result<()> {
-        assert!(ctx.accounts.vault.pending_admin.is_some());
-        assert_eq!(
-            ctx.accounts.pending_admin.key(),
-            ctx.accounts.vault.pending_admin.unwrap()
-        );
+impl<'info> Validate<'info> for PendingAdminOnly<'info> {
+    fn validate(&self) -> Result<()> {
+        assert!(self.vault.pending_admin.is_some());
+        assert_eq!(self.pending_admin.key(), self.vault.pending_admin.unwrap());
 
         Ok(())
     }

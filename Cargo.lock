@@ -221,6 +221,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchor-pro"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
 name = "anchor-spl"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2302,6 +2309,7 @@ name = "stable-swap"
 version = "1.0.0"
 dependencies = [
  "anchor-lang",
+ "anchor-pro",
  "anchor-spl",
  "bn",
  "math",
@@ -2541,6 +2549,7 @@ name = "vault"
 version = "1.0.0"
 dependencies = [
  "anchor-lang",
+ "anchor-pro",
  "anchor-spl",
  "solana-program",
 ]
@@ -2632,6 +2641,7 @@ name = "weighted-swap"
 version = "1.0.0"
 dependencies = [
  "anchor-lang",
+ "anchor-pro",
  "anchor-spl",
  "bn",
  "math",

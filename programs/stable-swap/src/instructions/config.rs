@@ -1,5 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_pro::validate::*;
 use bn::safe_math::CheckedDivCeil;
 use math::stable_math;
 
@@ -109,13 +110,10 @@ pub struct PendingOwnerOnly<'info> {
     pub pool: Account<'info, Pool>,
 }
 
-impl<'info> PendingOwnerOnly<'info> {
-    pub fn validate(ctx: &Context<PendingOwnerOnly>) -> Result<()> {
-        assert!(ctx.accounts.pool.pending_owner.is_some());
-        assert_eq!(
-            ctx.accounts.pending_owner.key(),
-            ctx.accounts.pool.pending_owner.unwrap()
-        );
+impl<'info> Validate<'info> for PendingOwnerOnly<'info> {
+    fn validate(&self) -> Result<()> {
+        assert!(self.pool.pending_owner.is_some());
+        assert_eq!(self.pending_owner.key(), self.pool.pending_owner.unwrap());
 
         Ok(())
     }

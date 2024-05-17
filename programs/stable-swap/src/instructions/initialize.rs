@@ -1,11 +1,19 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_pro::validate::*;
 use anchor_spl::token::Mint;
 use bn::safe_math::CheckedDivCeil;
 use math::{fixed_math, stable_math};
 use vault::state::Vault;
 
 pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64, max_caps: &Vec<u64>) -> Result<()> {
+    assert!(ctx.remaining_accounts.len() >= stable_math::MIN_TOKENS);
+    assert!(ctx.remaining_accounts.len() <= stable_math::MAX_TOKENS);
+    assert!(swap_fee >= stable_math::MIN_SWAP_FEE);
+    assert!(swap_fee <= stable_math::MAX_SWAP_FEE);
+    assert!(amp_factor >= stable_math::MIN_AMP);
+    assert!(amp_factor <= stable_math::MAX_AMP);
+
     ctx.accounts.pool.set_inner(Pool {
         owner: ctx.accounts.owner.key(),
         vault: ctx.accounts.vault.key(),
@@ -53,26 +61,14 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
     Ok(())
 }
 
-impl<'info> Initialize<'info> {
-    pub fn validate(ctx: &Context<Initialize>, amp_factor: u16, swap_fee: u64) -> Result<()> {
-        assert!(ctx.accounts.vault.is_active);
+impl<'info> Validate<'info> for Initialize<'info> {
+    fn validate(&self) -> Result<()> {
+        assert!(self.vault.is_active);
 
-        assert_eq!(ctx.accounts.mint.supply, 0);
-        assert_eq!(ctx.accounts.mint.decimals as u32, fixed_math::SCALE);
-        assert_eq!(
-            ctx.accounts.mint.mint_authority.unwrap(),
-            ctx.accounts.pool_authority.key()
-        );
-        assert!(ctx.accounts.mint.freeze_authority.is_none());
-
-        assert!(amp_factor >= stable_math::MIN_AMP);
-        assert!(amp_factor <= stable_math::MAX_AMP);
-
-        assert!(swap_fee >= stable_math::MIN_SWAP_FEE);
-        assert!(swap_fee <= stable_math::MAX_SWAP_FEE);
-
-        assert!(ctx.remaining_accounts.len() >= stable_math::MIN_TOKENS);
-        assert!(ctx.remaining_accounts.len() <= stable_math::MAX_TOKENS);
+        assert_eq!(self.mint.supply, 0);
+        assert_eq!(self.mint.decimals as u32, fixed_math::SCALE);
+        assert_eq!(self.mint.mint_authority.unwrap(), self.pool_authority.key());
+        assert!(self.mint.freeze_authority.is_none());
 
         Ok(())
     }

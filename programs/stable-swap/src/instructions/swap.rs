@@ -1,5 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_pro::validate::*;
 use anchor_spl::token::{
     accessor::{amount as get_token_amount, authority as get_token_owner, mint as get_token_mint},
     transfer, Token, TokenAccount, Transfer,
@@ -130,14 +131,13 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
     })
 }
 
-impl<'info> Swap<'info> {
-    pub fn validate(ctx: &Context<Swap>) -> Result<()> {
-        assert!(ctx.accounts.vault.is_active);
+impl<'info> Validate<'info> for Swap<'info> {
+    fn validate(&self) -> Result<()> {
+        assert!(self.vault.is_active);
+        assert!(self.pool.is_active);
 
-        assert!(ctx.accounts.pool.is_active);
-
-        assert_eq!(ctx.accounts.vault_token_in.owner, ctx.accounts.vault_authority.key());
-        assert_eq!(ctx.accounts.beneficiary_token_out.owner, ctx.accounts.vault.beneficiary);
+        assert_eq!(self.vault_token_in.owner, self.vault_authority.key());
+        assert_eq!(self.beneficiary_token_out.owner, self.vault.beneficiary);
 
         Ok(())
     }

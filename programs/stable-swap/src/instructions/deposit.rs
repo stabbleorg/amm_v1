@@ -1,5 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_pro::validate::*;
 use anchor_spl::token::{
     accessor::{authority as get_token_owner, mint as get_token_mint},
     mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer,
@@ -13,6 +14,13 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     minimum_amount_out: u64,
 ) -> Result<()> {
     let num_tokens = amounts.len();
+
+    assert_ne!(num_tokens, 0);
+    assert_eq!(ctx.remaining_accounts.len(), num_tokens << 1); // amounts.len() * 2
+    if num_tokens > 1 {
+        assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
+    }
+
     let amplification = ctx.accounts.pool.get_amplification();
 
     // LP amount
@@ -123,24 +131,18 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     })
 }
 
-impl<'info> Deposit<'info> {
-    pub fn validate(ctx: &Context<Deposit>, amounts: &Vec<u64>) -> Result<()> {
-        assert!(ctx.accounts.vault.is_active);
+impl<'info> Validate<'info> for Deposit<'info> {
+    fn validate(&self) -> Result<()> {
+        assert!(self.vault.is_active);
+        assert!(self.pool.is_active);
 
-        assert!(ctx.accounts.pool.is_active);
-
-        let num_tokens = amounts.len();
-        assert_ne!(num_tokens, 0);
-        assert_eq!(ctx.remaining_accounts.len(), num_tokens << 1); // amounts.len() * 2
-        if num_tokens > 1 {
-            assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
-        }
-
-        assert_eq!(ctx.accounts.user_pool_token.owner, ctx.accounts.user.key());
+        assert_eq!(self.user_pool_token.owner, self.user.key());
 
         Ok(())
     }
+}
 
+impl<'info> Deposit<'info> {
     fn transfer_to_vault(
         &mut self,
         amount: u64,

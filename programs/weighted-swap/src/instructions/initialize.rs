@@ -1,5 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_pro::validate::*;
 use anchor_spl::token::Mint;
 use bn::safe_math::CheckedDivCeil;
 use math::{fixed_math, weighted_math};
@@ -11,6 +12,12 @@ pub fn process_initialize(
     weights: Vec<u64>,
     max_caps: &Vec<u64>,
 ) -> Result<()> {
+    assert_eq!(ctx.remaining_accounts.len(), weights.len());
+    assert!(ctx.remaining_accounts.len() >= weighted_math::MIN_TOKENS);
+    assert!(ctx.remaining_accounts.len() <= weighted_math::MAX_TOKENS);
+    assert!(swap_fee >= weighted_math::MIN_SWAP_FEE);
+    assert!(swap_fee <= weighted_math::MAX_SWAP_FEE);
+
     ctx.accounts.pool.set_inner(Pool {
         owner: ctx.accounts.owner.key(),
         vault: ctx.accounts.vault.key(),
@@ -23,6 +30,7 @@ pub fn process_initialize(
         pending_owner: None,
     });
 
+    let mut sum_weights: u64 = 0;
     for (token_index, account) in ctx.remaining_accounts.iter().enumerate() {
         let mut buff: &[u8] = &account.try_borrow_data()?;
         let data = Mint::try_deserialize(&mut buff)?;
@@ -30,6 +38,7 @@ pub fn process_initialize(
         assert!(decimals <= fixed_math::SCALE);
         assert!(weights[token_index] <= weighted_math::MAX_WEIGHT);
         assert!(weights[token_index] >= weighted_math::MIN_WEIGHT);
+        sum_weights += weights[token_index];
 
         let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
         let (scaling_up, scaling_factor) = if max_caps[token_index] > weighted_math::MAX_SAFE_BALANCE_INT {
@@ -54,30 +63,19 @@ pub fn process_initialize(
             weight: weights[token_index],
         });
     }
+    assert_eq!(sum_weights, fixed_math::ONE);
+
     Ok(())
 }
 
-impl<'info> Initialize<'info> {
-    pub fn validate(ctx: &Context<Initialize>, swap_fee: u64, weights: &Vec<u64>) -> Result<()> {
-        assert!(ctx.accounts.vault.is_active);
+impl<'info> Validate<'info> for Initialize<'info> {
+    fn validate(&self) -> Result<()> {
+        assert!(self.vault.is_active);
 
-        assert_eq!(ctx.accounts.mint.supply, 0);
-        assert_eq!(ctx.accounts.mint.decimals as u32, fixed_math::SCALE);
-        assert_eq!(
-            ctx.accounts.mint.mint_authority.unwrap(),
-            ctx.accounts.pool_authority.key()
-        );
-        assert!(ctx.accounts.mint.freeze_authority.is_none());
-
-        assert!(swap_fee >= weighted_math::MIN_SWAP_FEE);
-        assert!(swap_fee <= weighted_math::MAX_SWAP_FEE);
-
-        let sum_weights: u64 = weights.iter().sum();
-        assert_eq!(sum_weights, fixed_math::ONE);
-
-        assert!(weights.len() >= weighted_math::MIN_TOKENS);
-        assert!(weights.len() <= weighted_math::MAX_TOKENS);
-        assert_eq!(ctx.remaining_accounts.len(), weights.len());
+        assert_eq!(self.mint.supply, 0);
+        assert_eq!(self.mint.decimals as u32, fixed_math::SCALE);
+        assert_eq!(self.mint.mint_authority.unwrap(), self.pool_authority.key());
+        assert!(self.mint.freeze_authority.is_none());
 
         Ok(())
     }
