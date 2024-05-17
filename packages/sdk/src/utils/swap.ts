@@ -255,4 +255,18 @@ export class Swap {
       throw Error("It only supports up to 3-hop swap");
     }
   }
+
+  static searchRoutes({
+    pools,
+    mintInAddress,
+    mintOutAddress,
+    amountIn,
+  }: {
+    pools: Pool<StablePoolData | WeightedPoolData>[];
+    mintInAddress: PublicKey;
+    mintOutAddress: PublicKey;
+    amountIn: FloatLike;
+  }): { routes: BatchSwapRoute[]; amountOut: number } {
+    return { routes: [], amountOut: 0 };
+  }
 }
