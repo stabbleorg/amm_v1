@@ -1,106 +1,94 @@
 import type { Command } from "commander";
+import { PublicKey } from "@solana/web3.js";
 import { Swap } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
-import { PublicKey } from "@solana/web3.js";
+import { parseKey } from "../utils";
 
 export function swap(program: Command) {
   program
     .command("swap")
-    .description("multi-hop swap given static routes")
-    .action(async () => {
-      const { vaultContext, weightedSwap, stableSwap } = useContext();
-      const vaults = await vaultContext.findAll();
-      const vaultW = vaults.find(
-        (vault) => vault.address.toBase58() === "w8edo9a9TDw52c1rBmVbP6dNakaAuFiPjDd52ZJwwVi",
-      )!;
-      const vaultS = vaults.find(
-        (vault) => vault.address.toBase58() === "stab1io8dHvK26KoHmTwwHyYmHRbUWbyEJx6CdrGabC",
-      )!;
+    .requiredOption("--weighted-vault-k <string>", "weighted vault key", parseKey)
+    .requiredOption("--stable-vault-k <string>", "stable vault key", parseKey)
+    .requiredOption("--mint-in-k <string>", "mint in key", parseKey)
+    .requiredOption("--mint-out-k <string>", "mint out key", parseKey)
+    .requiredOption("--amount <number>", "swap amount")
+    .option("--slippage <number>", "slippage tolerance", Number)
+    .description("multi-hop swap with SOR")
+    .action(
+      async ({
+        weightedVaultK,
+        stableVaultK,
+        mintInK,
+        mintOutK,
+        amount,
+        slippage = 0.01, // 1%
+      }: {
+        weightedVaultK: PublicKey;
+        stableVaultK: PublicKey;
+        mintInK: PublicKey;
+        mintOutK: PublicKey;
+        amount: string;
+        slippage?: number;
+      }) => {
+        const { vaultContext, weightedSwap, stableSwap, simulate } = useContext();
 
-      const pools = [...(await weightedSwap.findByVault(vaultW)), ...(await stableSwap.findByVault(vaultS))];
-      const { value: altAccount } = await vaultContext.provider.connection.getAddressLookupTable(
-        new PublicKey("DS8qxhzgB7H1oknHkUHrNa7esmbL4QDzxJwyxiHyryzc"),
-      );
+        const vaults = await vaultContext.findAll();
+        const weightedVault = vaults.find((vault) => vault.address.equals(weightedVaultK))!;
+        const stableVault = vaults.find((vault) => vault.address.equals(stableVaultK))!;
+        const pools = [
+          ...(await weightedSwap.findByVault(weightedVault)),
+          ...(await stableSwap.findByVault(stableVault)),
+        ];
 
-      const pool_WBTC_SOL = pools.find(
-        (pool) => pool.address.toBase58() === "EaZ1hz4q4aVzeaEcwZasLuXmDNBkitSauCiUczCEjFQy",
-      )!;
-      const pool_WBTC_USDC = pools.find(
-        (pool) => pool.address.toBase58() === "2wvr84azf3wcwo2vMcKrTgT7PgiXxDKzwC2E5rmCimiX",
-      )!;
-      const pool_JUP_BONK_USDC = pools.find(
-        (pool) => pool.address.toBase58() === "59myzAbJnzVjvba83XiYTe94x5VxCDosWxhjJGfCKWz1",
-      )!;
-      const pool_USDT_USDC = pools.find(
-        (pool) => pool.address.toBase58() === "3h5TeTeWZZbwW8WhuQZtCTVjTGVf3XMPLhzFcz7WmQct",
-      )!;
+        const { value: altAccount } = await vaultContext.provider.connection.getAddressLookupTable(
+          new PublicKey("DS8qxhzgB7H1oknHkUHrNa7esmbL4QDzxJwyxiHyryzc"),
+        );
 
-      // const amountOut_0 = pool_WBTC_USDC.getSwapAmountOut(
-      //   new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
-      //   new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
-      //   1,
-      // );
-      // const amountOut = pool_USDT_USDC.getSwapAmountOut(
-      //   new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
-      //   new PublicKey("8zL6cUxfgXdWyM7N7nePEKsdKb6WNZdsuXboHvuU8EfV"),
-      //   amountOut_0,
-      // );
-      // console.log("USDT out:", amountOut);
+        try {
+          const amountIn = Number(amount);
 
-      try {
-        const signature = await Swap.batch({
-          weightedSwap,
-          stableSwap,
-          // SOL -> WBTC -> USDC -> USDT
-          routes: [
-            // {
-            //   pool: pool_WBTC_SOL,
-            //   mintInAddress: new PublicKey("So11111111111111111111111111111111111111112"),
-            //   mintOutAddress: new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
-            // },
-            // {
-            //   pool: pool_WBTC_USDC,
-            //   mintInAddress: new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
-            //   mintOutAddress: new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
-            // },
-            {
-              pool: pool_JUP_BONK_USDC,
-              mintInAddress: new PublicKey("3m7SaH9PWu5j7hpApdFjGhD32WwWjNTEiKhWwYYyybRQ"),
-              mintOutAddress: new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
-            },
-            {
-              pool: pool_USDT_USDC,
-              mintInAddress: new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
-              mintOutAddress: new PublicKey("8zL6cUxfgXdWyM7N7nePEKsdKb6WNZdsuXboHvuU8EfV"),
-            },
-          ],
-          // amountIn: 0.123456789,
-          // USDT -> USDC -> WBTC -> SOL
-          // routes: [
-          //   {
-          //     pool: pool_USDT_USDC,
-          //     mintInAddress: new PublicKey("8zL6cUxfgXdWyM7N7nePEKsdKb6WNZdsuXboHvuU8EfV"),
-          //     mintOutAddress: new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
-          //   },
-          //   {
-          //     pool: pool_WBTC_USDC,
-          //     mintInAddress: new PublicKey("9TQr5ZSz3h3nvAFPkZyMXbLRn2VxJpVSn6sW5FH1Uiir"),
-          //     mintOutAddress: new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
-          //   },
-          //   {
-          //     pool: pool_WBTC_SOL,
-          //     mintInAddress: new PublicKey("CY2Gb1YDyN7fdhhshzTy27tcnDb6Qt2y2s5iwSfJaxk2"),
-          //     mintOutAddress: new PublicKey("So11111111111111111111111111111111111111112"),
-          //   },
-          // ],
-          amountIn: 123.456789,
-          minimumAmountOut: 0, // ignore slippage
-          altAccounts: [altAccount!],
-        });
+          const { routes, amountOut } = Swap.searchRoutes({
+            mintInAddress: mintInK,
+            mintOutAddress: mintOutK,
+            amountIn,
+            pools,
+          });
 
-        console.log("Signature:", signature);
-      } catch (err) {
-        console.log(err);
-      }
-    });
+          console.log("Price:", amountOut / amountIn);
+          console.log("Estimation:", amountOut);
+
+          if (simulate) {
+            console.log("Routes:");
+            console.log(
+              routes
+                .map(
+                  (r) =>
+                    r.pool.address.toBase58() +
+                    ": " +
+                    r.mintInAddress.toBase58() +
+                    " --> " +
+                    r.mintOutAddress.toBase58(),
+                )
+                .join("\n"),
+            );
+            return;
+          }
+
+          const minimumAmountOut = amountOut * (1 - slippage);
+
+          const signature = await Swap.batch({
+            weightedSwap,
+            stableSwap,
+            routes,
+            amountIn: amount,
+            minimumAmountOut,
+            altAccounts: altAccount ? [altAccount] : undefined,
+          });
+
+          console.log("Signature:", signature);
+        } catch (err) {
+          console.log(err);
+        }
+      },
+    );
 }
