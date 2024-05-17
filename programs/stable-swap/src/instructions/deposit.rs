@@ -1,6 +1,6 @@
 use crate::state::*;
+use anchor_common::validate::*;
 use anchor_lang::prelude::*;
-use anchor_pro::validate::*;
 use anchor_spl::{
     associated_token,
     token::{accessor::mint as get_token_mint, mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer},

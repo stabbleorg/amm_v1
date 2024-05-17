@@ -3,8 +3,8 @@ pub mod state;
 pub mod x_token;
 
 use crate::instructions::*;
+use anchor_common::validate::*;
 use anchor_lang::prelude::*;
-use anchor_pro::validate::*;
 
 declare_id!("vo1tWgqZMjG61Z2T9qUaMYKqZ75CYzMuaZ2LZP1n7HV");
 

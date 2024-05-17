@@ -1,6 +1,6 @@
 use crate::state::*;
+use anchor_common::validate::*;
 use anchor_lang::prelude::*;
-use anchor_pro::validate::*;
 
 pub fn process_change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary_fee: u64) -> Result<()> {
     assert_ne!(ctx.accounts.vault.beneficiary_fee, new_beneficiary_fee);

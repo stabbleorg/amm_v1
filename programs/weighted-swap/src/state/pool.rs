@@ -1,5 +1,5 @@
+use anchor_common::located::*;
 use anchor_lang::prelude::*;
-use anchor_pro::located::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy)]
 pub struct PoolToken {

@@ -19,7 +19,7 @@ idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 [dependencies]
 anchor-lang = "0.30.0"
 anchor-spl = "0.30.0"
-anchor-pro = { path = "../../libraries/anchor-pro" }
+anchor-common = { path = "../../libraries/anchor-common" }
 vault = { path = "../vault", features = ["cpi"] }
 bn = { path = "../../libraries/bn" }
 math = { path = "../../libraries/math" }

@@ -1,6 +1,6 @@
 use crate::state::*;
+use anchor_common::validate::*;
 use anchor_lang::prelude::*;
-use anchor_pro::validate::*;
 use anchor_spl::token::Mint;
 use bn::safe_math::CheckedDivCeil;
 use math::{fixed_math, stable_math};

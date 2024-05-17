@@ -3,8 +3,8 @@ pub mod instructions;
 pub mod state;
 
 use crate::instructions::*;
+use anchor_common::validate::*;
 use anchor_lang::prelude::*;
-use anchor_pro::validate::*;
 
 declare_id!("swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW");
 

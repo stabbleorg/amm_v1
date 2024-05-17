@@ -147,6 +147,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchor-common"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
 name = "anchor-derive-accounts"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -218,13 +225,6 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "anchor-pro"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
 ]
 
 [[package]]
@@ -2308,8 +2308,8 @@ dependencies = [
 name = "stable-swap"
 version = "1.0.0"
 dependencies = [
+ "anchor-common",
  "anchor-lang",
- "anchor-pro",
  "anchor-spl",
  "bn",
  "math",
@@ -2548,8 +2548,8 @@ dependencies = [
 name = "vault"
 version = "1.0.0"
 dependencies = [
+ "anchor-common",
  "anchor-lang",
- "anchor-pro",
  "anchor-spl",
  "solana-program",
 ]
@@ -2640,8 +2640,8 @@ dependencies = [
 name = "weighted-swap"
 version = "1.0.0"
 dependencies = [
+ "anchor-common",
  "anchor-lang",
- "anchor-pro",
  "anchor-spl",
  "bn",
  "math",
