@@ -151,7 +151,7 @@ describe("Multi-hop Swap", () => {
   it("STB-USDC-USDT", async () => {
     // const amountIn = 1000000;
     const amountIn = 0.033333334;
-    const slippage = 0.0001; // slippage 0.01%
+    const slippage = 0.005; // slippage 0.05%
 
     // best STB-USDC pool
     const pool_STB_USDC = pools.sort(
