@@ -1,3 +1,4 @@
+pub mod error;
 pub mod instructions;
 pub mod state;
 pub mod x_token;

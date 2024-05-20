@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { ProgramError } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
 import { Swap } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
@@ -87,7 +88,14 @@ export function swap(program: Command) {
 
           console.log("Signature:", signature);
         } catch (err) {
-          console.log(err);
+          const error = ProgramError.parse(
+            err,
+            vaultContext.program.idl.errors.reduce((idlErrors, error) => {
+              idlErrors.set(error.code, error.msg);
+              return idlErrors;
+            }, new Map<number, string>()),
+          );
+          console.log(error?.msg);
         }
       },
     );

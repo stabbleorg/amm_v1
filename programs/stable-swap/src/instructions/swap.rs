@@ -11,6 +11,7 @@ use math::{
 };
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
+    error::SwapError,
     program::Vault as VaultProgram,
     state::{Vault, WithdrawAuthority},
     x_token,
@@ -62,7 +63,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
         .pool
         .calc_unwrapped_amount(balance_out_without_fee, token_out_index);
     let amount_out = amount_out_without_fee.mul_down(swap_fee.complement());
-    assert!(amount_out >= minimum_amount_out); // check slippage
+    require!(amount_out >= minimum_amount_out, SwapError::SlippageOutOfRange);
 
     let swap_fee_amount = amount_out_without_fee.saturating_sub(amount_out);
     let beneficiary_fee_amount = swap_fee_amount.mul_down(ctx.accounts.vault.beneficiary_fee);
