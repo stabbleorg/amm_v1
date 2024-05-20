@@ -16,9 +16,7 @@ export class WeightedMath {
 
     if (amountIn > balanceIn * WeightedMath.MAX_IN_RATIO) return 0;
 
-    return (
-      balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut) * 1.0000000005) * (1 - swapFee)
-    );
+    return balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut)) * (1 - swapFee);
   }
 
   static calcPriceImpact(
