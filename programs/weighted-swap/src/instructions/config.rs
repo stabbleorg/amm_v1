@@ -35,13 +35,13 @@ pub fn process_unpause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
     Ok(())
 }
 
-pub fn process_transfer_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: Pubkey) -> Result<()> {
-    assert_ne!(ctx.accounts.pool.owner, new_owner);
+pub fn process_transfer_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: &Pubkey) -> Result<()> {
+    assert_ne!(ctx.accounts.pool.owner, new_owner.key());
     if ctx.accounts.pool.pending_owner.is_some() {
-        assert_ne!(ctx.accounts.pool.pending_owner.unwrap(), new_owner);
+        assert_ne!(ctx.accounts.pool.pending_owner.unwrap(), new_owner.key());
     }
 
-    ctx.accounts.pool.pending_owner = Some(new_owner);
+    ctx.accounts.pool.pending_owner = Some(new_owner.key());
 
     Ok(())
 }

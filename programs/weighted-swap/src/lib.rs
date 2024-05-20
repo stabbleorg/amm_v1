@@ -56,7 +56,7 @@ pub mod weighted_swap {
     }
 
     pub fn transfer_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: Pubkey) -> Result<()> {
-        process_transfer_owner(ctx, new_owner)
+        process_transfer_owner(ctx, &new_owner)
     }
 
     #[access_control(ctx.accounts.validate())]

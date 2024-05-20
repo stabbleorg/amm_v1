@@ -22,9 +22,9 @@ pub mod vault {
     ) -> Result<()> {
         process_initialize(
             ctx,
-            withdraw_authority,
+            &withdraw_authority,
             withdraw_authority_bump,
-            beneficiary,
+            &beneficiary,
             beneficiary_fee,
         )
     }
@@ -38,7 +38,7 @@ pub mod vault {
     }
 
     pub fn change_beneficiary<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary: Pubkey) -> Result<()> {
-        process_change_beneficiary(ctx, new_beneficiary)
+        process_change_beneficiary(ctx, &new_beneficiary)
     }
 
     pub fn pause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
@@ -50,7 +50,7 @@ pub mod vault {
     }
 
     pub fn transfer_admin<'info>(ctx: Context<AdminOnly<'info>>, new_admin: Pubkey) -> Result<()> {
-        process_transfer_admin(ctx, new_admin)
+        process_transfer_admin(ctx, &new_admin)
     }
 
     #[access_control(ctx.accounts.validate())]

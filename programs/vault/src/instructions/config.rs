@@ -12,10 +12,10 @@ pub fn process_change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new
     Ok(())
 }
 
-pub fn process_change_beneficiary<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary: Pubkey) -> Result<()> {
-    assert_ne!(ctx.accounts.vault.beneficiary, new_beneficiary);
+pub fn process_change_beneficiary<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary: &Pubkey) -> Result<()> {
+    assert_ne!(ctx.accounts.vault.beneficiary, new_beneficiary.key());
 
-    ctx.accounts.vault.beneficiary = new_beneficiary;
+    ctx.accounts.vault.beneficiary = new_beneficiary.key();
 
     Ok(())
 }
@@ -40,13 +40,13 @@ pub fn process_unpause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
     Ok(())
 }
 
-pub fn process_transfer_admin<'info>(ctx: Context<AdminOnly<'info>>, new_admin: Pubkey) -> Result<()> {
-    assert_ne!(ctx.accounts.vault.admin, new_admin);
+pub fn process_transfer_admin<'info>(ctx: Context<AdminOnly<'info>>, new_admin: &Pubkey) -> Result<()> {
+    assert_ne!(ctx.accounts.vault.admin, new_admin.key());
     if ctx.accounts.vault.pending_admin.is_some() {
-        assert_ne!(ctx.accounts.vault.pending_admin.unwrap(), new_admin);
+        assert_ne!(ctx.accounts.vault.pending_admin.unwrap(), new_admin.key());
     }
 
-    ctx.accounts.vault.pending_admin = Some(new_admin);
+    ctx.accounts.vault.pending_admin = Some(new_admin.key());
 
     Ok(())
 }

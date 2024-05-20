@@ -3,18 +3,18 @@ use anchor_lang::prelude::*;
 
 pub fn process_initialize(
     ctx: Context<Initialize>,
-    withdraw_authority: Pubkey,
+    withdraw_authority: &Pubkey,
     withdraw_authority_bump: u8,
-    beneficiary: Pubkey,
+    beneficiary: &Pubkey,
     beneficiary_fee: u64,
 ) -> Result<()> {
     ctx.accounts.vault.set_inner(Vault {
         admin: ctx.accounts.admin.key(),
-        withdraw_authority,
+        withdraw_authority: withdraw_authority.key(),
         withdraw_authority_bump,
         authority_bump: ctx.bumps.vault_authority,
         is_active: true,
-        beneficiary,
+        beneficiary: beneficiary.key(),
         beneficiary_fee,
         pending_admin: None,
     });
