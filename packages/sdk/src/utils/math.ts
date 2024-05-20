@@ -81,6 +81,8 @@ export class WeightedMath {
 }
 
 export class StableMath {
+  static ONE = 1.4e-9;
+
   static calcInvariant(balances: number[], amplification: number): number {
     const numTokens = balances.length;
     const sum = balances.reduce((a, b) => a + b, 0);
@@ -104,8 +106,8 @@ export class StableMath {
 
       // converge with precision of integer 1
       if (invariant > prevInvariant) {
-        if (invariant - prevInvariant <= 1e-9) break;
-      } else if (prevInvariant - invariant <= 1e-9) break;
+        if (invariant - prevInvariant <= StableMath.ONE) break;
+      } else if (prevInvariant - invariant <= StableMath.ONE) break;
     }
 
     return invariant;
@@ -165,8 +167,8 @@ export class StableMath {
       prevBalance = balance;
       balance = (prevBalance * prevBalance + c) / (prevBalance * 2 + b - invariant);
       if (balance > prevBalance) {
-        if (balance - prevBalance <= 1e-8) return balance;
-      } else if (prevBalance - balance <= 1e-8) return balance;
+        if (balance - prevBalance <= StableMath.ONE) return balance;
+      } else if (prevBalance - balance <= StableMath.ONE) return balance;
     }
 
     return balances[tokenIndex];
