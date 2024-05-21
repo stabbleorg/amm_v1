@@ -154,7 +154,7 @@ impl<'info> Deposit<'info> {
         // add token balances
         self.pool.tokens[token_index].balance = self.pool.tokens[token_index].balance + balance_in;
 
-        // check vault token owner
+        // check associated token account for vault
         let expected_vault_account_key = associated_token::get_associated_token_address(
             &self.vault_authority.key(),
             &get_token_mint(vault_account)?,

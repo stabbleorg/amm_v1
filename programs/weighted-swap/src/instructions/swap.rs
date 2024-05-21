@@ -19,10 +19,7 @@ use vault::{
 
 pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
-    let token_out_index = ctx
-        .accounts
-        .pool
-        .get_token_index(ctx.accounts.beneficiary_token_out.mint);
+    let token_out_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_out.mint);
 
     // if amount_in is set to None, it will send full amount given user's in token account
     // this is useful to swap from intermediate token account created in multi-hop swap
@@ -48,6 +45,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
         ctx.accounts.pool.swap_fee
     } else {
         let x_token_account = ctx.accounts.user_x_token.as_ref().unwrap();
+        assert_eq!(x_token_account.owner.key(), ctx.accounts.token_program.key());
         assert_eq!(get_token_mint(x_token_account)?, x_token::ID);
         assert_eq!(get_token_owner(x_token_account)?, ctx.accounts.user.key());
         swap_fee_math::calc_swap_fee_in_discount(ctx.accounts.pool.swap_fee, get_token_amount(x_token_account)?)
@@ -160,7 +158,7 @@ pub struct Swap<'info> {
     pub vault_token_in: Account<'info, TokenAccount>,
     /// CHECK: OK
     #[account(mut)]
-    pub vault_token_out: UncheckedAccount<'info>,
+    pub vault_token_out: Account<'info, TokenAccount>,
 
     /// CHECK: OK
     #[account(mut)]

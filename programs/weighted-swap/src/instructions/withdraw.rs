@@ -125,7 +125,7 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub mint: Account<'info, Mint>,
 
-    #[account(mut, has_one = vault)]
+    #[account(mut, has_one = mint, has_one = vault)]
     pub pool: Account<'info, Pool>,
 
     /// CHECK: signer & account checked in vault.withdraw
