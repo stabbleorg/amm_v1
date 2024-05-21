@@ -501,7 +501,6 @@ export class Swap {
         },
       ];
       amountOut = pool.getSwapAmountOut(mintInAddress, mintOutAddress, amountIn);
-      console.debug("R1:", amountOut);
     }
 
     if (!directRoutesOnly) {
@@ -530,7 +529,6 @@ export class Swap {
                     { pool: r2, mintInAddress: t1.mintAddress, mintOutAddress },
                   ];
                   amountOut = amountOut_R2;
-                  console.debug("R2:", amountOut);
                 }
               } else {
                 // R3 routes
@@ -550,7 +548,6 @@ export class Swap {
                       { pool: r3, mintInAddress: t2.mintAddress, mintOutAddress },
                     ];
                     amountOut = amountOut_R3;
-                    console.debug("R3:", amountOut);
                   }
                 }
               }
