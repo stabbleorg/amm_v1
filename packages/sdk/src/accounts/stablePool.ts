@@ -119,7 +119,7 @@ export class StablePool implements Pool<StablePoolData> {
       this.swapFee,
     );
 
-    return Math.max(amountOut, 0);
+    return Math.max(Number(amountOut.toFixed(this.data.tokens[tokenOutIndex].decimals)), 0);
   }
 
   getWithdrawalAmountsOut(amountIn: number, totalSupply: number, tokenAddress?: PublicKey): number[] {
