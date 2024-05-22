@@ -25,6 +25,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
 
     // LP amount
     let amount_out = if ctx.accounts.mint.supply == 0 {
+        assert_ne!(num_tokens, 1); // Sec3 L-04
         assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
 
         // initial liquidity

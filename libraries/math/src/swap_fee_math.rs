@@ -7,39 +7,39 @@ pub fn calc_swap_fee_in_discount(swap_fee: u64, x_amount: u64) -> u64 {
     }
     // 10% discount
     else if x_amount < 200_000_000_000_000 {
-        swap_fee.mul_down(900_000_000)
+        swap_fee.mul_up(900_000_000) // Sec3 I-03
     }
     // 20% discount
     else if x_amount < 400_000_000_000_000 {
-        swap_fee.mul_down(800_000_000)
+        swap_fee.mul_up(800_000_000) // Sec3 I-03
     }
     // 30% discount
     else if x_amount < 800_000_000_000_000 {
-        swap_fee.mul_down(700_000_000)
+        swap_fee.mul_up(700_000_000) // Sec3 I-03
     }
     // 40% discount
     else if x_amount < 1_600_000_000_000_000 {
-        swap_fee.mul_down(600_000_000)
+        swap_fee.mul_up(600_000_000) // Sec3 I-03
     }
     // 50% discount
     else if x_amount < 3_200_000_000_000_000 {
-        swap_fee >> 1 // div by 2
+        swap_fee.mul_up(500_000_000) // Sec3 I-03
     }
     // 60% discount
     else if x_amount < 6_400_000_000_000_000 {
-        swap_fee.mul_down(400_000_000)
+        swap_fee.mul_up(400_000_000) // Sec3 I-03
     }
     // 70% discount
     else if x_amount < 12_800_000_000_000_000 {
-        swap_fee.mul_down(300_000_000)
+        swap_fee.mul_up(300_000_000) // Sec3 I-03
     }
     // 80% discount
     else if x_amount < 25_600_000_000_000_000 {
-        swap_fee.mul_down(200_000_000)
+        swap_fee.mul_up(200_000_000) // Sec3 I-03
     }
     // 90% discount
     else if x_amount < 51_200_000_000_000_000 {
-        swap_fee.mul_down(100_000_000)
+        swap_fee.mul_up(100_000_000) // Sec3 I-03
     }
     // 100% discount
     else {

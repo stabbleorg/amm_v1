@@ -123,8 +123,8 @@ impl FixedComplement for u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::weighted_math::MAX_SAFE_BALANCE; // Sec3 L-02
 
-    pub const MAX_SAFE_BALANCE: u64 = 4_000_000_000_000_000_000; // 4B
     pub const MAX_INVARIANT_RATIO: u64 = 999_999_999; // 0.999999999
     pub const MIN_INVARIANT_RATIO: u64 = 700_000_000; // 0.7
 

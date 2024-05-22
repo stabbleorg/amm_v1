@@ -41,7 +41,7 @@ export function initialize(program: Command) {
         const { pool } = await stableSwap.initialize({
           vault,
           mintAddresses,
-          maxCaps: maxCaps ?? [3000000000, 3000000000],
+          maxCaps,
           ampFactor,
           swapFee,
           poolMintKP,

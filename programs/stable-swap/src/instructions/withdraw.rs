@@ -17,11 +17,19 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     amount: u64,
     minimum_amounts_out: Vec<u64>,
 ) -> Result<()> {
+    // Sec3 I-05
+    let num_tokens = minimum_amounts_out.len();
+    assert_eq!(ctx.remaining_accounts.len(), num_tokens << 1); // amounts.len() * 2
+    if num_tokens > 1 {
+        assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
+    }
+
     let amplification = ctx.accounts.pool.get_amplification();
     let balances = ctx.accounts.pool.get_balances();
     let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
-    if ctx.remaining_accounts.len() == 2 {
+    // Sec3 I-05
+    if num_tokens == 1 {
         let mint = get_token_mint(&ctx.remaining_accounts[0])?;
         let token_index = ctx.accounts.pool.get_token_index(mint);
         let balance_out = stable_math::calc_token_out_given_exact_pool_token_in(

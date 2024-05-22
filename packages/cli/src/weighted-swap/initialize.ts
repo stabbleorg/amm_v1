@@ -41,7 +41,7 @@ export function initialize(program: Command) {
         const { pool } = await weightedSwap.initialize({
           vault,
           mintAddresses,
-          maxCaps: maxCaps ?? [4000000000, 4000000000],
+          maxCaps,
           weights,
           swapFee,
           poolMintKP,

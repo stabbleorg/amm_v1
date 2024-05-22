@@ -9,6 +9,7 @@ import {
   TOKEN_PROGRAM_ID,
   createInitializeMint2Instruction,
   createSetAuthorityInstruction,
+  unpackMint,
 } from "@solana/spl-token";
 import {
   AccountMeta,
@@ -74,7 +75,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     keypair?: Keypair;
     poolMintKP?: Keypair;
     mintAddresses: PublicKey[];
-    maxCaps: FloatLike[];
+    maxCaps?: FloatLike[];
     weights: FloatLike[];
     swapFee: FloatLike;
     name?: string;
@@ -83,6 +84,8 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
   }>): Promise<{ pool: WeightedPool; signature: TransactionSignature }> {
     const size = this.program.account.pool.size + (WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4);
     const poolAuthorityAddress = WeightedPool.getAuthorityAddress(keypair.publicKey);
+    const mintAccounts = await this.provider.connection.getMultipleAccountsInfo(mintAddresses);
+    const mints = mintAccounts.map((account, index) => unpackMint(mintAddresses[index], account!));
 
     const instructions = [
       SystemProgram.createAccount({
@@ -140,7 +143,9 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         .initialize(
           SafeAmount.toGiga(swapFee),
           weights.map((weight) => SafeAmount.toGiga(weight)),
-          maxCaps.map((maxCap) => new BN(maxCap)),
+          mints.map((mint, index) =>
+            maxCaps ? SafeAmount.toU64Amount(maxCaps[index], mint.decimals) : new BN(mint.supply.toString()),
+          ),
         )
         .accountsStrict({
           owner: this.walletAddress,

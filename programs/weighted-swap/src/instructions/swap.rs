@@ -20,6 +20,7 @@ use vault::{
 pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
     let token_out_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_out.mint);
+    assert_ne!(token_in_index, token_out_index); // Sec3 I-04
 
     // if amount_in is set to None, it will send full amount given user's in token account
     // this is useful to swap from intermediate token account created in multi-hop swap

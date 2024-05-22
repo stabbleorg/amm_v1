@@ -12,9 +12,12 @@ pub fn process_initialize(
     weights: Vec<u64>,
     max_caps: &Vec<u64>,
 ) -> Result<()> {
-    assert_eq!(ctx.remaining_accounts.len(), weights.len());
-    assert!(ctx.remaining_accounts.len() >= weighted_math::MIN_TOKENS);
-    assert!(ctx.remaining_accounts.len() <= weighted_math::MAX_TOKENS);
+    let num_tokens = ctx.remaining_accounts.len();
+
+    assert_eq!(num_tokens, weights.len());
+    assert_eq!(num_tokens, max_caps.len()); // Sec3 I-05
+    assert!(num_tokens >= weighted_math::MIN_TOKENS);
+    assert!(num_tokens <= weighted_math::MAX_TOKENS);
     assert!(swap_fee >= weighted_math::MIN_SWAP_FEE);
     assert!(swap_fee <= weighted_math::MAX_SWAP_FEE);
 
@@ -40,18 +43,22 @@ pub fn process_initialize(
         assert!(weights[token_index] >= weighted_math::MIN_WEIGHT);
         sum_weights += weights[token_index];
 
-        let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
-        let (scaling_up, scaling_factor) = if max_caps[token_index] > weighted_math::MAX_SAFE_BALANCE_INT {
+        // Sec3 L-02
+        let (scaling_up, scaling_factor) = if max_caps[token_index] > weighted_math::MAX_SAFE_BALANCE {
             let tick_size = max_caps[token_index]
-                .checked_div_up(weighted_math::MAX_SAFE_BALANCE_INT)
+                .checked_div_up(weighted_math::MAX_SAFE_BALANCE)
                 .unwrap();
-            if default_scaling_factor >= tick_size {
-                (true, default_scaling_factor / tick_size)
-            } else {
-                (false, tick_size)
-            }
+            (false, tick_size)
         } else {
-            (true, default_scaling_factor)
+            let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
+            let tick_size = weighted_math::MAX_SAFE_BALANCE
+                .checked_div_up(max_caps[token_index])
+                .unwrap();
+            if tick_size < default_scaling_factor {
+                (true, tick_size)
+            } else {
+                (true, default_scaling_factor)
+            }
         };
 
         ctx.accounts.pool.tokens.push(PoolToken {

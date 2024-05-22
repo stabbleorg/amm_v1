@@ -16,7 +16,7 @@ pub const MIN_SWAP_FEE: u64 = 1_000; // 0.0001%
 pub const MAX_SWAP_FEE: u64 = 10_000_000; // 1%
 
 // Safe max balance without decimal places supported by stable_math
-pub const MAX_SAFE_BALANCE_INT: u64 = 3_000_000_000; // 3B
+pub const MAX_SAFE_BALANCE: u64 = 3_000_000_000_000_000_000; // 3B
 
 pub const MIN_TOKENS: usize = 2;
 pub const MAX_TOKENS: usize = 5;
@@ -310,7 +310,7 @@ fn get_token_balance_given_invariant_n_all_other_balances(
         .unwrap()
         * uint192!(balances[token_index]);
     let b = invariant
-        .checked_mul_div_up(amp_precision_u192(), amp_times_total)
+        .checked_mul_div_down(amp_precision_u192(), amp_times_total) // Sec3 L-01
         .unwrap()
         + sum;
 

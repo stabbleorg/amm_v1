@@ -7,8 +7,11 @@ use math::{fixed_math, stable_math};
 use vault::state::Vault;
 
 pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64, max_caps: &Vec<u64>) -> Result<()> {
-    assert!(ctx.remaining_accounts.len() >= stable_math::MIN_TOKENS);
-    assert!(ctx.remaining_accounts.len() <= stable_math::MAX_TOKENS);
+    let num_tokens = ctx.remaining_accounts.len();
+
+    assert_eq!(num_tokens, max_caps.len()); // Sec3 I-05
+    assert!(num_tokens >= stable_math::MIN_TOKENS);
+    assert!(num_tokens <= stable_math::MAX_TOKENS);
     assert!(swap_fee >= stable_math::MIN_SWAP_FEE);
     assert!(swap_fee <= stable_math::MAX_SWAP_FEE);
     assert!(amp_factor >= stable_math::MIN_AMP);
@@ -35,18 +38,22 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
         let decimals = data.decimals as u32;
         assert!(decimals <= fixed_math::SCALE);
 
-        let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
-        let (scaling_up, scaling_factor) = if max_caps[token_index] > stable_math::MAX_SAFE_BALANCE_INT {
+        // Sec3 L-02
+        let (scaling_up, scaling_factor) = if max_caps[token_index] > stable_math::MAX_SAFE_BALANCE {
             let tick_size = max_caps[token_index]
-                .checked_div_up(stable_math::MAX_SAFE_BALANCE_INT)
+                .checked_div_up(stable_math::MAX_SAFE_BALANCE)
                 .unwrap();
-            if default_scaling_factor >= tick_size {
-                (true, default_scaling_factor / tick_size)
-            } else {
-                (false, tick_size)
-            }
+            (false, tick_size)
         } else {
-            (true, default_scaling_factor)
+            let default_scaling_factor = 10_u64.saturating_pow(fixed_math::SCALE.saturating_sub(decimals));
+            let tick_size = stable_math::MAX_SAFE_BALANCE
+                .checked_div_up(max_caps[token_index])
+                .unwrap();
+            if tick_size < default_scaling_factor {
+                (true, tick_size)
+            } else {
+                (true, default_scaling_factor)
+            }
         };
 
         ctx.accounts.pool.tokens.push(PoolToken {
