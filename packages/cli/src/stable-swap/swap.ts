@@ -12,17 +12,20 @@ export function swap(program: Command) {
     .requiredOption("--mint-in-k <string>", "mint in key", parseKey)
     .requiredOption("--mint-out-k <string>", "mint out key", parseKey)
     .requiredOption("--amount <number>", "amount to sell", Number)
+    .option("--slippage <number>", "slippage", Number)
     .action(
       async ({
         poolK,
         mintInK,
         mintOutK,
         amount,
+        slippage = 0.0001,
       }: {
         poolK: PublicKey;
         mintInK: PublicKey;
         mintOutK: PublicKey;
         amount: number;
+        slippage: number;
       }) => {
         const { vaultContext, stableSwap, altAccounts, simulate } = useContext();
 
@@ -34,6 +37,8 @@ export function swap(program: Command) {
 
         for (const [index, balance] of pool.balances.entries()) {
           console.log("b[%d]: %f", index, balance);
+          console.log("s[%d]: %f", index, pool.data.tokens[index].scalingFactor.toNumber());
+          console.log("u[%d]: %s", index, pool.data.tokens[index].scalingUp);
         }
         console.log("Amplification:", pool.amplification);
         console.log("Exchange rate:", amountOut / amount);
@@ -41,16 +46,20 @@ export function swap(program: Command) {
 
         if (simulate) return;
 
-        const signature = await stableSwap.swap({
-          pool,
-          mintInAddress: mintInK,
-          mintOutAddress: mintOutK,
-          amountIn: amount,
-          minimumAmountOut: amountOut * (1 - 0.0001), // slippage: 0.01%
-          altAccounts,
-        });
+        try {
+          const signature = await stableSwap.swap({
+            pool,
+            mintInAddress: mintInK,
+            mintOutAddress: mintOutK,
+            amountIn: amount,
+            minimumAmountOut: amountOut * (1 - slippage),
+            altAccounts,
+          });
 
-        console.log(signature);
+          console.log(signature);
+        } catch (err) {
+          console.error(err);
+        }
       },
     );
 }

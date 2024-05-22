@@ -12,17 +12,20 @@ export function swap(program: Command) {
     .requiredOption("--mint-in-k <string>", "mint in key", parseKey)
     .requiredOption("--mint-out-k <string>", "mint out key", parseKey)
     .requiredOption("--amount <number>", "amount to sell", Number)
+    .option("--slippage <number>", "slippage", Number)
     .action(
       async ({
         poolK,
         mintInK,
         mintOutK,
         amount,
+        slippage = 0.005,
       }: {
         poolK: PublicKey;
         mintInK: PublicKey;
         mintOutK: PublicKey;
         amount: number;
+        slippage: number;
       }) => {
         const { vaultContext, weightedSwap, altAccounts, simulate } = useContext();
 
@@ -45,7 +48,7 @@ export function swap(program: Command) {
           mintInAddress: mintInK,
           mintOutAddress: mintOutK,
           amountIn: amount,
-          minimumAmountOut: amountOut * (1 - 0.0005), // slippage: 0.05%
+          minimumAmountOut: amountOut * (1 - slippage), // slippage: 0.05%
           altAccounts,
         });
 
