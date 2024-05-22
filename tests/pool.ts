@@ -393,7 +393,7 @@ describe("Pool", () => {
       const { pool } = await weightedSwap.initialize({
         vault: weightedVault,
         mintAddresses,
-        maxCaps: [10000000000000, 4000000000, 4000000000],
+        maxCaps: ["10000000000000", 4000000000, 4000000000],
         weights: [0.5, 0.3, "0.2"], // 50:30:20
         swapFee: "0.005", // 0.5%
       });

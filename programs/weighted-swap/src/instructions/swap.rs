@@ -65,11 +65,12 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
     // add in token balance
     ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
     // remove out token balance
-    let balance_out = ctx
-        .accounts
-        .pool
-        .calc_wrapped_amount(amount_out + beneficiary_fee_amount, token_out_index);
-    ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index].balance - balance_out;
+    ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index].balance
+        - ctx.accounts.pool.calc_wrapped_amount(amount_out, token_out_index) // Sec3 L-05
+        - ctx
+            .accounts
+            .pool
+            .calc_wrapped_amount(beneficiary_fee_amount, token_out_index);
 
     ctx.accounts.pool.emit_updated_event();
 
