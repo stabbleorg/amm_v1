@@ -100,14 +100,24 @@ export class WeightedPool implements Pool<WeightedPoolData> {
     const tokenOutIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenOutAddress));
     if (tokenOutIndex === -1) return 0;
 
-    const amountOut = WeightedMath.calcOutGivenIn(
-      this.balances[tokenInIndex],
+    const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
+
+    const tokenIn = this.data.tokens[tokenInIndex];
+    const scalingFactorIn = tokenIn.scalingFactor.toNumber();
+    const balanceIn = tokenIn.scalingUp ? amountIn * scalingFactorIn : amountIn / scalingFactorIn;
+
+    const balanceOut = WeightedMath.calcOutGivenIn(
+      balances[tokenInIndex],
       this.weights[tokenInIndex],
-      this.balances[tokenOutIndex],
+      balances[tokenOutIndex],
       this.weights[tokenOutIndex],
-      amountIn,
+      balanceIn,
       this.swapFee,
     );
+
+    const tokenOut = this.data.tokens[tokenOutIndex];
+    const scalingFactorOut = tokenOut.scalingFactor.toNumber();
+    const amountOut = tokenOut.scalingUp ? balanceOut / scalingFactorOut : balanceOut * scalingFactorOut;
 
     return Math.max(Number(amountOut.toFixed(this.data.tokens[tokenOutIndex].decimals)), 0);
   }
@@ -117,10 +127,15 @@ export class WeightedPool implements Pool<WeightedPoolData> {
       const tokenIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenAddress));
       if (tokenIndex === -1) return [0];
 
+      const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
+      const tokenIn = this.data.tokens[tokenIndex];
+      const scalingFactorIn = tokenIn.scalingFactor.toNumber();
+      const balanceIn = tokenIn.scalingUp ? amountIn * scalingFactorIn : amountIn / scalingFactorIn;
+
       const amountOut = WeightedMath.calcTokenOutGivenExactPoolTokenIn(
-        this.balances[tokenIndex],
+        balances[tokenIndex],
         this.weights[tokenIndex],
-        amountIn,
+        balanceIn,
         totalSupply,
         this.swapFee,
       );
