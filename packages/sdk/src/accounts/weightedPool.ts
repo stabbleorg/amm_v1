@@ -103,8 +103,10 @@ export class WeightedPool implements Pool<WeightedPoolData> {
     const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
 
     const tokenIn = this.data.tokens[tokenInIndex];
-    const scalingFactorIn = tokenIn.scalingFactor.toNumber();
-    const balanceIn = tokenIn.scalingUp ? amountIn * scalingFactorIn : amountIn / scalingFactorIn;
+    const u64AmountIn = SafeAmount.toU64Amount(amountIn, tokenIn.decimals);
+    const balanceIn = SafeAmount.toNano(
+      tokenIn.scalingUp ? u64AmountIn.mul(tokenIn.scalingFactor) : u64AmountIn.div(tokenIn.scalingFactor),
+    );
 
     const balanceOut = WeightedMath.calcOutGivenIn(
       balances[tokenInIndex],
@@ -116,28 +118,36 @@ export class WeightedPool implements Pool<WeightedPoolData> {
     );
 
     const tokenOut = this.data.tokens[tokenOutIndex];
-    const scalingFactorOut = tokenOut.scalingFactor.toNumber();
-    const amountOut = tokenOut.scalingUp ? balanceOut / scalingFactorOut : balanceOut * scalingFactorOut;
+    const u64BalanceOut = SafeAmount.toGiga(balanceOut);
+    const amountOut = SafeAmount.toUiAmount(
+      tokenOut.scalingUp ? u64BalanceOut.div(tokenOut.scalingFactor) : u64BalanceOut.mul(tokenOut.scalingFactor),
+      tokenOut.decimals,
+    );
 
-    return Math.max(Number(amountOut.toFixed(this.data.tokens[tokenOutIndex].decimals)), 0);
+    return Math.max(amountOut, 0);
   }
 
   getWithdrawalAmountsOut(amountIn: number, totalSupply: number, tokenAddress?: PublicKey): number[] {
     if (tokenAddress) {
       const tokenIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenAddress));
+
       if (tokenIndex === -1) return [0];
 
       const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
-      const tokenIn = this.data.tokens[tokenIndex];
-      const scalingFactorIn = tokenIn.scalingFactor.toNumber();
-      const balanceIn = tokenIn.scalingUp ? amountIn * scalingFactorIn : amountIn / scalingFactorIn;
 
-      const amountOut = WeightedMath.calcTokenOutGivenExactPoolTokenIn(
+      const balanceOut = WeightedMath.calcTokenOutGivenExactPoolTokenIn(
         balances[tokenIndex],
         this.weights[tokenIndex],
-        balanceIn,
+        amountIn,
         totalSupply,
         this.swapFee,
+      );
+
+      const tokenOut = this.data.tokens[tokenIndex];
+      const u64BalanceOut = SafeAmount.toGiga(balanceOut);
+      const amountOut = SafeAmount.toUiAmount(
+        tokenOut.scalingUp ? u64BalanceOut.div(tokenOut.scalingFactor) : u64BalanceOut.mul(tokenOut.scalingFactor),
+        tokenOut.decimals,
       );
 
       return [amountOut];
