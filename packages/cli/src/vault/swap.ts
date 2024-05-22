@@ -55,7 +55,7 @@ export function swap(program: Command) {
             pools,
           });
 
-          console.log("Price:", amountOut / amountIn);
+          console.log("Exchange rate:", amountOut / amountIn);
           console.log("Estimation:", amountOut);
 
           if (simulate) {

@@ -35,7 +35,7 @@ export function swap(program: Command) {
           console.log("b[%d]: %f", index, balance);
         }
         console.log("Invariant:", pool.invariant);
-        console.log("Price:", amountOut / amount);
+        console.log("Exchange rate:", amountOut / amount);
         console.log("Estimation:", amountOut);
 
         if (simulate) return;
