@@ -100,29 +100,54 @@ export class WeightedPool implements Pool<WeightedPoolData> {
     const tokenOutIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenOutAddress));
     if (tokenOutIndex === -1) return 0;
 
-    const amountOut = WeightedMath.calcOutGivenIn(
-      this.balances[tokenInIndex],
+    const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
+
+    const tokenIn = this.data.tokens[tokenInIndex];
+    const u64AmountIn = SafeAmount.toU64Amount(amountIn, tokenIn.decimals);
+    const balanceIn = SafeAmount.toNano(
+      tokenIn.scalingUp ? u64AmountIn.mul(tokenIn.scalingFactor) : u64AmountIn.div(tokenIn.scalingFactor),
+    );
+
+    const balanceOut = WeightedMath.calcOutGivenIn(
+      balances[tokenInIndex],
       this.weights[tokenInIndex],
-      this.balances[tokenOutIndex],
+      balances[tokenOutIndex],
       this.weights[tokenOutIndex],
-      amountIn,
+      balanceIn,
       this.swapFee,
     );
 
-    return Math.max(Number(amountOut.toFixed(this.data.tokens[tokenOutIndex].decimals)), 0);
+    const tokenOut = this.data.tokens[tokenOutIndex];
+    const u64BalanceOut = SafeAmount.toGiga(balanceOut);
+    const amountOut = SafeAmount.toUiAmount(
+      tokenOut.scalingUp ? u64BalanceOut.div(tokenOut.scalingFactor) : u64BalanceOut.mul(tokenOut.scalingFactor),
+      tokenOut.decimals,
+    );
+
+    return Math.max(amountOut, 0);
   }
 
   getWithdrawalAmountsOut(amountIn: number, totalSupply: number, tokenAddress?: PublicKey): number[] {
     if (tokenAddress) {
       const tokenIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenAddress));
+
       if (tokenIndex === -1) return [0];
 
-      const amountOut = WeightedMath.calcTokenOutGivenExactPoolTokenIn(
-        this.balances[tokenIndex],
+      const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
+
+      const balanceOut = WeightedMath.calcTokenOutGivenExactPoolTokenIn(
+        balances[tokenIndex],
         this.weights[tokenIndex],
         amountIn,
         totalSupply,
         this.swapFee,
+      );
+
+      const tokenOut = this.data.tokens[tokenIndex];
+      const u64BalanceOut = SafeAmount.toGiga(balanceOut);
+      const amountOut = SafeAmount.toUiAmount(
+        tokenOut.scalingUp ? u64BalanceOut.div(tokenOut.scalingFactor) : u64BalanceOut.mul(tokenOut.scalingFactor),
+        tokenOut.decimals,
       );
 
       return [amountOut];
