@@ -95,7 +95,7 @@ export function swap(program: Command) {
               return idlErrors;
             }, new Map<number, string>()),
           );
-          console.log(error?.msg);
+          console.log(error?.msg || err);
         }
       },
     );

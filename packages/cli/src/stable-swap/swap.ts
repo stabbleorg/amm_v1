@@ -37,8 +37,6 @@ export function swap(program: Command) {
 
         for (const [index, balance] of pool.balances.entries()) {
           console.log("b[%d]: %f", index, balance);
-          console.log("s[%d]: %f", index, pool.data.tokens[index].scalingFactor.toNumber());
-          console.log("u[%d]: %s", index, pool.data.tokens[index].scalingUp);
         }
         console.log("Amplification:", pool.amplification);
         console.log("Exchange rate:", amountOut / amount);

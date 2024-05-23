@@ -54,12 +54,12 @@ impl Pool {
         } else if current_ts >= self.ramp_stop_ts {
             amp_target_factor.saturating_mul(stable_math::AMP_PRECISION)
         } else {
-            let ramp_elsapsed = current_ts.saturating_sub(self.ramp_start_ts) as u64;
+            let ramp_elapsed = current_ts.saturating_sub(self.ramp_start_ts) as u64 / 60 * 60;
             let ramp_duration = self.ramp_stop_ts.saturating_sub(self.ramp_start_ts) as u64;
             if amp_initial_factor <= amp_target_factor {
                 let amp_offset = (amp_target_factor.saturating_sub(amp_initial_factor))
                     .saturating_mul(stable_math::AMP_PRECISION)
-                    .checked_mul_div_down(ramp_elsapsed, ramp_duration)
+                    .checked_mul_div_down(ramp_elapsed, ramp_duration)
                     .unwrap();
                 amp_initial_factor
                     .saturating_mul(stable_math::AMP_PRECISION)
@@ -67,7 +67,7 @@ impl Pool {
             } else {
                 let amp_offset = (amp_initial_factor.saturating_sub(amp_target_factor))
                     .saturating_mul(stable_math::AMP_PRECISION)
-                    .checked_mul_div_down(ramp_elsapsed, ramp_duration)
+                    .checked_mul_div_down(ramp_elapsed, ramp_duration)
                     .unwrap();
                 amp_initial_factor
                     .saturating_mul(stable_math::AMP_PRECISION)
