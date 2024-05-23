@@ -15,8 +15,11 @@ pub const MAX_AMP: u16 = 8000;
 pub const MIN_SWAP_FEE: u64 = 1_000; // 0.0001%
 pub const MAX_SWAP_FEE: u64 = 10_000_000; // 1%
 
-// Safe max balance without decimal places supported by stable_math
+// Safe max balance supported by stable_math
 pub const MAX_SAFE_BALANCE: u64 = 3_000_000_000_000_000_000; // 3B
+
+pub const INV_THRESHOLD: u64 = 100;
+pub const BALANCE_THRESHOLD: u64 = 1;
 
 pub const MIN_TOKENS: usize = 2;
 pub const MAX_TOKENS: usize = 5;
@@ -80,10 +83,11 @@ pub fn calc_invariant(amplification: u64, balances: &Vec<u64>) -> Result<u64, St
         let prev_invariant = prev_invariant.as_u64();
 
         if invariant > prev_invariant {
-            if invariant.saturating_sub(prev_invariant) <= 1 {
+            // Sec3 M-01
+            if invariant.saturating_sub(prev_invariant) <= INV_THRESHOLD {
                 return Ok(invariant);
             }
-        } else if prev_invariant.saturating_sub(invariant) <= 1 {
+        } else if prev_invariant.saturating_sub(invariant) <= INV_THRESHOLD {
             return Ok(invariant);
         }
     }
@@ -334,10 +338,11 @@ fn get_token_balance_given_invariant_n_all_other_balances(
         let prev_token_balance = prev_token_balance.as_u64();
 
         if token_balance > prev_token_balance {
-            if token_balance.saturating_sub(prev_token_balance) <= 1 {
+            // Sec3 M-01
+            if token_balance.saturating_sub(prev_token_balance) <= BALANCE_THRESHOLD {
                 return Ok(token_balance);
             }
-        } else if prev_token_balance.saturating_sub(token_balance) <= 1 {
+        } else if prev_token_balance.saturating_sub(token_balance) <= BALANCE_THRESHOLD {
             return Ok(token_balance);
         }
     }
@@ -351,6 +356,24 @@ mod tests {
 
     #[test]
     fn test_calc_out_given_in() {
+        let balances = vec![
+            776199829833940141,
+            2206504616663253113,
+            1763368950384576155,
+            38416709841306561,
+            18833762826780,
+        ];
+        let amplification = 500_000;
+        calc_invariant(amplification, &balances).unwrap();
+
+        let balances = vec![1332693902458055177, 534042038714371533, 93673549035235];
+        let amplification = 10_000;
+        calc_invariant(amplification, &balances).unwrap();
+
+        let balances = vec![2397586296768312160, 2300831385038136337, 1410688950371];
+        let amplification = 1_000;
+        calc_invariant(amplification, &balances).unwrap();
+
         let amplification = 5_000_000;
         let balances = vec![40_000_000_000_000_000, 60_000_000_000_000_000];
         let invariant = calc_invariant(amplification, &balances).unwrap();
@@ -359,8 +382,10 @@ mod tests {
         let token_amount_in = 100_000_000_000_000;
         let token_a_out = calc_out_given_in(amplification, &balances, 1, 0, token_amount_in, invariant).unwrap();
         let token_b_out = calc_out_given_in(amplification, &balances, 0, 1, token_amount_in, invariant).unwrap();
-        assert_eq!(token_a_out, 99991271119068);
-        assert_eq!(token_b_out, 100008628389995);
+        // assert_eq!(token_a_out, 99991271119068);
+        // assert_eq!(token_b_out, 100008628389995);
+        assert_eq!(token_a_out, 99991271119067);
+        assert_eq!(token_b_out, 100008628389994);
 
         let amplification = 750_000;
         let balances = vec![40_000_000_000_000_000, 50_000_000_000_000_000, 60_000_000_000_000_000];
@@ -383,15 +408,18 @@ mod tests {
 
         let token_amount_in = 1_000_000_000_000;
         let token_amount_out = calc_out_given_in(amplification, &balances, 0, 1, token_amount_in, invariant).unwrap();
-        assert_eq!(token_amount_out, 999845351780);
+        // assert_eq!(token_amount_out, 999845351780);
+        assert_eq!(token_amount_out, 999845351779);
 
         let token_amount_in = 1_000_000_000;
         let token_amount_out = calc_out_given_in(amplification, &balances, 0, 1, token_amount_in, invariant).unwrap();
-        assert_eq!(token_amount_out, 999845870);
+        // assert_eq!(token_amount_out, 999845870);
+        assert_eq!(token_amount_out, 999845869);
 
         let token_amount_in = 1_000_000;
         let token_amount_out = calc_out_given_in(amplification, &balances, 0, 1, token_amount_in, invariant).unwrap();
-        assert_eq!(token_amount_out, 999846);
+        // assert_eq!(token_amount_out, 999846);
+        assert_eq!(token_amount_out, 999845);
     }
 
     #[test]

@@ -79,7 +79,9 @@ export class WeightedMath {
 }
 
 export class StableMath {
-  static ONE = 1.4e-9;
+  // Convergence threshold
+  static INV_THRESHOLD = 100e-9;
+  static BALANCE_THRESHOLD = 1e-9;
 
   static calcInvariant(balances: number[], amplification: number): number {
     const numTokens = balances.length;
@@ -102,10 +104,9 @@ export class StableMath {
         ((ampTimesTotal * sum + P_D * numTokens) * invariant) /
         ((ampTimesTotal - 1) * invariant + (numTokens + 1) * P_D);
 
-      // converge with precision of integer 1
       if (invariant > prevInvariant) {
-        if (invariant - prevInvariant <= StableMath.ONE) break;
-      } else if (prevInvariant - invariant <= StableMath.ONE) break;
+        if (invariant - prevInvariant <= StableMath.INV_THRESHOLD) break;
+      } else if (prevInvariant - invariant <= StableMath.INV_THRESHOLD) break;
     }
 
     return invariant;
@@ -165,8 +166,8 @@ export class StableMath {
       prevBalance = balance;
       balance = (prevBalance * prevBalance + c) / (prevBalance * 2 + b - invariant);
       if (balance > prevBalance) {
-        if (balance - prevBalance <= StableMath.ONE) return balance;
-      } else if (prevBalance - balance <= StableMath.ONE) return balance;
+        if (balance - prevBalance <= StableMath.BALANCE_THRESHOLD) return balance;
+      } else if (prevBalance - balance <= StableMath.BALANCE_THRESHOLD) return balance;
     }
 
     return balances[tokenIndex];
