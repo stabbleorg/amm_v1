@@ -286,7 +286,7 @@ export class SwapParser {
     }
 
     return {
-      poolAddress: accountKeys.get(keyIndexes[7])!.toBase58(),
+      poolAddress: accountKeys.get(keyIndexes[6])!.toBase58(),
       userAddress: accountKeys.get(keyIndexes[0])!.toBase58(),
       amounts: [
         { mintAddress: tokenAccounts[0].mint.toBase58(), amount: transferA.data.amount },

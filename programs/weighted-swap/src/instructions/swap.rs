@@ -42,14 +42,17 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
     )
     .unwrap();
 
-    let swap_fee = if ctx.accounts.user_x_token.is_none() {
-        ctx.accounts.pool.swap_fee
-    } else {
-        let x_token_account = ctx.accounts.user_x_token.as_ref().unwrap();
+    let num_ra = ctx.remaining_accounts.len();
+    let swap_fee = if num_ra == 1 {
+        // optional xSTB token account for swap fee discount
+        let x_token_account = &ctx.remaining_accounts[0];
         assert_eq!(x_token_account.owner.key(), ctx.accounts.token_program.key());
         assert_eq!(get_token_mint(x_token_account)?, x_token::ID);
         assert_eq!(get_token_owner(x_token_account)?, ctx.accounts.user.key());
         swap_fee_math::calc_swap_fee_in_discount(ctx.accounts.pool.swap_fee, get_token_balance(x_token_account)?)
+    } else {
+        assert_eq!(num_ra, 0);
+        ctx.accounts.pool.swap_fee
     };
 
     let amount_out_without_fee = ctx
@@ -141,9 +144,6 @@ impl<'info> Validate<'info> for Swap<'info> {
 #[derive(Accounts)]
 pub struct Swap<'info> {
     pub user: Signer<'info>,
-
-    /// CHECK: optional xSTB token account for swap fee discount
-    pub user_x_token: Option<UncheckedAccount<'info>>,
 
     /// CHECK: OK
     #[account(mut)]

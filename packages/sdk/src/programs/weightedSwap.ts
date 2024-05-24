@@ -403,8 +403,6 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         )
         .accountsStrict({
           user: this.walletAddress,
-          // TODO: assign xSTB token account for swap fee discount
-          userXToken: null,
           userTokenIn: userTokenInAddress,
           userTokenOut: userTokenOutAddress,
           vaultTokenIn: pool.vault.getAuthorityTokenAddress(mintInAddress),
@@ -417,6 +415,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
           vaultProgram: AMM_VAULT_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
+        // TODO: assign xSTB token account for swap fee discount
         .instruction(),
     );
 
