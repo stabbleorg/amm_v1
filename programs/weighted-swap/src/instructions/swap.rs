@@ -2,7 +2,7 @@ use crate::state::*;
 use anchor_common::validate::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{
-    accessor::{amount as get_token_amount, authority as get_token_owner, mint as get_token_mint},
+    accessor::{amount as get_token_balance, authority as get_token_owner, mint as get_token_mint},
     transfer, Token, TokenAccount, Transfer,
 };
 use math::{
@@ -29,7 +29,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
             .pool
             .calc_rounded_amount(amount_in.unwrap(), token_in_index)
     } else {
-        get_token_amount(&ctx.accounts.user_token_in.to_account_info())?
+        get_token_balance(&ctx.accounts.user_token_in.to_account_info())?
     };
 
     let balance_in = ctx.accounts.pool.calc_wrapped_amount(amount_in, token_in_index);
@@ -49,7 +49,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
         assert_eq!(x_token_account.owner.key(), ctx.accounts.token_program.key());
         assert_eq!(get_token_mint(x_token_account)?, x_token::ID);
         assert_eq!(get_token_owner(x_token_account)?, ctx.accounts.user.key());
-        swap_fee_math::calc_swap_fee_in_discount(ctx.accounts.pool.swap_fee, get_token_amount(x_token_account)?)
+        swap_fee_math::calc_swap_fee_in_discount(ctx.accounts.pool.swap_fee, get_token_balance(x_token_account)?)
     };
 
     let amount_out_without_fee = ctx
