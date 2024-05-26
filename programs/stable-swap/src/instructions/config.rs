@@ -4,11 +4,7 @@ use anchor_lang::prelude::*;
 use bn::safe_math::CheckedDivCeil;
 use math::stable_math;
 
-pub fn process_change_amp_factor<'info>(
-    ctx: Context<OwnerOnly<'info>>,
-    new_amp_factor: u16,
-    ramp_duration: u32,
-) -> Result<()> {
+pub fn process_change_amp_factor(ctx: Context<OwnerOnly>, new_amp_factor: u16, ramp_duration: u32) -> Result<()> {
     assert_ne!(ctx.accounts.pool.amp_target_factor, new_amp_factor);
     assert_ne!(ramp_duration, 0); // Sec3 I-02
     assert!(new_amp_factor >= stable_math::MIN_AMP);
@@ -31,7 +27,7 @@ pub fn process_change_amp_factor<'info>(
     Ok(())
 }
 
-pub fn process_change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u64) -> Result<()> {
+pub fn process_change_swap_fee(ctx: Context<OwnerOnly>, new_swap_fee: u64) -> Result<()> {
     assert_ne!(ctx.accounts.pool.swap_fee, new_swap_fee);
     assert!(new_swap_fee >= stable_math::MIN_SWAP_FEE);
     assert!(new_swap_fee <= stable_math::MAX_SWAP_FEE);
@@ -43,7 +39,7 @@ pub fn process_change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_f
     Ok(())
 }
 
-pub fn process_pause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
+pub fn process_pause(ctx: Context<OwnerOnly>) -> Result<()> {
     assert!(ctx.accounts.pool.is_active);
 
     ctx.accounts.pool.is_active = false;
@@ -53,7 +49,7 @@ pub fn process_pause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
     Ok(())
 }
 
-pub fn process_unpause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
+pub fn process_unpause(ctx: Context<OwnerOnly>) -> Result<()> {
     assert!(!ctx.accounts.pool.is_active);
 
     ctx.accounts.pool.is_active = true;
@@ -63,7 +59,7 @@ pub fn process_unpause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
     Ok(())
 }
 
-pub fn process_transfer_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: &Pubkey) -> Result<()> {
+pub fn process_transfer_owner(ctx: Context<OwnerOnly>, new_owner: &Pubkey) -> Result<()> {
     assert_ne!(ctx.accounts.pool.owner, new_owner.key());
     if ctx.accounts.pool.pending_owner.is_some() {
         assert_ne!(ctx.accounts.pool.pending_owner.unwrap(), new_owner.key());
@@ -74,20 +70,20 @@ pub fn process_transfer_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: 
     Ok(())
 }
 
-pub fn process_accept_owner<'info>(ctx: Context<PendingOwnerOnly<'info>>) -> Result<()> {
+pub fn process_accept_owner(ctx: Context<PendingOwnerOnly>) -> Result<()> {
     ctx.accounts.pool.owner = ctx.accounts.pool.pending_owner.unwrap();
     ctx.accounts.pool.pending_owner = None;
 
     Ok(())
 }
 
-pub fn process_reject_owner<'info>(ctx: Context<PendingOwnerOnly<'info>>) -> Result<()> {
+pub fn process_reject_owner(ctx: Context<PendingOwnerOnly>) -> Result<()> {
     ctx.accounts.pool.pending_owner = None;
 
     Ok(())
 }
 
-pub fn process_shutdown<'info>(ctx: Context<'_, '_, '_, 'info, OwnerOnly<'info>>) -> Result<()> {
+pub fn process_shutdown<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, '_, 'info, OwnerOnly<'info>>) -> Result<()> {
     for token in ctx.accounts.pool.tokens.iter() {
         assert_eq!(token.balance, 0);
     }

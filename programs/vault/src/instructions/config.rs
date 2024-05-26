@@ -2,7 +2,7 @@ use crate::state::*;
 use anchor_common::validate::*;
 use anchor_lang::prelude::*;
 
-pub fn process_change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary_fee: u64) -> Result<()> {
+pub fn process_change_beneficiary_fee(ctx: Context<AdminOnly>, new_beneficiary_fee: u64) -> Result<()> {
     assert_ne!(ctx.accounts.vault.beneficiary_fee, new_beneficiary_fee);
 
     ctx.accounts.vault.beneficiary_fee = new_beneficiary_fee;
@@ -12,7 +12,7 @@ pub fn process_change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new
     Ok(())
 }
 
-pub fn process_change_beneficiary<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary: &Pubkey) -> Result<()> {
+pub fn process_change_beneficiary(ctx: Context<AdminOnly>, new_beneficiary: &Pubkey) -> Result<()> {
     assert_ne!(ctx.accounts.vault.beneficiary, new_beneficiary.key());
 
     ctx.accounts.vault.beneficiary = new_beneficiary.key();
@@ -20,7 +20,7 @@ pub fn process_change_beneficiary<'info>(ctx: Context<AdminOnly<'info>>, new_ben
     Ok(())
 }
 
-pub fn process_pause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
+pub fn process_pause(ctx: Context<AdminOnly>) -> Result<()> {
     assert!(ctx.accounts.vault.is_active);
 
     ctx.accounts.vault.is_active = false;
@@ -30,7 +30,7 @@ pub fn process_pause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
     Ok(())
 }
 
-pub fn process_unpause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
+pub fn process_unpause(ctx: Context<AdminOnly>) -> Result<()> {
     assert!(!ctx.accounts.vault.is_active);
 
     ctx.accounts.vault.is_active = true;
@@ -40,7 +40,7 @@ pub fn process_unpause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
     Ok(())
 }
 
-pub fn process_transfer_admin<'info>(ctx: Context<AdminOnly<'info>>, new_admin: &Pubkey) -> Result<()> {
+pub fn process_transfer_admin(ctx: Context<AdminOnly>, new_admin: &Pubkey) -> Result<()> {
     assert_ne!(ctx.accounts.vault.admin, new_admin.key());
     if ctx.accounts.vault.pending_admin.is_some() {
         assert_ne!(ctx.accounts.vault.pending_admin.unwrap(), new_admin.key());
@@ -51,14 +51,14 @@ pub fn process_transfer_admin<'info>(ctx: Context<AdminOnly<'info>>, new_admin: 
     Ok(())
 }
 
-pub fn process_accept_admin<'info>(ctx: Context<PendingAdminOnly<'info>>) -> Result<()> {
+pub fn process_accept_admin(ctx: Context<PendingAdminOnly>) -> Result<()> {
     ctx.accounts.vault.admin = ctx.accounts.vault.pending_admin.unwrap();
     ctx.accounts.vault.pending_admin = None;
 
     Ok(())
 }
 
-pub fn process_reject_admin<'info>(ctx: Context<PendingAdminOnly<'info>>) -> Result<()> {
+pub fn process_reject_admin(ctx: Context<PendingAdminOnly>) -> Result<()> {
     ctx.accounts.vault.pending_admin = None;
 
     Ok(())

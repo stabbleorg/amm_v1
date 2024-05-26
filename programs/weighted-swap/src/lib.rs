@@ -43,29 +43,31 @@ pub mod weighted_swap {
         process_swap(ctx, amount_in, minimum_amount_out)
     }
 
-    pub fn change_swap_fee<'info>(ctx: Context<OwnerOnly<'info>>, new_swap_fee: u64) -> Result<()> {
+    /* Configuration */
+
+    pub fn change_swap_fee(ctx: Context<OwnerOnly>, new_swap_fee: u64) -> Result<()> {
         process_change_swap_fee(ctx, new_swap_fee)
     }
 
-    pub fn pause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
+    pub fn pause(ctx: Context<OwnerOnly>) -> Result<()> {
         process_pause(ctx)
     }
 
-    pub fn unpause<'info>(ctx: Context<OwnerOnly<'info>>) -> Result<()> {
+    pub fn unpause(ctx: Context<OwnerOnly>) -> Result<()> {
         process_unpause(ctx)
     }
 
-    pub fn transfer_owner<'info>(ctx: Context<OwnerOnly<'info>>, new_owner: Pubkey) -> Result<()> {
+    pub fn transfer_owner(ctx: Context<OwnerOnly>, new_owner: Pubkey) -> Result<()> {
         process_transfer_owner(ctx, &new_owner)
     }
 
     #[access_control(ctx.accounts.validate())]
-    pub fn accept_owner<'info>(ctx: Context<PendingOwnerOnly<'info>>) -> Result<()> {
+    pub fn accept_owner(ctx: Context<PendingOwnerOnly>) -> Result<()> {
         process_accept_owner(ctx)
     }
 
     #[access_control(ctx.accounts.validate())]
-    pub fn reject_owner<'info>(ctx: Context<PendingOwnerOnly<'info>>) -> Result<()> {
+    pub fn reject_owner(ctx: Context<PendingOwnerOnly>) -> Result<()> {
         process_reject_owner(ctx)
     }
 

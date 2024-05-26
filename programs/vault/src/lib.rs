@@ -33,33 +33,35 @@ pub mod vault {
         process_withdraw(ctx, amount)
     }
 
-    pub fn change_beneficiary_fee<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary_fee: u64) -> Result<()> {
+    /* Configuration */
+
+    pub fn change_beneficiary_fee(ctx: Context<AdminOnly>, new_beneficiary_fee: u64) -> Result<()> {
         process_change_beneficiary_fee(ctx, new_beneficiary_fee)
     }
 
-    pub fn change_beneficiary<'info>(ctx: Context<AdminOnly<'info>>, new_beneficiary: Pubkey) -> Result<()> {
+    pub fn change_beneficiary(ctx: Context<AdminOnly>, new_beneficiary: Pubkey) -> Result<()> {
         process_change_beneficiary(ctx, &new_beneficiary)
     }
 
-    pub fn pause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
+    pub fn pause(ctx: Context<AdminOnly>) -> Result<()> {
         process_pause(ctx)
     }
 
-    pub fn unpause<'info>(ctx: Context<AdminOnly<'info>>) -> Result<()> {
+    pub fn unpause(ctx: Context<AdminOnly>) -> Result<()> {
         process_unpause(ctx)
     }
 
-    pub fn transfer_admin<'info>(ctx: Context<AdminOnly<'info>>, new_admin: Pubkey) -> Result<()> {
+    pub fn transfer_admin(ctx: Context<AdminOnly>, new_admin: Pubkey) -> Result<()> {
         process_transfer_admin(ctx, &new_admin)
     }
 
     #[access_control(ctx.accounts.validate())]
-    pub fn accept_admin<'info>(ctx: Context<PendingAdminOnly<'info>>) -> Result<()> {
+    pub fn accept_admin(ctx: Context<PendingAdminOnly>) -> Result<()> {
         process_accept_admin(ctx)
     }
 
     #[access_control(ctx.accounts.validate())]
-    pub fn reject_admin<'info>(ctx: Context<PendingAdminOnly<'info>>) -> Result<()> {
+    pub fn reject_admin(ctx: Context<PendingAdminOnly>) -> Result<()> {
         process_reject_admin(ctx)
     }
 }
