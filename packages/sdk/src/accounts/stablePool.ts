@@ -3,9 +3,8 @@ import { PublicKey } from "@solana/web3.js";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./basePool";
 import { Vault } from "./vault";
+import { STABLE_SWAP_ID } from "../programs";
 import { BasicMath, StableMath } from "../utils";
-
-export const STABLE_SWAP_ID: PublicKey = new PublicKey("swapNyd8XiQwJ6ianp9snpu4brUqFxadzvHebnAXjJZ");
 
 export type StablePoolTokenData = PoolTokenData;
 
@@ -101,7 +100,16 @@ export class StablePool implements Pool<StablePoolData> {
   }
 
   refreshData(updatedData: Partial<StablePoolData>) {
-    this.data = { ...this.data, ...updatedData };
+    if (updatedData.tokens !== undefined) {
+      const tokens = this.data.tokens.map((token, index) => ({
+        ...token,
+        balance: updatedData.tokens![index].balance,
+      }));
+      delete updatedData.tokens;
+      this.data = { ...this.data, ...updatedData, tokens };
+    } else {
+      this.data = { ...this.data, ...updatedData };
+    }
   }
 
   getSwapAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {

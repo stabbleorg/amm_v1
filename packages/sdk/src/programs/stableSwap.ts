@@ -28,11 +28,13 @@ import {
   TransactionArgs,
   WalletContext,
 } from "@stabbleorg/anchor-contrib";
-import { AMM_VAULT_ID, Vault, StablePool, StablePoolData } from "../accounts";
+import { AMM_VAULT_ID } from "./vault";
+import { Vault, StablePool, StablePoolData } from "../accounts";
 import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
+export const STABLE_SWAP_ID = new PublicKey(IDL.address);
 export type StableSwapProgram = Program<IDLType>;
 
 export class StableSwapContext<T extends Provider = Provider> extends WalletContext<T> {
@@ -493,13 +495,15 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
 }
 
 export class StableSwapListener {
-  private _listener?: number;
+  private _poolUpdatedListener?: number;
+  private _poolBalancesUpdatedListener?: number;
 
   constructor(readonly program: StableSwapProgram) {}
 
   addPoolListener(callback: (event: DataUpdatedEvent<Partial<StablePoolData>>) => void) {
     this.removePoolListener();
-    this._listener = this.program.addEventListener(
+
+    this._poolUpdatedListener = this.program.addEventListener(
       "poolUpdatedEvent",
       (event: DataUpdatedEvent<Partial<StablePoolData>>, _slot: number, signature: TransactionSignature) => {
         if (signature !== SIMULATED_SIGNATURE) {
@@ -507,12 +511,37 @@ export class StableSwapListener {
         }
       },
     );
+
+    this._poolBalancesUpdatedListener = this.program.addEventListener(
+      "poolBalanceUpdatedEvent",
+      (event: DataUpdatedEvent<{ balances: BN[] }>, _slot: number, signature: TransactionSignature) => {
+        if (signature !== SIMULATED_SIGNATURE) {
+          callback({
+            pubkey: event.pubkey,
+            data: {
+              tokens: event.data.balances.map((balance) => ({
+                balance,
+                decimals: 9, // dummy
+                mint: event.pubkey, // dummy
+                scalingFactor: new BN(1000), // dummy
+                scalingUp: true, // dummy
+              })),
+            },
+          });
+        }
+      },
+    );
   }
 
   removePoolListener() {
-    if (this._listener !== undefined) {
-      this.program.removeEventListener(this._listener);
-      delete this._listener;
+    if (this._poolUpdatedListener !== undefined) {
+      this.program.removeEventListener(this._poolUpdatedListener);
+      delete this._poolUpdatedListener;
+    }
+
+    if (this._poolBalancesUpdatedListener !== undefined) {
+      this.program.removeEventListener(this._poolBalancesUpdatedListener);
+      delete this._poolBalancesUpdatedListener;
     }
   }
 }

@@ -26,6 +26,8 @@ impl Vault {
     pub const WITHDRAW_AUTHORITY_PREFIX: &'static [u8] = b"withdraw_authority";
 }
 
+////////////////////////////////////////////////////////////////
+
 pub trait VaultAuthority {
     fn authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
 }
@@ -42,6 +44,8 @@ where
         ])
     }
 }
+
+////////////////////////////////////////////////////////////////
 
 pub trait WithdrawAuthority {
     fn withdraw_authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
@@ -60,10 +64,12 @@ where
     }
 }
 
+////////////////////////////////////////////////////////////////
+
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct VaultUpdatedData {
-    pub beneficiary_fee: u64,
     pub is_active: bool,
+    pub beneficiary_fee: u64,
 }
 
 #[event]
@@ -84,8 +90,8 @@ where
         emit!(VaultUpdatedEvent {
             pubkey: self.key(),
             data: VaultUpdatedData {
-                beneficiary_fee: self.as_ref().beneficiary_fee,
                 is_active: self.as_ref().is_active,
+                beneficiary_fee: self.as_ref().beneficiary_fee,
             },
         });
     }

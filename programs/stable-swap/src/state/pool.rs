@@ -121,6 +121,8 @@ impl Pool {
     }
 }
 
+////////////////////////////////////////////////////////////////
+
 pub trait PoolAuthority {
     fn authority_seeds<R, F: FnOnce(&[&[u8]]) -> R>(&self, f: F) -> R;
 }
@@ -138,6 +140,8 @@ where
     }
 }
 
+////////////////////////////////////////////////////////////////
+
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct PoolUpdatedData {
     pub is_active: bool,
@@ -146,7 +150,6 @@ pub struct PoolUpdatedData {
     pub ramp_start_ts: i64,
     pub ramp_stop_ts: i64,
     pub swap_fee: u64,
-    pub tokens: Vec<PoolToken>,
 }
 
 #[event]
@@ -173,7 +176,37 @@ where
                 ramp_start_ts: self.as_ref().ramp_start_ts,
                 ramp_stop_ts: self.as_ref().ramp_stop_ts,
                 swap_fee: self.as_ref().swap_fee,
-                tokens: self.as_ref().tokens.clone(),
+            },
+        });
+    }
+}
+
+////////////////////////////////////////////////////////////////
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct PoolBalanceUpdatedData {
+    pub balances: Vec<u64>,
+}
+
+#[event]
+pub struct PoolBalanceUpdatedEvent {
+    pub pubkey: Pubkey,
+    pub data: PoolBalanceUpdatedData,
+}
+
+pub trait EmitPoolBalanceUpdatedEvent {
+    fn emit_balance_updated_event(&self);
+}
+
+impl<T> EmitPoolBalanceUpdatedEvent for T
+where
+    T: Located<Pool>,
+{
+    fn emit_balance_updated_event(&self) {
+        emit!(PoolBalanceUpdatedEvent {
+            pubkey: self.key(),
+            data: PoolBalanceUpdatedData {
+                balances: self.as_ref().tokens.iter().map(|token| { token.balance }).collect(),
             },
         });
     }

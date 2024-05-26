@@ -103,7 +103,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
 
     assert!(amount_out >= minimum_amount_out); // check slippage
 
-    ctx.accounts.pool.emit_updated_event();
+    ctx.accounts.pool.emit_balance_updated_event();
 
     ctx.accounts.pool.authority_seeds(|signer_seed| {
         mint_to(

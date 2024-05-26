@@ -2,8 +2,7 @@ import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
-
-export const AMM_VAULT_ID: PublicKey = new PublicKey("vo1tWgqZMjG61Z2T9qUaMYKqZ75CYzMuaZ2LZP1n7HV");
+import { AMM_VAULT_ID } from "../programs";
 
 export type VaultData = {
   admin: PublicKey;

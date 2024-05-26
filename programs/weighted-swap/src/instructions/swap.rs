@@ -75,7 +75,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
             .pool
             .calc_wrapped_amount(beneficiary_fee_amount, token_out_index);
 
-    ctx.accounts.pool.emit_updated_event();
+    ctx.accounts.pool.emit_balance_updated_event();
 
     transfer(
         CpiContext::new(

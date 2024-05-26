@@ -12,6 +12,7 @@ import { Vault, VaultData, WeightedPool, StablePool } from "../accounts";
 import { type Vault as IDLType } from "../generated/vault";
 import IDL from "../generated/idl/vault.json";
 
+export const AMM_VAULT_ID = new PublicKey(IDL.address);
 export type PoolKind = "stable_swap" | "weighted_swap";
 export type VaultProgram = Program<IDLType>;
 

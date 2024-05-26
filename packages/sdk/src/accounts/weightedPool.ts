@@ -3,9 +3,8 @@ import { PublicKey } from "@solana/web3.js";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./basePool";
 import { Vault } from "./vault";
+import { WEIGHTED_SWAP_ID } from "../programs";
 import { BasicMath, WeightedMath } from "../utils";
-
-export const WEIGHTED_SWAP_ID: PublicKey = new PublicKey("swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW");
 
 export type WeightedPoolTokenData = PoolTokenData & {
   weight: BN; // u64
@@ -91,7 +90,16 @@ export class WeightedPool implements Pool<WeightedPoolData> {
   }
 
   refreshData(updatedData: Partial<WeightedPoolData>) {
-    this.data = { ...this.data, ...updatedData };
+    if (updatedData.tokens !== undefined) {
+      const tokens = this.data.tokens.map((token, index) => ({
+        ...token,
+        balance: updatedData.tokens![index].balance,
+      }));
+      delete updatedData.tokens;
+      this.data = { ...this.data, ...updatedData, tokens };
+    } else {
+      this.data = { ...this.data, ...updatedData };
+    }
   }
 
   getSwapAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {

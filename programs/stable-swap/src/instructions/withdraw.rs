@@ -75,7 +75,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         }
     };
 
-    ctx.accounts.pool.emit_updated_event();
+    ctx.accounts.pool.emit_balance_updated_event();
 
     burn(
         CpiContext::new(
