@@ -2551,6 +2551,7 @@ dependencies = [
  "anchor-common",
  "anchor-lang",
  "anchor-spl",
+ "math",
  "solana-program",
 ]
 

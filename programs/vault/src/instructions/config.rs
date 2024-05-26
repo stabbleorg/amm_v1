@@ -1,9 +1,11 @@
 use crate::state::*;
 use anchor_common::validate::*;
 use anchor_lang::prelude::*;
+use math::fixed_math::ONE;
 
 pub fn process_change_beneficiary_fee(ctx: Context<AdminOnly>, new_beneficiary_fee: u64) -> Result<()> {
     assert_ne!(ctx.accounts.vault.beneficiary_fee, new_beneficiary_fee);
+    assert!(new_beneficiary_fee <= ONE);
 
     ctx.accounts.vault.beneficiary_fee = new_beneficiary_fee;
 

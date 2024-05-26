@@ -20,4 +20,5 @@ idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 anchor-lang = "0.30.0"
 anchor-spl = "0.30.0"
 anchor-common = { path = "../../libraries/anchor-common" }
+math = { path = "../../libraries/math" }
 solana-program = "*"

@@ -1,5 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use math::fixed_math::ONE;
 
 pub fn process_initialize(
     ctx: Context<Initialize>,
@@ -8,6 +9,8 @@ pub fn process_initialize(
     beneficiary: &Pubkey,
     beneficiary_fee: u64,
 ) -> Result<()> {
+    assert!(beneficiary_fee <= ONE);
+
     ctx.accounts.vault.set_inner(Vault {
         admin: ctx.accounts.admin.key(),
         withdraw_authority: withdraw_authority.key(),
