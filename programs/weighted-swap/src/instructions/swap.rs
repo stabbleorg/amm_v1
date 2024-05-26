@@ -90,43 +90,35 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
     )?;
 
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
-        if beneficiary_fee_amount > 0 {
-            // transfer to beneficiary
-            withdraw_vault(
-                CpiContext::new(
-                    ctx.accounts.vault_program.to_account_info(),
-                    WithdrawVault {
-                        withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
-                        vault: ctx.accounts.vault.to_account_info(),
-                        vault_authority: ctx.accounts.vault_authority.to_account_info(),
-                        vault_token: ctx.accounts.vault_token_out.to_account_info(),
-                        dest_token: ctx.accounts.beneficiary_token_out.to_account_info(),
-                        token_program: ctx.accounts.token_program.to_account_info(),
-                    },
-                )
-                .with_signer(&[signer_seed]),
-                ctx.accounts
-                    .pool
-                    .calc_rounded_amount(beneficiary_fee_amount, token_out_index),
-            )?;
-        }
+        let amount = ctx.accounts.pool.calc_rounded_amount(amount_out, token_out_index);
 
-        // transfer to user
-        withdraw_vault(
-            CpiContext::new(
-                ctx.accounts.vault_program.to_account_info(),
-                WithdrawVault {
-                    withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
-                    vault: ctx.accounts.vault.to_account_info(),
-                    vault_authority: ctx.accounts.vault_authority.to_account_info(),
-                    vault_token: ctx.accounts.vault_token_out.to_account_info(),
-                    dest_token: ctx.accounts.user_token_out.to_account_info(),
-                    token_program: ctx.accounts.token_program.to_account_info(),
-                },
+        let cpi = CpiContext::new(
+            ctx.accounts.vault_program.to_account_info(),
+            WithdrawVault {
+                withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
+                vault: ctx.accounts.vault.to_account_info(),
+                vault_authority: ctx.accounts.vault_authority.to_account_info(),
+                vault_token: ctx.accounts.vault_token_out.to_account_info(),
+                dest_token: ctx.accounts.user_token_out.to_account_info(),
+                token_program: ctx.accounts.token_program.to_account_info(),
+            },
+        );
+
+        if beneficiary_fee_amount > 0 {
+            let beneficiary_amount = ctx
+                .accounts
+                .pool
+                .calc_rounded_amount(beneficiary_fee_amount, token_out_index);
+
+            withdraw_vault(
+                cpi.with_remaining_accounts(vec![ctx.accounts.beneficiary_token_out.to_account_info()])
+                    .with_signer(&[signer_seed]),
+                amount,
+                beneficiary_amount,
             )
-            .with_signer(&[signer_seed]),
-            ctx.accounts.pool.calc_rounded_amount(amount_out, token_out_index),
-        )
+        } else {
+            withdraw_vault(cpi.with_signer(&[signer_seed]), amount, 0)
+        }
     })
 }
 
@@ -134,8 +126,6 @@ impl<'info> Validate<'info> for Swap<'info> {
     fn validate(&self) -> Result<()> {
         assert!(self.vault.is_active);
         assert!(self.pool.is_active);
-
-        assert_eq!(self.beneficiary_token_out.owner, self.vault.beneficiary);
 
         Ok(())
     }
@@ -164,7 +154,7 @@ pub struct Swap<'info> {
 
     /// CHECK: OK
     #[account(mut)]
-    pub beneficiary_token_out: Account<'info, TokenAccount>,
+    pub beneficiary_token_out: UncheckedAccount<'info>,
 
     #[account(mut, has_one = vault)]
     pub pool: Account<'info, Pool>,

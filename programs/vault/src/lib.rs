@@ -29,8 +29,12 @@ pub mod vault {
         )
     }
 
-    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-        process_withdraw(ctx, amount)
+    pub fn withdraw<'a, 'b, 'c, 'info>(
+        ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
+        amount: u64,
+        beneficiary_amount: u64,
+    ) -> Result<()> {
+        process_withdraw(ctx, amount, beneficiary_amount)
     }
 
     /* Configuration */

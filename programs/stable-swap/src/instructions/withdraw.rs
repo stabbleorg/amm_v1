@@ -121,6 +121,7 @@ impl<'info> Withdraw<'info> {
                 )
                 .with_signer(&[signer_seed]),
                 amount,
+                0,
             )
         })
     }

@@ -1,9 +1,34 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{transfer, Token, Transfer};
+use anchor_spl::token::{accessor::authority as get_token_owner, transfer, Token, Transfer};
 
-pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+pub fn process_withdraw<'a, 'b, 'c, 'info>(
+    ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
+    amount: u64,
+    beneficiary_amount: u64,
+) -> Result<()> {
     ctx.accounts.vault.authority_seeds(|signer_seed| {
+        if beneficiary_amount > 0 {
+            let beneficiary_token_account = &ctx.remaining_accounts[0];
+            assert_eq!(
+                ctx.accounts.vault.beneficiary,
+                get_token_owner(beneficiary_token_account)?
+            );
+
+            transfer(
+                CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    Transfer {
+                        from: ctx.accounts.vault_token.to_account_info(),
+                        to: beneficiary_token_account.to_account_info(),
+                        authority: ctx.accounts.vault_authority.to_account_info(),
+                    },
+                )
+                .with_signer(&[signer_seed]),
+                beneficiary_amount,
+            )?;
+        }
+
         transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),

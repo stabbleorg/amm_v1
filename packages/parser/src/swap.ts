@@ -237,9 +237,9 @@ export class SwapParser {
     keyIndexes,
     instructions = [],
   }: ParseInstructionArg): Promise<ChangedBalance> {
-    const hasFee = instructions.length === 5;
+    const hasFee = instructions.length === 4;
     const transferAInstruction = instructions[0];
-    const transferBInstruction = hasFee ? instructions[4] : instructions[2];
+    const transferBInstruction = hasFee ? instructions[3] : instructions[2];
     const transferCInstruction = hasFee ? instructions[2] : null;
 
     const transferA = decodeTransferInstruction({
