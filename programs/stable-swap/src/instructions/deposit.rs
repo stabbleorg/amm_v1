@@ -151,9 +151,10 @@ impl<'info> Deposit<'info> {
         user_account: &AccountInfo<'info>,
         vault_account: &AccountInfo<'info>,
     ) -> Result<u64> {
-        let balance_in = self.pool.calc_wrapped_amount(amount, token_index);
+        let amount_in = self.pool.calc_rounded_amount(amount, token_index);
+        let balance_in = self.pool.calc_wrapped_amount(amount_in, token_index);
         // add token balances
-        self.pool.tokens[token_index].balance = self.pool.tokens[token_index].balance + balance_in;
+        self.pool.tokens[token_index].balance += balance_in;
 
         // check associated token account for vault
         let expected_vault_account_key = associated_token::get_associated_token_address(
@@ -171,7 +172,7 @@ impl<'info> Deposit<'info> {
                     authority: self.user.to_account_info(),
                 },
             ),
-            self.pool.calc_rounded_amount(amount, token_index),
+            amount_in,
         )?;
 
         Ok(balance_in)

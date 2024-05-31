@@ -24,13 +24,14 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
 
     // if amount_in is set to None, it will send full amount given user's in token account
     // this is useful to swap from intermediate token account created in multi-hop swap
-    let amount_in = if amount_in.is_some() {
-        ctx.accounts
-            .pool
-            .calc_rounded_amount(amount_in.unwrap(), token_in_index)
-    } else {
-        get_token_balance(&ctx.accounts.user_token_in.to_account_info())?
-    };
+    let amount_in = ctx.accounts.pool.calc_rounded_amount(
+        if amount_in.is_some() {
+            amount_in.unwrap()
+        } else {
+            get_token_balance(&ctx.accounts.user_token_in.to_account_info())?
+        },
+        token_in_index,
+    );
 
     let balance_in = ctx.accounts.pool.calc_wrapped_amount(amount_in, token_in_index);
     let balance_out_without_fee = weighted_math::calc_out_given_in(
@@ -55,25 +56,28 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
         ctx.accounts.pool.swap_fee
     };
 
-    let amount_out_without_fee = ctx
+    let amount_out_balance = balance_out_without_fee.mul_down(swap_fee.complement());
+    let swap_fees_balance = balance_out_without_fee.saturating_sub(amount_out_balance);
+    let beneficiary_fees_balance = swap_fees_balance.mul_down(ctx.accounts.vault.beneficiary_fee);
+
+    let amount_out = ctx
         .accounts
         .pool
-        .calc_unwrapped_amount(balance_out_without_fee, token_out_index);
-    let amount_out = amount_out_without_fee.mul_down(swap_fee.complement());
+        .calc_unwrapped_amount(amount_out_balance, token_out_index);
     require!(amount_out >= minimum_amount_out, SwapError::SlippageOutOfRange);
 
-    let swap_fee_amount = amount_out_without_fee.saturating_sub(amount_out);
-    let beneficiary_fee_amount = swap_fee_amount.mul_down(ctx.accounts.vault.beneficiary_fee);
+    let beneficiary_fees = ctx
+        .accounts
+        .pool
+        .calc_unwrapped_amount(beneficiary_fees_balance, token_out_index);
 
     // add in token balance
-    ctx.accounts.pool.tokens[token_in_index].balance = ctx.accounts.pool.tokens[token_in_index].balance + balance_in;
+    ctx.accounts.pool.tokens[token_in_index].balance += balance_in;
     // remove out token balance
-    ctx.accounts.pool.tokens[token_out_index].balance = ctx.accounts.pool.tokens[token_out_index].balance
-        - ctx.accounts.pool.calc_wrapped_amount(amount_out, token_out_index)
-        - ctx
-            .accounts
-            .pool
-            .calc_wrapped_amount(beneficiary_fee_amount, token_out_index);
+    ctx.accounts.pool.tokens[token_out_index].balance -= ctx
+        .accounts
+        .pool
+        .calc_wrapped_amount(amount_out + beneficiary_fees, token_out_index);
 
     ctx.accounts.pool.emit_balance_updated_event();
 
@@ -90,8 +94,6 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
     )?;
 
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
-        let amount = ctx.accounts.pool.calc_rounded_amount(amount_out, token_out_index);
-
         let cpi = CpiContext::new(
             ctx.accounts.vault_program.to_account_info(),
             WithdrawVault {
@@ -104,20 +106,15 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
             },
         );
 
-        if beneficiary_fee_amount > 0 {
-            let beneficiary_amount = ctx
-                .accounts
-                .pool
-                .calc_rounded_amount(beneficiary_fee_amount, token_out_index);
-
+        if beneficiary_fees > 0 {
             withdraw_vault(
                 cpi.with_remaining_accounts(vec![ctx.accounts.beneficiary_token_out.to_account_info()])
                     .with_signer(&[signer_seed]),
-                amount,
-                beneficiary_amount,
+                amount_out,
+                beneficiary_fees,
             )
         } else {
-            withdraw_vault(cpi.with_signer(&[signer_seed]), amount, 0)
+            withdraw_vault(cpi.with_signer(&[signer_seed]), amount_out, 0)
         }
     })
 }

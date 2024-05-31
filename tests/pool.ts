@@ -377,12 +377,12 @@ describe("Pool", () => {
       const { value: vaultStbBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
       );
-      assert.ok(new BN(vaultStbBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
+      assert.equal(vaultStbBalance.amount, pool.tokens[0].balance.amount);
 
       const { value: vaultUsdcBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
       );
-      assert.ok(new BN(vaultUsdcBalance.amount).gte(new BN(pool.tokens[1].balance.amount)));
+      assert.equal(vaultUsdcBalance.amount, pool.tokens[1].balance.amount);
     });
   });
 
@@ -497,12 +497,12 @@ describe("Pool", () => {
       const { value: vaultBonkBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
       );
-      assert.ok(new BN(vaultBonkBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
+      assert.equal(vaultBonkBalance.amount, pool.tokens[0].balance.amount);
 
       const { value: vaultSolBalance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
       );
-      assert.ok(new BN(vaultSolBalance.amount).gte(new BN(pool.tokens[1].balance.amount)));
+      assert.equal(vaultSolBalance.amount, pool.tokens[1].balance.amount);
     });
   });
 
@@ -750,12 +750,12 @@ describe("Pool", () => {
       const { value: vaultUsdcBalance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
       );
-      assert.ok(new BN(vaultUsdcBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
+      assert.equal(vaultUsdcBalance.amount, pool.tokens[0].balance.amount);
 
       const { value: vaultUsdtBalance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
       );
-      assert.ok(new BN(vaultUsdtBalance.amount).gte(new BN(pool.tokens[1].balance.amount)));
+      assert.equal(vaultUsdtBalance.amount, pool.tokens[1].balance.amount);
     });
   });
 
@@ -850,12 +850,12 @@ describe("Pool", () => {
       const { value: vaultMsolBalance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
       );
-      assert.ok(new BN(vaultMsolBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
+      assert.equal(vaultMsolBalance.amount, pool.tokens[0].balance.amount);
 
       const { value: vaultSolBalance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(pool.tokens[1].mintAddress),
       );
-      assert.ok(new BN(vaultSolBalance.amount).gte(new BN(pool.tokens[1].balance.amount)));
+      assert.equal(vaultSolBalance.amount, pool.tokens[1].balance.amount);
     });
   });
 
@@ -920,7 +920,7 @@ describe("Pool", () => {
       const { value: vaultDaiBalance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(pool.tokens[0].mintAddress),
       );
-      assert.ok(new BN(vaultDaiBalance.amount).gte(new BN(pool.tokens[0].balance.amount)));
+      assert.equal(vaultDaiBalance.amount, pool.tokens[0].balance.amount);
     });
   });
 });

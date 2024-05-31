@@ -45,7 +45,7 @@ export class Swap {
     minimumAmountOut: FloatLike;
   }>): Promise<TransactionSignature> {
     if (!weightedSwap.walletAddress.equals(stableSwap.walletAddress))
-      throw Error("Singers mismatched for weighted and stable swap contexts.");
+      throw Error("Singers mismatched for weighted and stable swap contexts");
 
     // direct swap
     if (routes.length === 1) {
@@ -270,7 +270,7 @@ export class Swap {
     minimumAmountOut: FloatLike;
   }>): Promise<TransactionInstruction[]> {
     if (!weightedSwap.walletAddress.equals(stableSwap.walletAddress))
-      throw Error("Singers mismatched for weighted and stable swap contexts.");
+      throw Error("Singers mismatched for weighted and stable swap contexts");
 
     // direct swap
     if (routes.length === 1) {

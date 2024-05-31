@@ -35,10 +35,10 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         )
         .unwrap();
 
-        ctx.accounts.pool.tokens[token_index].balance = ctx.accounts.pool.tokens[token_index].balance - balance_out;
-
         let amount_out = ctx.accounts.pool.calc_unwrapped_amount(balance_out, token_index);
         assert!(amount_out >= minimum_amounts_out[0]); // check slippage
+
+        ctx.accounts.pool.tokens[token_index].balance -= ctx.accounts.pool.calc_wrapped_amount(amount_out, token_index);
 
         ctx.accounts
             .transfer_to_user(amount_out, &ctx.remaining_accounts[0], &ctx.remaining_accounts[1])?;
@@ -49,12 +49,9 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             amount,
         );
 
-        for (token_index, user_account) in ctx.remaining_accounts[0..balances_out.len()].iter().enumerate() {
+        for (token_index, user_account) in ctx.remaining_accounts[0..num_tokens].iter().enumerate() {
             let mint = get_token_mint(&user_account)?;
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint); // check token orders
-
-            ctx.accounts.pool.tokens[token_index].balance =
-                ctx.accounts.pool.tokens[token_index].balance - balances_out[token_index];
 
             let amount_out = ctx
                 .accounts
@@ -62,10 +59,13 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
                 .calc_unwrapped_amount(balances_out[token_index], token_index);
             assert!(amount_out >= minimum_amounts_out[token_index]); // check slippage
 
+            ctx.accounts.pool.tokens[token_index].balance -=
+                ctx.accounts.pool.calc_wrapped_amount(amount_out, token_index);
+
             ctx.accounts.transfer_to_user(
                 amount_out,
                 &user_account,
-                &ctx.remaining_accounts[token_index + balances_out.len()],
+                &ctx.remaining_accounts[token_index + num_tokens],
             )?;
         }
     };

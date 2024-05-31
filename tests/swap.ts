@@ -379,8 +379,7 @@ describe("Multi-hop Swap", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         weightedVault.getAuthorityTokenAddress(new PublicKey(address)),
       );
-      assert.ok(new BN(balance.amount).gte(balances[address]));
-      assert.ok(new BN(balance.amount).sub(balances[address]).lte(new BN(5)));
+      assert.equal(balance.amount, balances[address].toString());
     }
   });
 
@@ -405,8 +404,7 @@ describe("Multi-hop Swap", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(new PublicKey(address)),
       );
-      assert.ok(new BN(balance.amount).gte(balances[address]));
-      assert.ok(new BN(balance.amount).sub(balances[address]).lte(new BN(10)));
+      assert.equal(balance.amount,balances[address].toString());
     }
   });
 });
