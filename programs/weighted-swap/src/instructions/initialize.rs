@@ -15,7 +15,7 @@ pub fn process_initialize(
     let num_tokens = ctx.remaining_accounts.len();
 
     assert_eq!(num_tokens, weights.len());
-    assert_eq!(num_tokens, max_caps.len()); // Sec3 I-05
+    assert_eq!(num_tokens, max_caps.len());
     assert!(num_tokens >= weighted_math::MIN_TOKENS);
     assert!(num_tokens <= weighted_math::MAX_TOKENS);
     assert!(swap_fee >= weighted_math::MIN_SWAP_FEE);
@@ -43,7 +43,6 @@ pub fn process_initialize(
         assert!(weights[token_index] >= weighted_math::MIN_WEIGHT);
         sum_weights += weights[token_index];
 
-        // Sec3 L-02
         let (scaling_up, scaling_factor) = if max_caps[token_index] > weighted_math::MAX_SAFE_BALANCE {
             let tick_size = max_caps[token_index]
                 .checked_div_up(weighted_math::MAX_SAFE_BALANCE)

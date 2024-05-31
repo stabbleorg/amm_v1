@@ -8,7 +8,7 @@ import { setupVaultProgram } from "./vault";
 import { setupWeightedSwapProgram } from "./weighted-swap";
 import { setupStableSwapProgram } from "./stable-swap";
 import { setupTokenProgram } from "./token";
-import { setContext, run } from "./context";
+import { setContext } from "./context";
 import { parseKey, parseKeypair } from "./utils";
 
 program
@@ -72,4 +72,12 @@ setupWeightedSwapProgram(program);
 setupStableSwapProgram(program);
 setupTokenProgram(program);
 
-program.parseAsync(process.argv).then(run);
+program
+  .parseAsync(process.argv)
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

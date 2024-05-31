@@ -83,7 +83,6 @@ pub fn calc_invariant(amplification: u64, balances: &Vec<u64>) -> Result<u64, St
         let prev_invariant = prev_invariant.as_u64();
 
         if invariant > prev_invariant {
-            // Sec3 M-01
             if invariant.saturating_sub(prev_invariant) <= INV_THRESHOLD {
                 return Ok(invariant);
             }
@@ -314,7 +313,7 @@ fn get_token_balance_given_invariant_n_all_other_balances(
         .unwrap()
         * uint192!(balances[token_index]);
     let b = invariant
-        .checked_mul_div_down(amp_precision_u192(), amp_times_total) // Sec3 L-01
+        .checked_mul_div_down(amp_precision_u192(), amp_times_total)
         .unwrap()
         + sum;
 
@@ -338,7 +337,6 @@ fn get_token_balance_given_invariant_n_all_other_balances(
         let prev_token_balance = prev_token_balance.as_u64();
 
         if token_balance > prev_token_balance {
-            // Sec3 M-01
             if token_balance.saturating_sub(prev_token_balance) <= BALANCE_THRESHOLD {
                 return Ok(token_balance);
             }

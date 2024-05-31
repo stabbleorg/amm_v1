@@ -68,7 +68,6 @@ export function createMetadata(program: Command) {
         ];
 
         const pending = await vaultContext.createTransaction(ixs);
-        submit(pending);
       },
     );
 }

@@ -267,7 +267,7 @@ pub fn calc_token_out_given_exact_pool_token_in(
     // to 'token out'. This results in slightly larger price impact. Fees are rounded up.
     let taxable_amount = amount_out_without_fee.mul_up(normalized_weight.complement());
     let non_taxable_amount = amount_out_without_fee - taxable_amount;
-    let taxable_amount_minus_fees = taxable_amount.mul_up(swap_fee.complement());
+    let taxable_amount_minus_fees = taxable_amount.mul_down(swap_fee.complement());
 
     Ok(non_taxable_amount + taxable_amount_minus_fees)
 }

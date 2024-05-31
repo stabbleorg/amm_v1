@@ -17,14 +17,12 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     amount: u64,
     minimum_amounts_out: Vec<u64>,
 ) -> Result<()> {
-    // Sec3 I-05
     let num_tokens = minimum_amounts_out.len();
     assert_eq!(ctx.remaining_accounts.len(), num_tokens << 1); // amounts.len() * 2
     if num_tokens > 1 {
         assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
     }
 
-    // Sec3 I-05
     if num_tokens == 1 {
         let mint = get_token_mint(&ctx.remaining_accounts[0])?;
         let token_index = ctx.accounts.pool.get_token_index(mint);

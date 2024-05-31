@@ -9,7 +9,7 @@ use vault::state::Vault;
 pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64, max_caps: &Vec<u64>) -> Result<()> {
     let num_tokens = ctx.remaining_accounts.len();
 
-    assert_eq!(num_tokens, max_caps.len()); // Sec3 I-05
+    assert_eq!(num_tokens, max_caps.len());
     assert!(num_tokens >= stable_math::MIN_TOKENS);
     assert!(num_tokens <= stable_math::MAX_TOKENS);
     assert!(swap_fee >= stable_math::MIN_SWAP_FEE);
@@ -38,7 +38,6 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
         let decimals = data.decimals as u32;
         assert!(decimals <= fixed_math::SCALE);
 
-        // Sec3 L-02
         let (scaling_up, scaling_factor) = if max_caps[token_index] > stable_math::MAX_SAFE_BALANCE {
             let tick_size = max_caps[token_index]
                 .checked_div_up(stable_math::MAX_SAFE_BALANCE)

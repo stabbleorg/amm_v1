@@ -6,7 +6,7 @@ use math::stable_math;
 
 pub fn process_change_amp_factor(ctx: Context<OwnerOnly>, new_amp_factor: u16, ramp_duration: u32) -> Result<()> {
     assert_ne!(ctx.accounts.pool.amp_target_factor, new_amp_factor);
-    assert_ne!(ramp_duration, 0); // Sec3 I-02
+    assert_ne!(ramp_duration, 0);
     assert!(new_amp_factor >= stable_math::MIN_AMP);
     assert!(new_amp_factor <= stable_math::MAX_AMP);
 
