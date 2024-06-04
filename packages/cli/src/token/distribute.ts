@@ -10,7 +10,7 @@ import {
   getMint,
 } from "@solana/spl-token";
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { SafeAmount } from "@stabbleorg/anchor-contrib";
+import { SafeAmount, WalletContext } from "@stabbleorg/anchor-contrib";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
@@ -19,12 +19,14 @@ type WhitelistItem = { address: string; amount: number };
 
 export function distribute(program: Command) {
   program
-    .command("iou-distribute")
+    .command("distribute")
     .description("distribute IOU tokens")
     .requiredOption("--iou-mint-k <string>", "iou mint key", parseKey)
     .requiredOption("--path <path>", "path")
     .action(async ({ iouMintK, path }: { iouMintK: PublicKey; path: string }) => {
-      const { provider, vaultContext } = useContext();
+      const { provider } = useContext();
+
+      const walletContext = new WalletContext(provider);
 
       const items: WhitelistItem[] = JSON.parse(fs.readFileSync(path, { encoding: "utf8" }));
 
@@ -62,7 +64,7 @@ export function distribute(program: Command) {
         );
         if (index % BATCH_SIZE === 0 || index === items.length) {
           console.log("Batch #:", Math.ceil(index / BATCH_SIZE));
-          const signature = await vaultContext.sendSmartTransaction(instructions);
+          const signature = await walletContext.sendSmartTransaction(instructions);
           console.log("Signature:", signature);
           instructions = [];
         }

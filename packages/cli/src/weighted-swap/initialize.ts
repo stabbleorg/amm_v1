@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { Keypair, PublicKey } from "@solana/web3.js";
+import { VaultContext, WeightedSwapContext } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey, parseKeypair } from "../utils";
 
@@ -32,11 +33,13 @@ export function initialize(program: Command) {
         poolKP?: Keypair;
         poolMintKP?: Keypair;
       }) => {
-        const { vaultContext, weightedSwap } = useContext();
+        const { provider } = useContext();
+
+        const vaultContext = new VaultContext(provider);
+        const weightedSwap = new WeightedSwapContext(provider);
+        const vault = await vaultContext.loadVault(vaultK);
 
         const mintAddresses = mints.map((mint) => new PublicKey(mint));
-
-        const vault = await vaultContext.loadVault(vaultK);
 
         const { address, signature } = await weightedSwap.initialize({
           vault,

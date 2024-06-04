@@ -1,7 +1,6 @@
 import type { Command } from "commander";
-import { AnchorError, ProgramError } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import { Swap } from "@stabbleorg/amm-sdk";
+import { VaultContext, WeightedSwapContext, StableSwapContext, Swap } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
@@ -31,7 +30,11 @@ export function swap(program: Command) {
         amount: string;
         slippage?: number;
       }) => {
-        const { vaultContext, weightedSwap, stableSwap, altAccounts, simulate } = useContext();
+        const { provider, altAccounts, simulate } = useContext();
+
+        const vaultContext = new VaultContext(provider);
+        const weightedSwap = new WeightedSwapContext(provider);
+        const stableSwap = new StableSwapContext(provider);
 
         const vaults = await vaultContext.loadVaults();
         const weightedVault = vaults.find((vault) => vault.address.equals(weightedVaultK))!;

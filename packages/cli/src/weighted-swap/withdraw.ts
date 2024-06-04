@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import { getMint } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
+import { WeightedSwapContext } from "@stabbleorg/amm-sdk";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
@@ -13,10 +14,9 @@ export function withdraw(program: Command) {
     .requiredOption("--mints <strings...>", "mint keys")
     .requiredOption("--amount <number>", "amount", Number)
     .action(async ({ poolK, mints, amount }: { poolK: PublicKey; mints: string[]; amount: number }) => {
-      const { weightedSwap, provider, simulate } = useContext();
+      const { provider, simulate } = useContext();
 
-      const mintAddresses = mints.map((mint) => new PublicKey(mint));
-
+      const weightedSwap = new WeightedSwapContext(provider);
       const pool = await weightedSwap.loadPool(poolK);
 
       const mint = await getMint(provider.connection, pool.mintAddress);
@@ -25,6 +25,8 @@ export function withdraw(program: Command) {
 
       console.log("Total LP:", supply);
       console.log("My LP:", balances.find((balance) => balance.address.equals(pool.mintAddress))?.uiAmount);
+
+      const mintAddresses = mints.map((mint) => new PublicKey(mint));
 
       if (mints.length === 1) {
         const amountOut = pool.getWithdrawalAmountsOut(amount, supply, mintAddresses[0]);

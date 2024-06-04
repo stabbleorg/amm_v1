@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { PublicKey } from "@solana/web3.js";
+import { StableSwapContext } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
@@ -12,8 +13,9 @@ export function changeAmpFactor(program: Command) {
     .requiredOption("--ramp-duration <number>", "ramp duration", Number)
     .action(
       async ({ poolK, ampFactor, rampDuration }: { poolK: PublicKey; ampFactor: number; rampDuration: number }) => {
-        const { stableSwap, simulate } = useContext();
+        const { provider, simulate } = useContext();
 
+        const stableSwap = new StableSwapContext(provider);
         const pool = await stableSwap.loadPool(poolK);
 
         console.log("Current amplification:", pool.amplification);

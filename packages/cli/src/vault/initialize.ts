@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { PoolKind } from "@stabbleorg/amm-sdk";
+import { PoolKind, VaultContext } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey, parseKeypair } from "../utils";
 
@@ -24,7 +24,9 @@ export function initialize(program: Command) {
         beneficiaryK: PublicKey;
         vaultKP?: Keypair;
       }) => {
-        const { vaultContext } = useContext();
+        const { provider } = useContext();
+
+        const vaultContext = new VaultContext(provider);
 
         const { address, signature } = await vaultContext.initialize({
           keypair: vaultKP,

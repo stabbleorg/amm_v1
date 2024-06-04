@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { PublicKey } from "@solana/web3.js";
-import { StablePool } from "@stabbleorg/amm-sdk";
+import { StableSwapContext } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
@@ -27,8 +27,9 @@ export function swap(program: Command) {
         amount: number;
         slippage: number;
       }) => {
-        const { stableSwap, altAccounts, simulate } = useContext();
+        const { provider, altAccounts, simulate } = useContext();
 
+        const stableSwap = new StableSwapContext(provider);
         const pool = await stableSwap.loadPool(poolK);
 
         const amountOut = pool.getSwapAmountOut(mintInK, mintOutK, amount);

@@ -1,67 +1,53 @@
 import type { Command } from "commander";
 import { program } from "commander";
 import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
-import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-import { VaultContext, WeightedSwapContext, StableSwapContext } from "@stabbleorg/amm-sdk";
-import { Helius } from "helius-sdk";
+import { AddressLookupTableAccount, Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import { setupVaultProgram } from "./vault";
 import { setupWeightedSwapProgram } from "./weighted-swap";
 import { setupStableSwapProgram } from "./stable-swap";
 import { setupTokenProgram } from "./token";
 import { setContext } from "./context";
-import { parseKey, parseKeypair } from "./utils";
+import { parseKeypair } from "./utils";
 
 program
   .version("1.0.0")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
-  .option("-p, --helius-key <string>", "Helius API key")
-  .option("-a, --alt-key <string>", "Address Lookup Table key", parseKey)
+  .option("-a, --alt-keys <string...>", "Address Lookup Table key")
   .option("-s, --simulate", "simulate transaction")
   .hook("preAction", async (cmd: Command) => {
-    const { keypair, url, heliusKey, altKey, simulate } = cmd.opts();
+    const { keypair, url, altKeys, simulate } = cmd.opts();
 
     let rpcEndpoint: string;
-    let helius;
     switch (url) {
       case "testnet":
       case "devnet":
       case "mainnet-beta":
-        if (heliusKey) {
-          helius = new Helius(heliusKey, url, "stabble-amm-cli");
-          rpcEndpoint = helius.endpoint;
-        } else {
-          rpcEndpoint = clusterApiUrl(url);
-        }
+        rpcEndpoint = clusterApiUrl(url);
         break;
       default:
         rpcEndpoint = url;
         break;
     }
 
-    const connection = new Connection(rpcEndpoint, "confirmed");
-    const provider = new AnchorProvider(connection, new Wallet(keypair || Keypair.generate()), {
-      commitment: "confirmed",
-      maxRetries: 1,
-      preflightCommitment: "confirmed",
-      skipPreflight: true,
-    });
-    const vaultContext = new VaultContext(provider);
-    const weightedSwap = new WeightedSwapContext(provider);
-    const stableSwap = new StableSwapContext(provider);
+    const connection = new Connection(rpcEndpoint);
+    const provider = new AnchorProvider(connection, new Wallet(keypair || Keypair.generate()));
 
     let altAccounts;
-    if (altKey) {
-      const { value } = await connection.getAddressLookupTable(altKey);
-      if (value) altAccounts = [value];
+    if (altKeys) {
+      const addresses = altKeys.map((key: string) => new PublicKey(key));
+      const accounts = await connection.getMultipleAccountsInfo(addresses);
+      altAccounts = accounts.map(
+        (account, index) =>
+          new AddressLookupTableAccount({
+            key: addresses[index],
+            state: AddressLookupTableAccount.deserialize(account!.data),
+          }),
+      );
     }
 
     setContext({
-      vaultContext,
-      weightedSwap,
-      stableSwap,
       provider,
-      helius,
       altAccounts,
       simulate: Boolean(simulate),
     });

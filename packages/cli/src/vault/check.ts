@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import fs from "fs";
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
+import { VaultContext, WeightedSwapContext, StableSwapContext } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 
 export function check(program: Command) {
@@ -9,7 +10,11 @@ export function check(program: Command) {
     .command("vault-check")
     .description("check vault balances")
     .action(async () => {
-      const { vaultContext, weightedSwap, stableSwap } = useContext();
+      const { provider } = useContext();
+
+      const vaultContext = new VaultContext(provider);
+      const weightedSwap = new WeightedSwapContext(provider);
+      const stableSwap = new StableSwapContext(provider);
 
       const headers = ["mint_address", "vault_balance", "vault_raw_balance", "total_raw_amount", "epsilion_raw_amount"];
       const vaults = await vaultContext.loadVaults();

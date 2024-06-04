@@ -1,9 +1,10 @@
 import type { Command } from "commander";
-import { Metaplex } from "@metaplex-foundation/js";
 import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
 import { Keypair, PublicKey, SYSVAR_RENT_PUBKEY, SystemProgram, TransactionInstruction } from "@solana/web3.js";
+import { WalletContext } from "@stabbleorg/anchor-contrib";
 import { useContext } from "../context";
 import { parseKey, parseKeypair } from "../utils";
+import { Metaplex } from "@metaplex-foundation/js";
 
 export function createMetadata(program: Command) {
   program
@@ -28,10 +29,12 @@ export function createMetadata(program: Command) {
         metadataSymbol: string;
         metadataUri: string;
       }) => {
-        const { stableSwap, simulate } = useContext();
+        const { provider, simulate } = useContext();
 
-        const metadataK = stableSwap.metaplex.nfts().pdas().metadata({ mint: mintK });
-        const authorityK = authorityKP?.publicKey || stableSwap.walletAddress;
+        const walletContext = new WalletContext(provider);
+
+        const metadataK = Metaplex.make(provider.connection).nfts().pdas().metadata({ mint: mintK });
+        const authorityK = authorityKP?.publicKey || walletContext.walletAddress;
 
         console.log("Mint:", mintK.toBase58());
         console.log("Name:", metadataName);
@@ -44,7 +47,7 @@ export function createMetadata(program: Command) {
         const instructions: TransactionInstruction[] = [
           createCreateMetadataAccountV3Instruction(
             {
-              payer: stableSwap.walletAddress,
+              payer: walletContext.walletAddress,
               metadata: metadataK,
               mint: mintK,
               mintAuthority: authorityK,
@@ -70,7 +73,7 @@ export function createMetadata(program: Command) {
           ),
         ];
 
-        const signature = await stableSwap.sendSmartTransaction(instructions);
+        const signature = await walletContext.sendSmartTransaction(instructions);
 
         console.log(signature);
       },
