@@ -36,9 +36,9 @@ export function initialize(program: Command) {
 
         const mintAddresses = mints.map((mint) => new PublicKey(mint));
 
-        const vault = await vaultContext.findOne(vaultK);
+        const vault = await vaultContext.loadVault(vaultK);
 
-        const { pool } = await stableSwap.initialize({
+        const { address, signature } = await stableSwap.initialize({
           vault,
           mintAddresses,
           maxCaps,
@@ -50,7 +50,8 @@ export function initialize(program: Command) {
 
         await vaultContext.createMissingTokenAccounts({ vault, mintAddresses });
 
-        console.log("Pool:", pool.address.toBase58());
+        console.log("Pool:", address.toBase58());
+        console.log(signature);
       },
     );
 }

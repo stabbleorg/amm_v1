@@ -57,12 +57,12 @@ describe("Multi-hop Swap", () => {
   let stableVault: Vault;
 
   before(async () => {
-    const vaults = await guestVaultCtx.findAll();
+    const vaults = await guestVaultCtx.loadVaults();
     weightedVault = vaults.find((vault) => vault.address.equals(WEIGHTED_VAULT_KP.publicKey))!;
     stableVault = vaults.find((vault) => vault.address.equals(STABLE_VAULT_KP.publicKey))!;
 
-    pools.push(...(await guestWeightedSwap.findByVault(weightedVault)));
-    pools.push(...(await guestStableSwap.findByVault(stableVault)));
+    pools.push(...(await guestWeightedSwap.loadPools(weightedVault)));
+    pools.push(...(await guestStableSwap.loadPools(stableVault)));
 
     weightedSwapListener.addPoolListener((event) => {
       const updatedPool = pools.find((pool) => event.pubkey.equals(pool.address));
@@ -150,8 +150,8 @@ describe("Multi-hop Swap", () => {
 
   it("STB-USDC-USDT", async () => {
     // const amountIn = 1000000;
-    const amountIn = 0.033333334;
-    const slippage = 0.005; // slippage 0.05%
+    const amountIn = 3.333333334;
+    const slippage = 0.01; // slippage 1%
 
     // best STB-USDC pool
     const pool_STB_USDC = pools.sort(
@@ -280,7 +280,7 @@ describe("Multi-hop Swap", () => {
   });
 
   it("SOL-USDC-USDT", async () => {
-    const amountIn = 10;
+    const amountIn = 1;
     const slippage = 0.0001; // slippage 0.01%
 
     // best SOL-USDC pool
@@ -318,17 +318,21 @@ describe("Multi-hop Swap", () => {
     const keypair0 = Keypair.generate();
     {
       // transfer WSOL first because transaction size is too big without Address Lookup Table
-      const { transaction, recentBlock, slot } = await weightedSwap.createTransaction(
-        await weightedSwap.transferWSOLInstructions(keypair0.publicKey, amountIn),
+      await weightedSwap.sendSmartTransaction(
+        [
+          ...weightedSwap.createTokenAccountInstructions(keypair0.publicKey),
+          ...weightedSwap.transferWSOLInstructions(keypair0.publicKey, amountIn),
+        ],
+        [keypair0],
       );
-      await weightedSwap.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair0]);
     }
 
     const keypair = Keypair.generate();
     const instructions: TransactionInstruction[] = [
       // TODO: Address Lookup Table should be setup
-      // ...(await weightedSwap.transferWSOLInstructions(keypair0.publicKey, amountIn)),
-      ...(await weightedSwap.createIntermediateTokenAccountInstructions(keypair.publicKey, USDC_MINT_KP.publicKey)),
+      // ...weightedSwap.createTokenAccountInstructions(keypair0.publicKey),
+      // ...weightedSwap.transferWSOLInstructions(keypair0.publicKey, amountIn),
+      ...weightedSwap.createTokenAccountInstructions(keypair.publicKey, USDC_MINT_KP.publicKey),
       ...(await weightedSwap.swapInstructions({
         pool: pool_SOL_USDC as WeightedPool,
         mintInAddress: NATIVE_MINT,
@@ -345,8 +349,7 @@ describe("Multi-hop Swap", () => {
         tokenInAddress: keypair.publicKey,
       })),
     ];
-    const { transaction, recentBlock, slot } = await vaultCtx.createTransaction(instructions);
-    await vaultCtx.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
+    await vaultCtx.sendSmartTransaction(instructions, [keypair]);
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
       weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
@@ -359,7 +362,7 @@ describe("Multi-hop Swap", () => {
   });
 
   it("assert weighted vault balance", async () => {
-    const pools = await guestWeightedSwap.findByVault(weightedVault);
+    const pools = await guestWeightedSwap.loadPools(weightedVault);
     const balances = pools.reduce(
       (result, pool) => {
         for (const token of pool.tokens) {
@@ -384,7 +387,7 @@ describe("Multi-hop Swap", () => {
   });
 
   it("assert stable vault balance", async () => {
-    const pools = await guestStableSwap.findByVault(stableVault);
+    const pools = await guestStableSwap.loadPools(stableVault);
     const balances = pools.reduce(
       (result, pool) => {
         for (const token of pool.tokens) {
@@ -404,7 +407,7 @@ describe("Multi-hop Swap", () => {
       const { value: balance } = await provider.connection.getTokenAccountBalance(
         stableVault.getAuthorityTokenAddress(new PublicKey(address)),
       );
-      assert.equal(balance.amount,balances[address].toString());
+      assert.equal(balance.amount, balances[address].toString());
     }
   });
 });

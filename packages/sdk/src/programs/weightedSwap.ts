@@ -27,6 +27,8 @@ import {
   SafeAmount,
   TransactionArgs,
   WalletContext,
+  TOKEN_MINT_RENT_FEE_LAMPORTS,
+  AddressWithTransactionSignature,
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID } from "./vault";
 import { Vault, WeightedPool, WeightedPoolData } from "../accounts";
@@ -47,7 +49,18 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     this.metaplex = Metaplex.make(provider.connection);
   }
 
-  async findByVault(vault: Vault): Promise<WeightedPool[]> {
+  async loadPool(address: PublicKey, vault?: Vault): Promise<WeightedPool> {
+    const poolData = await this.program.account.pool.fetch(address);
+
+    if (!vault) {
+      const vaultData = await this.program.account.vault.fetch(poolData.vault);
+      vault = new Vault(poolData.vault, vaultData);
+    }
+
+    return new WeightedPool(vault, address, poolData);
+  }
+
+  async loadPools(vault: Vault): Promise<WeightedPool[]> {
     const accounts = await this.program.account.pool.all([
       {
         memcmp: {
@@ -83,18 +96,18 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     name?: string;
     symbol?: string;
     uri?: string;
-  }>): Promise<{ pool: WeightedPool; signature: TransactionSignature }> {
+  }>): Promise<AddressWithTransactionSignature> {
     const size = this.program.account.pool.size + (WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4);
     const poolAuthorityAddress = WeightedPool.getAuthorityAddress(keypair.publicKey);
     const mintAccounts = await this.provider.connection.getMultipleAccountsInfo(mintAddresses);
     const mints = mintAccounts.map((account, index) => unpackMint(mintAddresses[index], account!));
 
-    const instructions = [
+    const instructions: TransactionInstruction[] = [
       SystemProgram.createAccount({
         fromPubkey: this.walletAddress,
         newAccountPubkey: poolMintKP.publicKey,
         space: MintLayout.span,
-        lamports: await this.provider.connection.getMinimumBalanceForRentExemption(MintLayout.span),
+        lamports: TOKEN_MINT_RENT_FEE_LAMPORTS,
         programId: TOKEN_PROGRAM_ID,
       }),
       createInitializeMint2Instruction(
@@ -161,13 +174,9 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         .instruction(),
     ];
 
-    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
+    const signature = await this.sendSmartTransaction(instructions, [keypair, poolMintKP], altAccounts, priorityLevel);
 
-    const signature = await this.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair, poolMintKP]);
-
-    const pool = new WeightedPool(vault, keypair.publicKey, await this.program.account.pool.fetch(keypair.publicKey));
-
-    return { pool, signature };
+    return { address: keypair.publicKey, signature };
   }
 
   async deposit({
@@ -196,7 +205,10 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       if (mintAddress.equals(NATIVE_MINT)) {
         const keypair = Keypair.generate();
         signers.push(keypair);
-        instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, amounts[index])));
+        instructions.push(
+          ...this.createTokenAccountInstructions(keypair.publicKey),
+          ...this.transferWSOLInstructions(keypair.publicKey, amounts[index]),
+        );
         userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
       } else {
         const userTokenAddress = this.getAssociatedTokenAddress(mintAddress);
@@ -232,11 +244,9 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         .instruction(),
     );
 
-    if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
+    if (signers.length) instructions.push(this.closeTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
-
-    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, signers);
+    return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
   }
 
   async withdraw({
@@ -263,7 +273,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       if (mintAddress.equals(NATIVE_MINT)) {
         const keypair = Keypair.generate();
         signers.push(keypair);
-        instructions.push(...(await this.createIntermediateTokenAccountInstructions(keypair.publicKey, mintAddress)));
+        instructions.push(...this.createTokenAccountInstructions(keypair.publicKey, mintAddress));
         userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
       } else {
         const { address: userTokenAddress, instruction: createUserTokenInstruction } =
@@ -304,11 +314,9 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         .instruction(),
     );
 
-    if (signers.length) instructions.push(this.closeIntermediateTokenAccountInstruction(signers[0].publicKey));
+    if (signers.length) instructions.push(this.closeTokenAccountInstruction(signers[0].publicKey));
 
-    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
-
-    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, signers);
+    return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
   }
 
   async swap({
@@ -326,7 +334,10 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     let tokenInAddress;
     if (mintInAddress.equals(NATIVE_MINT)) {
       const keypair = Keypair.generate();
-      instructions.push(...(await this.transferWSOLInstructions(keypair.publicKey, amountIn)));
+      instructions.push(
+        ...this.createTokenAccountInstructions(keypair.publicKey),
+        ...this.transferWSOLInstructions(keypair.publicKey, amountIn),
+      );
       signers.push(keypair);
       tokenInAddress = keypair.publicKey;
     }
@@ -335,7 +346,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     if (mintOutAddress.equals(NATIVE_MINT)) {
       const keypair = Keypair.generate();
       signers.push(keypair);
-      instructions.push(...(await this.createIntermediateTokenAccountInstructions(keypair.publicKey, mintOutAddress)));
+      instructions.push(...this.createTokenAccountInstructions(keypair.publicKey, mintOutAddress));
       signers.push(keypair);
       tokenOutAddress = keypair.publicKey;
     }
@@ -352,9 +363,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       })),
     );
 
-    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
-
-    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, signers);
+    return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
   }
 
   async swapInstructions({
@@ -422,9 +431,9 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     );
 
     // close intermediate token accounts
-    if (tokenInAddress) instructions.push(this.closeIntermediateTokenAccountInstruction(tokenInAddress));
+    if (tokenInAddress) instructions.push(this.closeTokenAccountInstruction(tokenInAddress));
     if (tokenOutAddress && minimumAmountOut !== undefined)
-      instructions.push(this.closeIntermediateTokenAccountInstruction(tokenOutAddress));
+      instructions.push(this.closeTokenAccountInstruction(tokenOutAddress));
 
     return instructions;
   }
@@ -443,9 +452,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       })
       .instruction();
 
-    const { transaction, recentBlock, slot } = await this.createTransaction([instruction], altAccounts, priorityLevel);
-
-    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
   }
 
   async shutdown({
@@ -468,9 +475,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       ])
       .instruction();
 
-    const { transaction, recentBlock, slot } = await this.createTransaction([instruction], altAccounts, priorityLevel);
-
-    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
   }
 }
 

@@ -12,7 +12,7 @@ import { setContext } from "./context";
 import { parseKey, parseKeypair } from "./utils";
 
 program
-  .version("0.11.1")
+  .version("1.0.0")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
   .option("-p, --helius-key <string>", "Helius API key")

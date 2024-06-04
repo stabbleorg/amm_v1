@@ -27,11 +27,9 @@ export function swap(program: Command) {
         amount: number;
         slippage: number;
       }) => {
-        const { vaultContext, weightedSwap, altAccounts, simulate } = useContext();
+        const { weightedSwap, altAccounts, simulate } = useContext();
 
-        const data = await weightedSwap.program.account.pool.fetch(poolK);
-        const vault = await vaultContext.findOne(data.vault);
-        const pool = new WeightedPool(vault, poolK, data);
+        const pool = await weightedSwap.loadPool(poolK);
 
         const amountOut = pool.getSwapAmountOut(mintInK, mintOutK, amount);
         for (const [index, balance] of pool.balances.entries()) {

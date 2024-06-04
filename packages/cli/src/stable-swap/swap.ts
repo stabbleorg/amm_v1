@@ -27,16 +27,14 @@ export function swap(program: Command) {
         amount: number;
         slippage: number;
       }) => {
-        const { vaultContext, stableSwap, altAccounts, simulate } = useContext();
+        const { stableSwap, altAccounts, simulate } = useContext();
 
-        const data = await stableSwap.program.account.pool.fetch(poolK);
-        const vault = await vaultContext.findOne(data.vault);
-        const pool = new StablePool(vault, poolK, data);
+        const pool = await stableSwap.loadPool(poolK);
 
         const amountOut = pool.getSwapAmountOut(mintInK, mintOutK, amount);
 
         for (const [index, balance] of pool.balances.entries()) {
-          console.log("b[%d]: %f", index, balance);
+          console.log("Balance[%d]: %f", index, balance);
         }
         console.log("Amplification:", pool.amplification);
         console.log("Exchange rate:", amountOut / amount);
@@ -44,20 +42,16 @@ export function swap(program: Command) {
 
         if (simulate) return;
 
-        try {
-          const signature = await stableSwap.swap({
-            pool,
-            mintInAddress: mintInK,
-            mintOutAddress: mintOutK,
-            amountIn: amount,
-            minimumAmountOut: amountOut * (1 - slippage),
-            altAccounts,
-          });
+        const signature = await stableSwap.swap({
+          pool,
+          mintInAddress: mintInK,
+          mintOutAddress: mintOutK,
+          amountIn: amount,
+          minimumAmountOut: amountOut * (1 - slippage),
+          altAccounts,
+        });
 
-          console.log(signature);
-        } catch (err) {
-          console.error(err);
-        }
+        console.log(signature);
       },
     );
 }

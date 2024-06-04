@@ -67,7 +67,7 @@ describe("Pool", () => {
   let POOL_ID_DAI_USDC: PublicKey;
 
   before(async () => {
-    const vaults = await guestVaultCtx.findAll();
+    const vaults = await guestVaultCtx.loadVaults();
     weightedVault = vaults.find((vault) => vault.address.equals(WEIGHTED_VAULT_KP.publicKey))!;
     stableVault = vaults.find((vault) => vault.address.equals(STABLE_VAULT_KP.publicKey))!;
 
@@ -90,13 +90,14 @@ describe("Pool", () => {
     it("should create weighted pool", async () => {
       const mintAddresses = [STB_MINT_KP.publicKey, USDC_MINT_KP.publicKey];
 
-      const { pool, signature } = await weightedSwap.initialize({
+      const { address, signature } = await weightedSwap.initialize({
         vault: weightedVault,
         mintAddresses,
         maxCaps: [500000000, 4000000000],
         weights: [0.5, "0.5"], // 50:50
         swapFee: "0.005", // 0.5%
       });
+      const pool = await weightedSwap.loadPool(address);
       pools.push(pool);
       POOL_ID_STB_USDC = pool.address;
 
@@ -390,13 +391,14 @@ describe("Pool", () => {
     it("should create/deposit/withdraw", async () => {
       const mintAddresses = [BONK_MINT_KP.publicKey, NATIVE_MINT, USDC_MINT_KP.publicKey];
 
-      const { pool } = await weightedSwap.initialize({
+      const { address } = await weightedSwap.initialize({
         vault: weightedVault,
         mintAddresses,
         maxCaps: ["10000000000000", 4000000000, 4000000000],
         weights: [0.5, 0.3, "0.2"], // 50:30:20
         swapFee: "0.005", // 0.5%
       });
+      const pool = await weightedSwap.loadPool(address);
       pools.push(pool);
       POOL_ID_BONK_SOL_USDC = pool.address;
 
@@ -511,13 +513,14 @@ describe("Pool", () => {
       const mintAddresses = [USDT_MINT_KP.publicKey, USDC_MINT_KP.publicKey];
       const ampFactor = 5000;
 
-      const { pool } = await stableSwap.initialize({
+      const { address } = await stableSwap.initialize({
         vault: stableVault,
         mintAddresses,
         maxCaps: [3000000000, 3000000000],
         ampFactor,
         swapFee: "0.0001", // 0.01%
       });
+      const pool = await stableSwap.loadPool(address);
       pools.push(pool);
       POOL_ID_USDT_USDC = pool.address;
 
@@ -764,13 +767,14 @@ describe("Pool", () => {
       const mintAddresses = [MSOL_MINT_KP.publicKey, NATIVE_MINT];
       const ampFactor = 50;
 
-      const { pool } = await stableSwap.initialize({
+      const { address } = await stableSwap.initialize({
         vault: stableVault,
         mintAddresses,
         maxCaps: [3000000000, 3000000000],
         ampFactor,
         swapFee: "0.0001", // 0.01%
       });
+      const pool = await stableSwap.loadPool(address);
       pools.push(pool);
       POOL_ID_MSOL_SOL = pool.address;
 
@@ -864,13 +868,14 @@ describe("Pool", () => {
       const mintAddresses = [DAI_MINT_KP.publicKey, USDC_MINT_KP.publicKey];
       const ampFactor = 750;
 
-      const { pool } = await stableSwap.initialize({
+      const { address } = await stableSwap.initialize({
         vault: stableVault,
         mintAddresses,
         maxCaps: [3000000000, 3000000000],
         ampFactor,
         swapFee: "0.0004", // 0.04%
       });
+      const pool = await stableSwap.loadPool(address);
       pools.push(pool);
       POOL_ID_DAI_USDC = pool.address;
 

@@ -9,7 +9,7 @@ import {
 } from "@solana/spl-token";
 import { AddressLookupTableAccount, Connection, PublicKey, TransactionSignature } from "@solana/web3.js";
 import { WeightedSwapProgram, StableSwapProgram } from "@stabbleorg/amm-sdk";
-import { ParseInstructionArg } from "@stabbleorg/anchor-contrib";
+import { ParseInstructionArgs } from "@stabbleorg/anchor-contrib";
 
 export type InitializedPool = {
   address: string;
@@ -115,7 +115,7 @@ export class SwapParser {
     return result;
   }
 
-  parseInitializeInstruction({ accountKeys, keyIndexes }: ParseInstructionArg): InitializedPool {
+  parseInitializeInstruction({ accountKeys, keyIndexes }: ParseInstructionArgs): InitializedPool {
     return {
       address: accountKeys.get(keyIndexes[2])!.toBase58(),
       mintAddress: accountKeys.get(keyIndexes[1])!.toBase58(),
@@ -127,7 +127,7 @@ export class SwapParser {
     accountKeys,
     keyIndexes,
     instructions = [],
-  }: ParseInstructionArg): Promise<ChangedBalance> {
+  }: ParseInstructionArgs): Promise<ChangedBalance> {
     const transfers = instructions
       .slice(0, instructions.length - 1)
       .map((transferInstruction) =>
@@ -181,7 +181,7 @@ export class SwapParser {
     accountKeys,
     keyIndexes,
     instructions = [],
-  }: ParseInstructionArg): Promise<ChangedBalance> {
+  }: ParseInstructionArgs): Promise<ChangedBalance> {
     const transfers = instructions
       .slice(0, instructions.length - 1)
       .filter((_, index) => index % 2 === 1)
@@ -236,7 +236,7 @@ export class SwapParser {
     accountKeys,
     keyIndexes,
     instructions = [],
-  }: ParseInstructionArg): Promise<ChangedBalance> {
+  }: ParseInstructionArgs): Promise<ChangedBalance> {
     const hasFee = instructions.length === 4;
     const transferAInstruction = instructions[0];
     const transferBInstruction = hasFee ? instructions[3] : instructions[2];

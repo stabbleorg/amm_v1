@@ -1,7 +1,6 @@
 import type { Command } from "commander";
 import { getMint } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { WeightedPool } from "@stabbleorg/amm-sdk";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
@@ -14,13 +13,11 @@ export function withdraw(program: Command) {
     .requiredOption("--mints <strings...>", "mint keys")
     .requiredOption("--amount <number>", "amount", Number)
     .action(async ({ poolK, mints, amount }: { poolK: PublicKey; mints: string[]; amount: number }) => {
-      const { vaultContext, weightedSwap, provider, simulate } = useContext();
+      const { weightedSwap, provider, simulate } = useContext();
 
       const mintAddresses = mints.map((mint) => new PublicKey(mint));
 
-      const data = await weightedSwap.program.account.pool.fetch(poolK);
-      const vault = await vaultContext.findOne(data.vault);
-      const pool = new WeightedPool(vault, poolK, data);
+      const pool = await weightedSwap.loadPool(poolK);
 
       const mint = await getMint(provider.connection, pool.mintAddress);
       const supply = SafeAmount.toUiAmount(mint.supply.toString(), mint.decimals);

@@ -1,8 +1,8 @@
 import type { Command } from "commander";
 import { Metaplex } from "@metaplex-foundation/js";
 import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
-import { Keypair, PublicKey, SYSVAR_RENT_PUBKEY, SystemProgram } from "@solana/web3.js";
-import { useContext, submit } from "../context";
+import { Keypair, PublicKey, SYSVAR_RENT_PUBKEY, SystemProgram, TransactionInstruction } from "@solana/web3.js";
+import { useContext } from "../context";
 import { parseKey, parseKeypair } from "../utils";
 
 export function createMetadata(program: Command) {
@@ -28,20 +28,23 @@ export function createMetadata(program: Command) {
         metadataSymbol: string;
         metadataUri: string;
       }) => {
-        const { provider, vaultContext } = useContext();
+        const { stableSwap, simulate } = useContext();
+
+        const metadataK = stableSwap.metaplex.nfts().pdas().metadata({ mint: mintK });
+        const authorityK = authorityKP?.publicKey || stableSwap.walletAddress;
 
         console.log("Mint:", mintK.toBase58());
         console.log("Name:", metadataName);
         console.log("Symbol:", metadataSymbol);
         console.log("Metadata URI:", metadataUri);
+        console.log("Metadata:", metadataK.toBase58());
 
-        const metadataK = Metaplex.make(provider.connection).nfts().pdas().metadata({ mint: mintK });
-        const authorityK = authorityKP?.publicKey || provider.publicKey;
+        if (simulate) return;
 
-        const ixs = [
+        const instructions: TransactionInstruction[] = [
           createCreateMetadataAccountV3Instruction(
             {
-              payer: provider.publicKey,
+              payer: stableSwap.walletAddress,
               metadata: metadataK,
               mint: mintK,
               mintAuthority: authorityK,
@@ -67,7 +70,9 @@ export function createMetadata(program: Command) {
           ),
         ];
 
-        const pending = await vaultContext.createTransaction(ixs);
+        const signature = await stableSwap.sendSmartTransaction(instructions);
+
+        console.log(signature);
       },
     );
 }

@@ -26,14 +26,15 @@ export function initialize(program: Command) {
       }) => {
         const { vaultContext } = useContext();
 
-        const signature = await vaultContext.initialize({
+        const { address, signature } = await vaultContext.initialize({
           keypair: vaultKP,
           beneficiaryAddress: beneficiaryK,
           beneficiaryFee,
           kind,
         });
 
-        console.log("Signature:", signature);
+        console.log("Vault:", address.toBase58());
+        console.log(signature);
       },
     );
 }

@@ -31,17 +31,17 @@ export function distribute(program: Command) {
       const { decimals } = await getMint(provider.connection, iouMintK);
 
       let index = 1;
-      let ixs: TransactionInstruction[] = [];
+      let instructions: TransactionInstruction[] = [];
       for (const item of items) {
         // console.log("Address:", item.address);
         const tokenAddress = getAssociatedTokenAddressSync(iouMintK, new PublicKey(item.address), true);
         try {
           await getAccount(provider.connection, tokenAddress);
           // thaw associated token account
-          ixs.push(createThawAccountInstruction(tokenAddress, iouMintK, provider.publicKey));
+          instructions.push(createThawAccountInstruction(tokenAddress, iouMintK, provider.publicKey));
         } catch {
           // create associated token account
-          ixs.push(
+          instructions.push(
             createAssociatedTokenAccountInstruction(
               provider.publicKey,
               tokenAddress,
@@ -50,7 +50,7 @@ export function distribute(program: Command) {
             ),
           );
         }
-        ixs.push(
+        instructions.push(
           createMintToCheckedInstruction(
             iouMintK,
             tokenAddress,
@@ -62,10 +62,9 @@ export function distribute(program: Command) {
         );
         if (index % BATCH_SIZE === 0 || index === items.length) {
           console.log("Batch #:", Math.ceil(index / BATCH_SIZE));
-          const { transaction, slot } = await vaultContext.createTransaction(ixs);
-          const signature = await provider.sendAndConfirm(transaction, [], { minContextSlot: slot });
+          const signature = await vaultContext.sendSmartTransaction(instructions);
           console.log("Signature:", signature);
-          ixs = [];
+          instructions = [];
         }
         index++;
       }

@@ -7,6 +7,7 @@ import {
   SafeAmount,
   TransactionArgs,
   WalletContext,
+  AddressWithTransactionSignature,
 } from "@stabbleorg/anchor-contrib";
 import { Vault, VaultData, WeightedPool, StablePool } from "../accounts";
 import { type Vault as IDLType } from "../generated/vault";
@@ -24,12 +25,12 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     this.program = new Program(IDL as any, provider);
   }
 
-  async findOne(vaultAddress: PublicKey): Promise<Vault> {
+  async loadVault(vaultAddress: PublicKey): Promise<Vault> {
     const account = await this.program.account.vault.fetch(vaultAddress);
     return new Vault(vaultAddress, account);
   }
 
-  async findAll(): Promise<Vault[]> {
+  async loadVaults(): Promise<Vault[]> {
     const accounts = await this.program.account.vault.all();
     return accounts.map((data) => new Vault(data.publicKey, data.account));
   }
@@ -46,7 +47,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     beneficiaryAddress: PublicKey;
     beneficiaryFee: FloatLike;
     kind: PoolKind;
-  }>): Promise<TransactionSignature> {
+  }>): Promise<AddressWithTransactionSignature> {
     let withdrawAuthorityAddress: PublicKey;
     let withdrawAuthorityBump: number;
 
@@ -64,7 +65,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         break;
     }
 
-    const instructions = [
+    const instructions: TransactionInstruction[] = [
       SystemProgram.createAccount({
         fromPubkey: this.walletAddress,
         newAccountPubkey: keypair.publicKey,
@@ -87,9 +88,9 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         .instruction(),
     ];
 
-    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
+    const signature = await this.sendSmartTransaction(instructions, [keypair], altAccounts, priorityLevel);
 
-    return this.sendAndConfirmTransaction(transaction, recentBlock, slot, [keypair]);
+    return { address: keypair.publicKey, signature };
   }
 
   async createMissingTokenAccounts({
@@ -114,9 +115,8 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress, vault.beneficiaryAddress, true);
       if (createBeneficiaryTokenInstruction) instructions.push(createBeneficiaryTokenInstruction);
     }
-    const { transaction, recentBlock, slot } = await this.createTransaction(instructions, altAccounts, priorityLevel);
 
-    return this.sendAndConfirmTransaction(transaction, recentBlock, slot);
+    return this.sendSmartTransaction(instructions, [], altAccounts, priorityLevel);
   }
 }
 

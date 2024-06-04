@@ -12,7 +12,7 @@ export function check(program: Command) {
       const { vaultContext, weightedSwap, stableSwap } = useContext();
 
       const headers = ["mint_address", "vault_balance", "vault_raw_balance", "total_raw_amount", "epsilion_raw_amount"];
-      const vaults = await vaultContext.findAll();
+      const vaults = await vaultContext.loadVaults();
 
       {
         const vault = vaults.find((vault) =>
@@ -21,7 +21,7 @@ export function check(program: Command) {
 
         if (vault) {
           const lines = [headers.join(",")];
-          const pools = await weightedSwap.findByVault(vault);
+          const pools = await weightedSwap.loadPools(vault);
 
           const balances = pools.reduce(
             (result, pool) => {
@@ -64,7 +64,7 @@ export function check(program: Command) {
 
         if (vault) {
           const lines = [headers.join(",")];
-          const pools = await stableSwap.findByVault(vault);
+          const pools = await stableSwap.loadPools(vault);
 
           const balances = pools.reduce(
             (result, pool) => {
