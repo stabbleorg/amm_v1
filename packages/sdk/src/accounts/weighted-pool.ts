@@ -1,7 +1,7 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
-import { Pool, PoolData, PoolToken, PoolTokenData } from "./basePool";
+import { Pool, PoolData, PoolToken, PoolTokenData } from "./base-pool";
 import { Vault } from "./vault";
 import { WEIGHTED_SWAP_ID } from "../programs";
 import { BasicMath, WeightedMath } from "../utils";

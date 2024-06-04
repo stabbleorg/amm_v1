@@ -1,4 +1,4 @@
 export * from "./vault";
-export * from "./basePool";
-export * from "./stablePool";
-export * from "./weightedPool";
+export * from "./base-pool";
+export * from "./stable-pool";
+export * from "./weighted-pool";

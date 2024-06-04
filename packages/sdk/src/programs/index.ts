@@ -1,3 +1,3 @@
 export * from "./vault";
-export * from "./stableSwap";
-export * from "./weightedSwap";
+export * from "./stable-swap";
+export * from "./weighted-swap";

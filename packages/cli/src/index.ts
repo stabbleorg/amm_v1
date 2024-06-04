@@ -13,7 +13,7 @@ program
   .version("1.0.0")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
-  .option("-a, --alt-keys <string...>", "Address Lookup Table key")
+  .option("-a, --alt-keys <string...>", "Address Lookup Table keys")
   .option("-s, --simulate", "simulate transaction")
   .hook("preAction", async (cmd: Command) => {
     const { keypair, url, altKeys, simulate } = cmd.opts();
