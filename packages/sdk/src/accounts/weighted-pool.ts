@@ -1,4 +1,5 @@
 import BN from "bn.js";
+import Decimal from "decimal.js";
 import { PublicKey } from "@solana/web3.js";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./base-pool";
@@ -161,7 +162,9 @@ export class WeightedPool implements Pool<WeightedPoolData> {
       return [amountOut];
     }
 
-    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply);
+    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply).map((amountOut, index) =>
+      new Decimal(amountOut).toDP(this.data.tokens[index].decimals, Decimal.ROUND_DOWN).toNumber(),
+    );
   }
 
   static getAuthorityAddress(poolAddress: PublicKey): PublicKey {

@@ -15,6 +15,9 @@ export function initialize(program: Command) {
     .requiredOption("--swap-fee <number>", "swap fee")
     .option("--pool-k-p <path>", "pool keypair", parseKeypair)
     .option("--pool-mint-k-p <path>", "pool mint keypair", parseKeypair)
+    .option("--name <string>", "pool mint name")
+    .option("--symbol <string>", "pool mint symbol")
+    .option("--uri <string>", "pool mint metadata uri")
     .action(
       async ({
         vaultK,
@@ -24,6 +27,9 @@ export function initialize(program: Command) {
         swapFee,
         poolKP,
         poolMintKP,
+        name,
+        symbol,
+        uri,
       }: {
         vaultK: PublicKey;
         mints: string[];
@@ -32,6 +38,9 @@ export function initialize(program: Command) {
         swapFee: string;
         poolKP?: Keypair;
         poolMintKP?: Keypair;
+        name?: string;
+        symbol?: string;
+        uri?: string;
       }) => {
         const { provider } = useContext();
 
@@ -49,6 +58,9 @@ export function initialize(program: Command) {
           swapFee,
           poolMintKP,
           keypair: poolKP,
+          name,
+          symbol,
+          uri,
         });
 
         await vaultContext.createMissingTokenAccounts({ vault, mintAddresses });
