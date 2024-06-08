@@ -32,3 +32,28 @@ export function changeAmpFactor(program: Command) {
       },
     );
 }
+
+export function changeSwapFee(program: Command) {
+  program
+    .command("stable-swap-fee")
+    .description("change swap fee")
+    .requiredOption("--pool-k <string>", "pool key", parseKey)
+    .requiredOption("--swap-fee <string>", "new swap fee")
+    .action(async ({ poolK, swapFee }: { poolK: PublicKey; swapFee: string }) => {
+      const { provider, simulate } = useContext();
+
+      const stableSwap = new StableSwapContext(provider);
+      const pool = await stableSwap.loadPool(poolK);
+
+      console.log("Current swap fee:", pool.swapFee);
+
+      if (simulate) return;
+
+      const signature = await stableSwap.changeSwapFee({
+        pool,
+        swapFee,
+      });
+
+      console.log(signature);
+    });
+}

@@ -443,7 +443,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     swapFee,
     priorityLevel,
     altAccounts,
-  }: TransactionArgs<{ pool: WeightedPool; swapFee: number }>): Promise<TransactionSignature> {
+  }: TransactionArgs<{ pool: WeightedPool; swapFee: FloatLike }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
       .changeSwapFee(SafeAmount.toGiga(swapFee))
       .accountsStrict({

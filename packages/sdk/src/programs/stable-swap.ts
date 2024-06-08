@@ -461,7 +461,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     swapFee,
     priorityLevel,
     altAccounts,
-  }: TransactionArgs<{ pool: StablePool; swapFee: number }>): Promise<TransactionSignature> {
+  }: TransactionArgs<{ pool: StablePool; swapFee: FloatLike }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
       .changeSwapFee(SafeAmount.toGiga(swapFee))
       .accountsStrict({
