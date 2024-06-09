@@ -968,10 +968,10 @@
     rpc-websockets "^8.0.1"
     superstruct "^1.0.4"
 
-"@stabbleorg/anchor-contrib@^1.2.3":
-  version "1.2.3"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-1.2.3.tgz#90146a266b67a15462ad19bddd4bbce41e03676c"
-  integrity sha512-WOQKmD631iI57aJkr/7MVYKnH9IeoH9VCwcreBQHdjDqkKiOc3SGXul5U2LR37H67zgDMwzWzavjQZPaMWUj5w==
+"@stabbleorg/anchor-contrib@^1.2.4":
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-1.2.4.tgz#52255a1bd6f63958a73d24028cfa2a76100ec971"
+  integrity sha512-ppQjY9VN4jydRuItd1N8l4YzlI9VvnrBjGWa5+zuYWEaiQc0yfr8WzuH39NqXDV692j5HJFhkISmeRpUZ9hobA==
   dependencies:
     "@coral-xyz/anchor" "^0.30.0"
     "@solana/spl-token" "^0.4.0"

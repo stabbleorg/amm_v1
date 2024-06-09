@@ -10,7 +10,7 @@
     "@metaplex-foundation/mpl-token-metadata": "^2.11.0",
     "@solana/spl-token": "^0.4.0",
     "@solana/web3.js": "^1.92.0",
-    "@stabbleorg/anchor-contrib": "^1.2.3",
+    "@stabbleorg/anchor-contrib": "^1.2.4",
     "bn.js": "^5.2.1",
     "decimal.js": "^10.4.3"
   },
