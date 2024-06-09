@@ -1,6 +1,6 @@
 {
   "name": "@stabbleorg/amm-cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "src",
   "types": "src/index.d.ts",
   "license": "MIT",
@@ -13,8 +13,8 @@
     "@metaplex-foundation/mpl-token-metadata": "^2.11.0",
     "@solana/spl-token": "^0.4.0",
     "@solana/web3.js": "^1.92.0",
-    "@stabbleorg/amm-sdk": "^1.0.0",
-    "@stabbleorg/anchor-contrib": "^1.2.2",
+    "@stabbleorg/amm-sdk": "^1.0.2",
+    "@stabbleorg/anchor-contrib": "^1.2.3",
     "commander": "^11.0.0"
   }
 }
