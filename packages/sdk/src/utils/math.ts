@@ -64,25 +64,23 @@ export class StableMath {
   static BALANCE_THRESHOLD = 1e-9;
 
   static calcInvariant(balances: number[], amplification: number): number {
-    const numTokens = balances.length;
-    const sum = balances.reduce((a, b) => a + b, 0);
+    const N = balances.length;
+    const S = balances.reduce((res, balance) => res + balance, 0);
 
-    if (sum === 0) return 0;
+    if (S === 0) return 0;
 
     let prevInvariant = 0;
-    let invariant = sum;
-    const ampTimesTotal = amplification * numTokens;
+    let invariant = S;
+    const ampTimesTotal = amplification * N;
 
     for (let i = 0; i < 255; i++) {
       let P_D = invariant;
-      for (let j = 0; j < numTokens; j++) {
-        P_D = (P_D * invariant) / (balances[j] * numTokens);
+      for (let j = 0; j < N; j++) {
+        P_D = (P_D * invariant) / (balances[j] * N);
       }
 
       prevInvariant = invariant;
-      invariant =
-        ((ampTimesTotal * sum + P_D * numTokens) * invariant) /
-        ((ampTimesTotal - 1) * invariant + (numTokens + 1) * P_D);
+      invariant = ((ampTimesTotal * S + P_D * N) * invariant) / ((ampTimesTotal - 1) * invariant + (N + 1) * P_D);
 
       if (invariant > prevInvariant) {
         if (invariant - prevInvariant <= StableMath.INV_THRESHOLD) break;
@@ -111,11 +109,11 @@ export class StableMath {
     const y = balances[tokenIndexOut];
     const a = amplification * N ** N;
     const b = (S - D) * a + D;
-    const twoaxy = 2 * a * x * y;
-    const partial_x = twoaxy + a * y * y + b * y;
-    const partial_y = twoaxy + a * x * x + b * x;
+    const c = 2 * a * x * y;
+    const pX = c + a * y * y + b * y;
+    const pY = c + a * x * x + b * x;
 
-    return (partial_x / partial_y) * (1 - swapFee);
+    return (pX / pY) * (1 - swapFee);
   }
 
   static calcOutGivenIn(
@@ -163,9 +161,7 @@ export class StableMath {
     );
     const amountOutWithoutFee = balances[tokenIndex] - newBalance;
 
-    const sum = balances.reduce((acc, balance) => acc + balance, 0);
-
-    const currentWeight = balances[tokenIndex] / sum;
+    const currentWeight = balances[tokenIndex] / balances.reduce((res, balance) => res + balance, 0);
     const taxablePercentage = 1 - currentWeight;
 
     const taxableAmount = amountOutWithoutFee * taxablePercentage;
@@ -182,19 +178,19 @@ export class StableMath {
     invariant: number,
     tokenIndex: number,
   ): number {
-    const numTokens = balances.length;
-    const ampTimesTotal = amplification * numTokens;
-    let sum = balances[0];
-    let P_D = balances[0] * numTokens;
+    const N = balances.length;
+    const ampTimesTotal = amplification * N;
+    let S = balances[0];
+    let P_D = balances[0] * N;
 
-    for (let i = 1; i < numTokens; i++) {
-      P_D = (P_D * balances[i] * numTokens) / invariant;
-      sum = sum + balances[i];
+    for (let i = 1; i < N; i++) {
+      P_D = (P_D * balances[i] * N) / invariant;
+      S = S + balances[i];
     }
-    sum = sum - balances[tokenIndex];
+    S = S - balances[tokenIndex];
 
     const invariant2 = invariant * invariant;
-    const b = invariant / ampTimesTotal + sum;
+    const b = invariant / ampTimesTotal + S;
     const c = (invariant2 / (ampTimesTotal * P_D)) * balances[tokenIndex];
 
     let prevBalance = 0;
