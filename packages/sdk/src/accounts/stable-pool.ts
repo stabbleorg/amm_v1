@@ -113,6 +113,34 @@ export class StablePool implements Pool<StablePoolData> {
     }
   }
 
+  getSpotPrice(tokenInAddress: PublicKey, tokenOutAddress: PublicKey): number {
+    const tokenInIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenInAddress));
+    if (tokenInIndex === -1) return 0;
+    const tokenOutIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenOutAddress));
+    if (tokenOutIndex === -1) return 0;
+
+    const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
+
+    const balanceRatio = StableMath.calcSpotPrice(balances, this.amplification, tokenInIndex, tokenOutIndex);
+
+    const tokenIn = this.data.tokens[tokenInIndex];
+    const tokenOut = this.data.tokens[tokenOutIndex];
+
+    const scaingFactorIn = tokenIn.scalingFactor.toNumber();
+    const scaingFactorOut = tokenOut.scalingFactor.toNumber();
+
+    const scalingRatio =
+      (tokenOut.scalingUp ? 1 / scaingFactorOut : scaingFactorOut) /
+      (tokenIn.scalingUp ? 1 / scaingFactorIn : scaingFactorIn);
+
+    const price = balanceRatio * scalingRatio;
+
+    if (tokenIn.decimals === tokenOut.decimals) return price;
+
+    const decimalRatio = 10 ** (tokenIn.decimals - tokenOut.decimals);
+    return price * decimalRatio;
+  }
+
   getSwapAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number {
     const tokenInIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenInAddress));
     if (tokenInIndex === -1) return 0;
@@ -136,6 +164,8 @@ export class StablePool implements Pool<StablePoolData> {
       this.swapFee,
     );
 
+    if (balanceOut < 0) return 0;
+
     const tokenOut = this.data.tokens[tokenOutIndex];
     const u64BalanceOut = SafeAmount.toGiga(balanceOut);
     const amountOut = SafeAmount.toUiAmount(
@@ -143,7 +173,34 @@ export class StablePool implements Pool<StablePoolData> {
       tokenOut.decimals,
     );
 
-    return Math.max(amountOut, 0);
+    return amountOut;
+  }
+
+  getPostAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number, amountOut: number): number {
+    const tokenInIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenInAddress));
+    const tokenOutIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenOutAddress));
+
+    const tokenIn = this.data.tokens[tokenInIndex];
+    const u64AmountIn = SafeAmount.toU64Amount(amountIn, tokenIn.decimals);
+    const balanceIn = tokenIn.scalingUp
+      ? u64AmountIn.mul(tokenIn.scalingFactor)
+      : u64AmountIn.div(tokenIn.scalingFactor);
+
+    const tokenOut = this.data.tokens[tokenOutIndex];
+    const u64AmountOut = SafeAmount.toU64Amount(amountOut, tokenOut.decimals);
+    const balanceOut = tokenOut.scalingUp
+      ? u64AmountOut.mul(tokenOut.scalingFactor)
+      : u64AmountOut.div(tokenOut.scalingFactor);
+
+    tokenIn.balance = tokenIn.balance.add(balanceIn);
+    tokenOut.balance = tokenOut.balance.sub(balanceOut);
+
+    const postAmountOut = this.getSwapAmountOut(tokenInAddress, tokenOutAddress, amountIn);
+
+    tokenIn.balance = tokenIn.balance.sub(balanceIn);
+    tokenOut.balance = tokenOut.balance.add(balanceOut);
+
+    return postAmountOut;
   }
 
   getWithdrawalAmountsOut(amountIn: number, totalSupply: number, tokenAddress?: PublicKey): number[] {

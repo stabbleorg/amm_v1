@@ -43,15 +43,21 @@ export function swap(program: Command) {
 
         const amountIn = Number(amount);
 
-        const { routes, amountOut } = Swap.searchRoutes({
+        const { routes, amountOut, spotPrice } = Swap.searchRoutes({
           mintInAddress: mintInK,
           mintOutAddress: mintOutK,
           amountIn,
           pools,
         });
 
-        console.log("Exchange rate:", amountOut / amountIn);
+        const exchangeRate = amountOut / amountIn;
+        const minimumAmountOut = amountOut * (1 - slippage);
+
         console.log("Estimation:", amountOut);
+        console.log("Spot price:", spotPrice);
+        console.log("Price impact:", Math.abs(1 - exchangeRate / spotPrice));
+        console.log("Minimum received:", minimumAmountOut);
+        console.log("Exchange rate:", exchangeRate);
 
         if (simulate) {
           console.log("Routes:");
@@ -65,8 +71,6 @@ export function swap(program: Command) {
           );
           return;
         }
-
-        const minimumAmountOut = amountOut * (1 - slippage);
 
         const signature = await Swap.batch({
           weightedSwap,

@@ -454,7 +454,7 @@ export class Swap {
     mintOutAddress: PublicKey;
     amountIn: number;
     directRoutesOnly?: boolean;
-  }): { routes: BatchSwapRoute[]; amountOut: number } {
+  }): { routes: BatchSwapRoute[]; amountOut: number; spotPrice: number } {
     let routes: BatchSwapRoute[] = [];
     let amountOut = 0;
 
@@ -472,13 +472,7 @@ export class Swap {
       );
     if (pools_R0.length > 0) {
       const pool = pools_R0[0];
-      routes = [
-        {
-          pool,
-          mintInAddress,
-          mintOutAddress,
-        },
-      ];
+      routes = [{ pool, mintInAddress, mintOutAddress }];
       amountOut = pool.getSwapAmountOut(mintInAddress, mintOutAddress, amountIn);
     }
 
@@ -536,6 +530,11 @@ export class Swap {
       }
     }
 
-    return { routes, amountOut };
+    const spotPrice = routes.reduce(
+      (res, route) => res * route.pool.getSpotPrice(route.mintInAddress, route.mintOutAddress),
+      1,
+    );
+
+    return { routes, amountOut, spotPrice };
   }
 }

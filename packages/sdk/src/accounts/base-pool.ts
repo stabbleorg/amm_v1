@@ -50,21 +50,33 @@ export interface Pool<T> {
 
   refreshData(updatedData: Partial<T>): void;
 
+  getSpotPrice(tokenInAddress: PublicKey, tokenOutAddress: PublicKey): number;
+
   /**
    * Get estimated swap amount out given amount in
-   *
-   * @param tokenInAddress token mint address being sold
-   * @param tokenOutAddress token mint address being bought
-   * @param amountIn token amount being sold
+   * @param {PublicKey} tokenInAddress Token mint address being sold
+   * @param {PublicKey} tokenOutAddress Token mint address being bought
+   * @param {number} amountIn Token amount being sold
+   * @returns {number} Estimated token amount out
    */
   getSwapAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number): number;
 
   /**
+   * Get estimated post amount out given amount in and estimated swap amount out
+   * @param {PublicKey} tokenInAddress Token mint address being sold
+   * @param {PublicKey} tokenOutAddress Token mint address being bought
+   * @param {number} amountIn Token amount being sold
+   * @param {number} amountOut Estimated token amount bought
+   * @returns {number} Estimated token amount out
+   */
+  getPostAmountOut(tokenInAddress: PublicKey, tokenOutAddress: PublicKey, amountIn: number, amountOut: number): number;
+
+  /**
    * Get estimated withdrawal amounts given LP amount
-   *
-   * @param amountIn LP token amount being burnt
-   * @param totalSupply LP token supply
-   * @param tokenAddress Optional token mint address for single sided withdraw
+   * @param {number} amountIn LP token amount being burnt
+   * @param {number} totalSupply LP token supply
+   * @param {PublicKey} tokenAddress Optional token mint address for single sided withdraw
+   * @returns {number[]} Estimated token amounts out
    */
   getWithdrawalAmountsOut(amountIn: number, totalSupply: number, tokenAddress?: PublicKey): number[];
 }

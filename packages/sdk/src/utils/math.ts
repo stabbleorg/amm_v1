@@ -4,6 +4,20 @@ export class WeightedMath {
   static MAX_IN_RATIO = 0.3;
   static MAX_OUT_RATIO = 0.3;
 
+  static calcBalanceRatio(weightA: number, priceA: number, weightB: number, priceB: number): number {
+    return (priceB * weightA) / (priceA * weightB);
+  }
+
+  static calcSpotPrice(
+    balanceIn: number,
+    weightIn: number,
+    balanceOut: number,
+    weightOut: number,
+    swapFee: number = 0,
+  ): number {
+    return ((balanceOut * weightIn) / (balanceIn * weightOut)) * (1 - swapFee);
+  }
+
   static calcOutGivenIn(
     balanceIn: number,
     weightIn: number,
@@ -17,40 +31,6 @@ export class WeightedMath {
     if (amountIn > balanceIn * WeightedMath.MAX_IN_RATIO) return 0;
 
     return balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut)) * (1 - swapFee);
-  }
-
-  static calcPriceImpact(
-    balanceIn: number,
-    weightIn: number,
-    balanceOut: number,
-    weightOut: number,
-    amountIn: number,
-    amountOut: number, // estimated amount out
-    swapFee: number = 0,
-  ): number {
-    const postAmountOut = this.calcOutGivenIn(
-      balanceIn + amountIn,
-      weightIn,
-      balanceOut - amountOut,
-      weightOut,
-      amountIn,
-      swapFee,
-    );
-    return postAmountOut / amountOut - 1;
-  }
-
-  static calcSpotPrice(
-    balanceIn: number,
-    weightIn: number,
-    balanceOut: number,
-    weightOut: number,
-    swapFee: number = 0,
-  ): number {
-    return ((balanceOut * weightIn) / (balanceIn * weightOut)) * (1 - swapFee);
-  }
-
-  static calcBalanceRatio(weightA: number, priceA: number, weightB: number, priceB: number): number {
-    return (priceB * weightA) / (priceA * weightB);
   }
 
   static calcTokenOutGivenExactPoolTokenIn(
@@ -112,6 +92,32 @@ export class StableMath {
     return invariant;
   }
 
+  static calcSpotPrice(
+    balances: number[],
+    amplification: number,
+    tokenIndexIn: number,
+    tokenIndexOut: number,
+    swapFee: number = 0,
+  ): number {
+    const N = balances.length;
+    const D = this.calcInvariant(balances, amplification);
+    let S = 0;
+    for (let i = 0; i < N; i++) {
+      if (i != tokenIndexIn && i != tokenIndexOut) {
+        S += balances[i];
+      }
+    }
+    const x = balances[tokenIndexIn];
+    const y = balances[tokenIndexOut];
+    const a = amplification * N ** N;
+    const b = (S - D) * a + D;
+    const twoaxy = 2 * a * x * y;
+    const partial_x = twoaxy + a * y * y + b * y;
+    const partial_y = twoaxy + a * x * x + b * x;
+
+    return (partial_x / partial_y) * (1 - swapFee);
+  }
+
   static calcOutGivenIn(
     balances: number[],
     amplification: number,
@@ -136,6 +142,38 @@ export class StableMath {
     balances[tokenIndexIn] = balances[tokenIndexIn] - amountIn;
 
     return (balances[tokenIndexOut] - finalBalanceOut) * (1 - swapFee);
+  }
+
+  static calcTokenOutGivenExactPoolTokenIn(
+    balances: number[],
+    amplification: number,
+    tokenIndex: number,
+    amountIn: number,
+    poolTokenSupply: number,
+    currentInvariant: number,
+    swapFee: number = 0,
+  ): number {
+    const newInvariant = ((poolTokenSupply - amountIn) * currentInvariant) / poolTokenSupply;
+
+    const newBalance = this._getTokenBalanceGivenInvariantAndAllOtherBalances(
+      balances,
+      amplification,
+      newInvariant,
+      tokenIndex,
+    );
+    const amountOutWithoutFee = balances[tokenIndex] - newBalance;
+
+    const sum = balances.reduce((acc, balance) => acc + balance, 0);
+
+    const currentWeight = balances[tokenIndex] / sum;
+    const taxablePercentage = 1 - currentWeight;
+
+    const taxableAmount = amountOutWithoutFee * taxablePercentage;
+    const nonTaxableAmount = amountOutWithoutFee - taxableAmount;
+
+    const amountOut = taxableAmount * (1 - swapFee) + nonTaxableAmount;
+
+    return amountOut;
   }
 
   static _getTokenBalanceGivenInvariantAndAllOtherBalances(
@@ -171,53 +209,6 @@ export class StableMath {
     }
 
     return balances[tokenIndex];
-  }
-
-  static calcPriceImpact(
-    balances: number[],
-    amplification: number,
-    tokenIndexIn: number,
-    tokenIndexOut: number,
-    amountIn: number,
-    amountOut: number, // estimated amount out
-    swapFee: number = 0,
-  ): number {
-    balances[tokenIndexIn] += amountIn;
-    balances[tokenIndexOut] -= amountOut;
-    const postAmountOut = this.calcOutGivenIn(balances, amplification, tokenIndexIn, tokenIndexOut, amountIn, swapFee);
-    return postAmountOut / amountOut - 1;
-  }
-
-  static calcTokenOutGivenExactPoolTokenIn(
-    balances: number[],
-    amplification: number,
-    tokenIndex: number,
-    amountIn: number,
-    poolTokenSupply: number,
-    currentInvariant: number,
-    swapFee: number = 0,
-  ): number {
-    const newInvariant = ((poolTokenSupply - amountIn) * currentInvariant) / poolTokenSupply;
-
-    const newBalance = this._getTokenBalanceGivenInvariantAndAllOtherBalances(
-      balances,
-      amplification,
-      newInvariant,
-      tokenIndex,
-    );
-    const amountOutWithoutFee = balances[tokenIndex] - newBalance;
-
-    const sum = balances.reduce((acc, balance) => acc + balance, 0);
-
-    const currentWeight = balances[tokenIndex] / sum;
-    const taxablePercentage = 1 - currentWeight;
-
-    const taxableAmount = amountOutWithoutFee * taxablePercentage;
-    const nonTaxableAmount = amountOutWithoutFee - taxableAmount;
-
-    const amountOut = taxableAmount * (1 - swapFee) + nonTaxableAmount;
-
-    return amountOut;
   }
 }
 
