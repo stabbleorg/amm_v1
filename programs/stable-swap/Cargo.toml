@@ -19,7 +19,8 @@ idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 [dependencies]
 anchor-lang = "0.30.0"
 anchor-spl = "0.30.0"
-anchor-common = { path = "../../libraries/anchor-common" }
+anchor-common = { git = "https://github.com/stabbleorg/anchor-common.git" }
+bn = { git = "https://github.com/stabbleorg/amm-sdk.git" }
+math = { git = "https://github.com/stabbleorg/amm-sdk.git" }
+
 vault = { path = "../vault", features = ["cpi"] }
-bn = { path = "../../libraries/bn" }
-math = { path = "../../libraries/math" }

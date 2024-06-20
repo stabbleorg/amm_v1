@@ -41,12 +41,12 @@ pub struct Pool {
 impl Pool {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
-    pub fn get_balances(&self) -> Vec<u64> {
-        self.tokens.iter().map(|token| token.balance).collect()
-    }
-
     pub fn get_normalized_weights(&self) -> Vec<u64> {
         self.tokens.iter().map(|token| token.weight).collect()
+    }
+
+    pub fn get_balances(&self) -> Vec<u64> {
+        self.tokens.iter().map(|token| token.balance).collect()
     }
 
     pub fn get_token_index(&self, mint: Pubkey) -> usize {
