@@ -17,6 +17,12 @@ pub mod weighted_swap {
         process_initialize(ctx, swap_fee, weights, &max_caps)
     }
 
+    /// shutdown the zero-liquidity pool
+    #[access_control(ctx.accounts.validate())]
+    pub fn shutdown(ctx: Context<Shutdown>) -> Result<()> {
+        Ok(())
+    }
+
     /// add liquidity
     #[access_control(ctx.accounts.validate())]
     pub fn deposit<'a, 'b, 'c, 'info>(
@@ -69,10 +75,5 @@ pub mod weighted_swap {
     #[access_control(ctx.accounts.validate())]
     pub fn reject_owner(ctx: Context<PendingOwnerOnly>) -> Result<()> {
         process_reject_owner(ctx)
-    }
-
-    /// shutdown the zero-liquidity pool
-    pub fn shutdown<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, '_, 'info, OwnerOnly<'info>>) -> Result<()> {
-        process_shutdown(ctx)
     }
 }

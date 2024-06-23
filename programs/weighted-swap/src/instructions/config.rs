@@ -59,14 +59,6 @@ pub fn process_reject_owner(ctx: Context<PendingOwnerOnly>) -> Result<()> {
     Ok(())
 }
 
-pub fn process_shutdown<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, '_, 'info, OwnerOnly<'info>>) -> Result<()> {
-    for token in ctx.accounts.pool.tokens.iter() {
-        assert_eq!(token.balance, 0);
-    }
-
-    ctx.accounts.pool.close(ctx.remaining_accounts[0].to_account_info())
-}
-
 #[derive(Accounts)]
 pub struct OwnerOnly<'info> {
     pub owner: Signer<'info>,

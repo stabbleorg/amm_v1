@@ -466,13 +466,6 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         owner: this.walletAddress,
         pool: pool.address,
       })
-      .remainingAccounts([
-        {
-          pubkey: this.walletAddress,
-          isSigner: false,
-          isWritable: true,
-        },
-      ])
       .instruction();
 
     return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);

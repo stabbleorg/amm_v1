@@ -1,6 +1,9 @@
 pub mod initialize;
 pub use initialize::*;
 
+pub mod shutdown;
+pub use shutdown::*;
+
 pub mod deposit;
 pub use deposit::*;
 
