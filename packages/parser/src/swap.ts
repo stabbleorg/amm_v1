@@ -17,6 +17,10 @@ export type InitializedPool = {
   mintAddresses: string[];
 };
 
+export type TerminatedPool = {
+  address: string;
+};
+
 export type ChangedTokenAmount = {
   mintAddress: string;
   amount: bigint;
@@ -35,6 +39,7 @@ export type ParsedResultWithMeta<T> = InstructionMeta & T;
 export type ParsedResult =
   | InstructionMeta
   | ParsedResultWithMeta<InitializedPool>
+  | ParsedResultWithMeta<TerminatedPool>
   | ParsedResultWithMeta<ChangedBalance>;
 
 export class SwapParser {
@@ -83,6 +88,12 @@ export class SwapParser {
             result.push({
               meta: instructionMeta,
               ...this.parseInitializeInstruction({ accountKeys, keyIndexes }),
+            });
+            break;
+          case "shutdown":
+            result.push({
+              meta: instructionMeta,
+              address: accountKeys.get(keyIndexes[1])!.toBase58(),
             });
             break;
           case "deposit":
