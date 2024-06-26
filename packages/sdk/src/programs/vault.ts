@@ -101,7 +101,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
   }: TransactionArgs<{
     vault: Vault;
     mintAddresses: PublicKey[];
-  }>): Promise<TransactionSignature> {
+  }>): Promise<TransactionSignature | null> {
     const instructions: TransactionInstruction[] = [];
     for (const mintAddress of mintAddresses) {
       const { instruction: createVaultTokenInstruction } = await this.getOrCreateAssociatedTokenAddressInstruction(
@@ -116,7 +116,26 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
       if (createBeneficiaryTokenInstruction) instructions.push(createBeneficiaryTokenInstruction);
     }
 
+    if (!instructions.length) return null;
+
     return this.sendSmartTransaction(instructions, [], altAccounts, priorityLevel);
+  }
+
+  async transferAdmin({
+    vault,
+    adminAddress,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ vault: Vault; adminAddress: PublicKey }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .transferAdmin(adminAddress)
+      .accountsStrict({
+        admin: this.walletAddress,
+        vault: vault.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
   }
 }
 
