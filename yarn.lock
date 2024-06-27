@@ -954,9 +954,9 @@
     buffer "^6.0.3"
 
 "@solana/web3.js@^1.21.0", "@solana/web3.js@^1.32.0", "@solana/web3.js@^1.36.0", "@solana/web3.js@^1.50.1", "@solana/web3.js@^1.56.2", "@solana/web3.js@^1.63.1", "@solana/web3.js@^1.66.2", "@solana/web3.js@^1.68.0", "@solana/web3.js@^1.93.2":
-  version "1.93.2"
-  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.93.2.tgz#d928be11dfcd0fc035ea26c1d0c67331b13668ad"
-  integrity sha512-U8GlrvjfheJTFNavJHb2v/CnpzoqbGKaShLJGf1cELeFUlweUrfYXc9YFX0tw8Icb4ll48vDxt/zEPQOQ29+kw==
+  version "1.93.3"
+  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.93.3.tgz#932e6cb1ffe223cd29d90253236e09f78e54fb43"
+  integrity sha512-7ASJ3QdZPnWdTMnU//fnsvviKBSAnF57D2AorZPReN7gb820UlT07Na5dAoXymjkuOYZN6Iyw8vrc/jv+2HZnQ==
   dependencies:
     "@babel/runtime" "^7.24.7"
     "@noble/curves" "^1.4.0"
@@ -975,9 +975,9 @@
     superstruct "^1.0.4"
 
 "@stabbleorg/anchor-contrib@^1.3.5":
-  version "1.3.5"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-1.3.5.tgz#89015f13d12a2657b74f491983f7afc64524ea53"
-  integrity sha512-mgokG7zgNtRQHiFwiymFxbK/wMOcGLjmMs05oDk2f14Nrful3QOQIHUZBWdrAZ4e0s+/KfCM84tZ5wtWJ7hPxQ==
+  version "1.3.6"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-1.3.6.tgz#f30b7d3b9dfdcb9abe32e66f73b83a734fef063a"
+  integrity sha512-QOTdokcYZbOcGLkHDHwWIyi2DtYSpDgLANX9FD2q+ALbrhxI7Z1d5W/VUWdI4oJyvMLtIhWqhC2sMq76R2z+7A==
   dependencies:
     "@coral-xyz/anchor" "^0.30.1"
     "@solana/spl-token" "0.4.6"
@@ -2650,7 +2650,7 @@ possible-typed-array-names@^1.0.0:
   resolved "https://registry.yarnpkg.com/possible-typed-array-names/-/possible-typed-array-names-1.0.0.tgz#89bb63c6fada2c3e90adc4a647beeeb39cc7bf8f"
   integrity sha512-d7Uw+eZoloe0EHDIYoe+bQ5WXnGMOpmiZFTuMWCwpjzzkL2nTjcKiAk4hh8TjnGye2TwWOk3UXucZ+3rbmBa8Q==
 
-prettier@^3.2.0:
+prettier@^3.3.2:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.3.2.tgz#03ff86dc7c835f2d2559ee76876a3914cec4a90a"
   integrity sha512-rAVeHYMcv8ATV5d508CFdn+8/pHPpXeIid1DdrPwXnaAdH7cqjVbpJaT5eq4yRAFU/lsbwYwSF/n5iNrdJHPQA==

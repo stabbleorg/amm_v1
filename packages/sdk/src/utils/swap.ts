@@ -71,13 +71,18 @@ export class Swap {
     else if (routes.length === 2) {
       const signers: Signer[] = [];
       const instructions: TransactionInstruction[] = [];
+      const closeInstructions: TransactionInstruction[] = [];
 
       let tokenInAddress: PublicKey | undefined = undefined;
       if (routes[0].mintInAddress.equals(NATIVE_MINT)) {
         const keypair = Keypair.generate();
         signers.push(keypair);
         tokenInAddress = keypair.publicKey;
-        instructions.push(...(await weightedSwap.transferWSOLInstructions(tokenInAddress, amountIn)));
+        instructions.push(
+          ...weightedSwap.createTokenAccountInstructions(tokenInAddress),
+          ...weightedSwap.transferWSOLInstructions(tokenInAddress, amountIn),
+        );
+        closeInstructions.push(weightedSwap.closeTokenAccountInstruction(tokenInAddress));
       }
 
       let tokenOutAddress: PublicKey | undefined = undefined;
@@ -86,6 +91,7 @@ export class Swap {
         signers.push(keypair);
         tokenOutAddress = keypair.publicKey;
         instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[0].mintOutAddress));
+        closeInstructions.push(weightedSwap.closeTokenAccountInstruction(tokenOutAddress));
       }
 
       const args0: SwapInstructionArgs = {
@@ -111,6 +117,7 @@ export class Swap {
         signers.push(keypair);
         tokenOutAddress = keypair.publicKey;
         instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[1].mintOutAddress));
+        closeInstructions.push(weightedSwap.closeTokenAccountInstruction(tokenOutAddress));
       } else {
         tokenOutAddress = undefined;
       }
@@ -132,28 +139,29 @@ export class Swap {
         throw Error("Pool not supported");
       }
 
-      return weightedSwap.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
+      return weightedSwap.sendSmartTransaction(
+        [...instructions, ...closeInstructions],
+        signers,
+        altAccounts,
+        priorityLevel,
+      );
     }
     // 3-hop swap
     else if (routes.length === 3) {
       const signers: Signer[] = [];
       const instructions: TransactionInstruction[] = [];
+      const closeInstructions: TransactionInstruction[] = [];
 
       let tokenInAddress: PublicKey | undefined = undefined;
       if (routes[0].mintInAddress.equals(NATIVE_MINT)) {
         const keypair = Keypair.generate();
-        // signers.push(keypair);
+        signers.push(keypair);
         tokenInAddress = keypair.publicKey;
-        // instructions.push(...(await weightedSwap.transferWSOLInstructions(tokenInAddress, amountIn)));
-        await weightedSwap.sendSmartTransaction(
-          [
-            ...weightedSwap.createTokenAccountInstructions(tokenInAddress),
-            ...weightedSwap.transferWSOLInstructions(tokenInAddress, amountIn),
-          ],
-          [keypair],
-          altAccounts,
-          priorityLevel,
+        instructions.push(
+          ...weightedSwap.createTokenAccountInstructions(tokenInAddress),
+          ...weightedSwap.transferWSOLInstructions(tokenInAddress, amountIn),
         );
+        closeInstructions.push(weightedSwap.closeTokenAccountInstruction(tokenInAddress));
       }
 
       let tokenOutAddress: PublicKey | undefined = undefined;
@@ -162,6 +170,7 @@ export class Swap {
         signers.push(keypair);
         tokenOutAddress = keypair.publicKey;
         instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[0].mintOutAddress));
+        closeInstructions.push(weightedSwap.closeTokenAccountInstruction(tokenOutAddress));
       }
 
       const args0: SwapInstructionArgs = {
@@ -187,6 +196,7 @@ export class Swap {
         signers.push(keypair);
         tokenOutAddress = keypair.publicKey;
         instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[1].mintOutAddress));
+        closeInstructions.push(weightedSwap.closeTokenAccountInstruction(tokenOutAddress));
       }
 
       const args1: SwapInstructionArgs = {
@@ -211,6 +221,7 @@ export class Swap {
         signers.push(keypair);
         tokenOutAddress = keypair.publicKey;
         instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[2].mintOutAddress));
+        closeInstructions.push(weightedSwap.closeTokenAccountInstruction(tokenOutAddress));
       } else {
         tokenOutAddress = undefined;
       }
@@ -231,7 +242,9 @@ export class Swap {
         throw Error("Pool not supported");
       }
 
-      return weightedSwap.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
+      await weightedSwap.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
+
+      return weightedSwap.sendSmartTransaction(closeInstructions, [], altAccounts, priorityLevel);
     }
     // 4-hop swap
     else {
@@ -239,7 +252,7 @@ export class Swap {
     }
   }
 
-  static async multiHopInstructions({
+  static async batchInstructions({
     weightedSwap,
     stableSwap,
     routes,

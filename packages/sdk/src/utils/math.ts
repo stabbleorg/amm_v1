@@ -4,10 +4,6 @@ export class WeightedMath {
   static MAX_IN_RATIO = 0.3;
   static MAX_OUT_RATIO = 0.3;
 
-  static calcBalanceRatio(weightA: number, priceA: number, weightB: number, priceB: number): number {
-    return (priceB * weightA) / (priceA * weightB);
-  }
-
   static calcSpotPrice(
     balanceIn: number,
     weightIn: number,

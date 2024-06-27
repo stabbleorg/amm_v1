@@ -363,6 +363,10 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
       })),
     );
 
+    // close intermediate WSOL token accounts
+    if (tokenInAddress) instructions.push(this.closeTokenAccountInstruction(tokenInAddress));
+    if (tokenOutAddress) instructions.push(this.closeTokenAccountInstruction(tokenOutAddress));
+
     return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
   }
 
@@ -429,11 +433,6 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
         // TODO: assign xSTB token account for swap fee discount
         .instruction(),
     );
-
-    // close intermediate token accounts
-    if (tokenInAddress) instructions.push(this.closeTokenAccountInstruction(tokenInAddress));
-    if (tokenOutAddress && minimumAmountOut !== undefined)
-      instructions.push(this.closeTokenAccountInstruction(tokenOutAddress));
 
     return instructions;
   }

@@ -10,7 +10,6 @@ import {
   StablePool,
   WeightedPoolData,
   StablePoolData,
-  WeightedMath,
   VaultContext,
   WeightedSwapContext,
   StableSwapContext,
@@ -28,6 +27,7 @@ import {
   STB_MINT_KP,
   BONK_MINT_KP,
 } from "./consts";
+import { calcBalanceRatio } from "./utils";
 
 describe("Pool", () => {
   const env = AnchorProvider.env();
@@ -107,7 +107,7 @@ describe("Pool", () => {
       assert.equal(parsedResult.mintAddress, pool.mintAddress.toBase58());
 
       // STB: $0.03, USDC: $1
-      const bRatio_STB_USDC = WeightedMath.calcBalanceRatio(0.5, 0.03, 0.5, 1);
+      const bRatio_STB_USDC = calcBalanceRatio(0.5, 0.03, 0.5, 1);
       const usdcAmount = 1000000;
       const stbAmount = usdcAmount * bRatio_STB_USDC;
 
@@ -403,8 +403,8 @@ describe("Pool", () => {
       POOL_ID_BONK_SOL_USDC = pool.address;
 
       // Bonk: $0.000001, SOL: $148, USDC: $1
-      const bRatio_Bonk_USDC = WeightedMath.calcBalanceRatio(0.5, 0.000001, 0.2, 1);
-      const bRatio_SOL_USDC = WeightedMath.calcBalanceRatio(0.3, 148, 0.2, 1);
+      const bRatio_Bonk_USDC = calcBalanceRatio(0.5, 0.000001, 0.2, 1);
+      const bRatio_SOL_USDC = calcBalanceRatio(0.3, 148, 0.2, 1);
       const usdcAmount = 500000;
       const bonkAmount = usdcAmount * bRatio_Bonk_USDC;
       const solAmount = usdcAmount * bRatio_SOL_USDC;
