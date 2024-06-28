@@ -152,6 +152,8 @@ export class Swap {
       const instructions: TransactionInstruction[] = [];
       const closeInstructions: TransactionInstruction[] = [];
 
+      let shouldSplit = false;
+
       let tokenInAddress: PublicKey | undefined = undefined;
       if (routes[0].mintInAddress.equals(NATIVE_MINT)) {
         const keypair = Keypair.generate();
@@ -162,6 +164,7 @@ export class Swap {
           ...weightedSwap.transferWSOLInstructions(tokenInAddress, amountIn),
         );
         closeInstructions.push(weightedSwap.closeTokenAccountInstruction(tokenInAddress));
+        shouldSplit = true;
       }
 
       let tokenOutAddress: PublicKey | undefined = undefined;
@@ -242,9 +245,22 @@ export class Swap {
         throw Error("Pool not supported");
       }
 
-      await weightedSwap.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
+      if (shouldSplit) {
+        const signature = await weightedSwap.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
 
-      return weightedSwap.sendSmartTransaction(closeInstructions, [], altAccounts, priorityLevel);
+        if (signature) {
+          return weightedSwap.sendSmartTransaction(closeInstructions, [], altAccounts, priorityLevel);
+        }
+
+        return "";
+      }
+
+      return weightedSwap.sendSmartTransaction(
+        [...instructions, ...closeInstructions],
+        signers,
+        altAccounts,
+        priorityLevel,
+      );
     }
     // 4-hop swap
     else {
