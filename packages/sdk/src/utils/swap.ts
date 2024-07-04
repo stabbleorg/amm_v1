@@ -3,6 +3,7 @@ import { Keypair, PublicKey, Signer, TransactionInstruction, TransactionSignatur
 import { FloatLike, TransactionArgs } from "@stabbleorg/anchor-contrib";
 import { Pool, StablePool, StablePoolData, WeightedPool, WeightedPoolData } from "../accounts";
 import { StableSwapContext, WeightedSwapContext } from "../programs";
+import { createMemoInstruction } from "./memo";
 
 export type BatchSwapRoute = {
   pool: Pool<StablePoolData | WeightedPoolData>;
@@ -16,6 +17,7 @@ export type SwapArgs = {
   mintOutAddress: PublicKey;
   amountIn: FloatLike;
   minimumAmountOut: FloatLike;
+  referrer?: string;
 };
 
 export type SwapInstructionArgs = {
@@ -35,6 +37,7 @@ export class Swap {
     routes,
     amountIn,
     minimumAmountOut,
+    referrer,
     priorityLevel,
     altAccounts,
   }: TransactionArgs<{
@@ -43,9 +46,9 @@ export class Swap {
     routes: BatchSwapRoute[];
     amountIn: FloatLike;
     minimumAmountOut: FloatLike;
+    referrer?: string;
   }>): Promise<TransactionSignature> {
-    if (!weightedSwap.walletAddress.equals(stableSwap.walletAddress))
-      throw Error("Singers mismatched for weighted and stable swap contexts");
+    if (!weightedSwap.walletAddress.equals(stableSwap.walletAddress)) throw Error("Singers does not match");
 
     // direct swap
     if (routes.length === 1) {
@@ -55,6 +58,7 @@ export class Swap {
         mintOutAddress: routes[0].mintOutAddress,
         amountIn,
         minimumAmountOut,
+        referrer,
         priorityLevel,
         altAccounts,
       };
@@ -64,7 +68,7 @@ export class Swap {
       } else if (routes[0].pool instanceof WeightedPool) {
         return weightedSwap.swap(args);
       } else {
-        throw Error("Pool not supported");
+        throw Error("Path not found");
       }
     }
     // 2-hop swap
@@ -72,6 +76,8 @@ export class Swap {
       const signers: Signer[] = [];
       const instructions: TransactionInstruction[] = [];
       const closeInstructions: TransactionInstruction[] = [];
+
+      if (referrer) instructions.push(createMemoInstruction(referrer));
 
       let tokenInAddress: PublicKey | undefined = undefined;
       if (routes[0].mintInAddress.equals(NATIVE_MINT)) {
@@ -108,7 +114,7 @@ export class Swap {
       } else if (routes[0].pool instanceof StablePool) {
         instructions.push(...(await stableSwap.swapInstructions(args0)));
       } else {
-        throw Error("Pool not supported");
+        throw Error("Path not found");
       }
 
       tokenInAddress = tokenOutAddress;
@@ -136,7 +142,7 @@ export class Swap {
       } else if (routes[1].pool instanceof StablePool) {
         instructions.push(...(await stableSwap.swapInstructions(args1)));
       } else {
-        throw Error("Pool not supported");
+        throw Error("Path not found");
       }
 
       return weightedSwap.sendSmartTransaction(
@@ -153,6 +159,8 @@ export class Swap {
       const closeInstructions: TransactionInstruction[] = [];
 
       let shouldSplit = false;
+
+      if (referrer) instructions.push(createMemoInstruction(referrer));
 
       let tokenInAddress: PublicKey | undefined = undefined;
       if (routes[0].mintInAddress.equals(NATIVE_MINT)) {
@@ -190,7 +198,7 @@ export class Swap {
       } else if (routes[0].pool instanceof StablePool) {
         instructions.push(...(await stableSwap.swapInstructions(args0)));
       } else {
-        throw Error("Pool not supported");
+        throw Error("Path not found");
       }
 
       tokenInAddress = tokenOutAddress;
@@ -215,7 +223,7 @@ export class Swap {
       } else if (routes[1].pool instanceof StablePool) {
         instructions.push(...(await stableSwap.swapInstructions(args1)));
       } else {
-        throw Error("Pool not supported");
+        throw Error("Path not found");
       }
 
       tokenInAddress = tokenOutAddress;
@@ -242,7 +250,7 @@ export class Swap {
       } else if (routes[2].pool instanceof StablePool) {
         instructions.push(...(await stableSwap.swapInstructions(args2)));
       } else {
-        throw Error("Pool not supported");
+        throw Error("Path not found");
       }
 
       if (shouldSplit) {
@@ -264,210 +272,7 @@ export class Swap {
     }
     // 4-hop swap
     else {
-      throw Error("It only supports up to 3-hop swap");
-    }
-  }
-
-  static async batchInstructions({
-    weightedSwap,
-    stableSwap,
-    routes,
-    amountIn,
-    minimumAmountOut,
-  }: TransactionArgs<{
-    weightedSwap: WeightedSwapContext;
-    stableSwap: StableSwapContext;
-    routes: BatchSwapRoute[];
-    amountIn: FloatLike;
-    minimumAmountOut: FloatLike;
-  }>): Promise<TransactionInstruction[]> {
-    if (!weightedSwap.walletAddress.equals(stableSwap.walletAddress))
-      throw Error("Singers mismatched for weighted and stable swap contexts");
-
-    // direct swap
-    if (routes.length === 1) {
-      const args: SwapInstructionArgs = {
-        pool: routes[0].pool,
-        mintInAddress: routes[0].mintInAddress,
-        mintOutAddress: routes[0].mintOutAddress,
-        amountIn,
-        minimumAmountOut,
-      };
-
-      if (routes[0].pool instanceof StablePool) {
-        return stableSwap.swapInstructions(args);
-      } else if (routes[0].pool instanceof WeightedPool) {
-        return weightedSwap.swapInstructions(args);
-      } else {
-        throw Error("Pool not supported");
-      }
-    }
-    // 2-hop swap
-    else if (routes.length === 2) {
-      const signers: Signer[] = [];
-      const instructions: TransactionInstruction[] = [];
-
-      let tokenInAddress: PublicKey | undefined = undefined;
-      if (routes[0].mintInAddress.equals(NATIVE_MINT)) {
-        const keypair = Keypair.generate();
-        signers.push(keypair);
-        tokenInAddress = keypair.publicKey;
-        instructions.push(
-          ...weightedSwap.createTokenAccountInstructions(tokenInAddress),
-          ...weightedSwap.transferWSOLInstructions(tokenInAddress, amountIn),
-        );
-      }
-
-      let tokenOutAddress: PublicKey | undefined = undefined;
-      {
-        const keypair = Keypair.generate();
-        signers.push(keypair);
-        tokenOutAddress = keypair.publicKey;
-        instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[0].mintOutAddress));
-      }
-
-      const args0: SwapInstructionArgs = {
-        pool: routes[0].pool,
-        mintInAddress: routes[0].mintInAddress,
-        mintOutAddress: routes[0].mintOutAddress,
-        amountIn,
-        tokenInAddress,
-        tokenOutAddress,
-      };
-
-      if (routes[0].pool instanceof WeightedPool) {
-        instructions.push(...(await weightedSwap.swapInstructions(args0)));
-      } else if (routes[0].pool instanceof StablePool) {
-        instructions.push(...(await stableSwap.swapInstructions(args0)));
-      } else {
-        throw Error("Pool not supported");
-      }
-
-      tokenInAddress = tokenOutAddress;
-      if (routes[1].mintOutAddress.equals(NATIVE_MINT)) {
-        const keypair = Keypair.generate();
-        signers.push(keypair);
-        tokenOutAddress = keypair.publicKey;
-        instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[1].mintOutAddress));
-      } else {
-        tokenOutAddress = undefined;
-      }
-
-      const args1: SwapInstructionArgs = {
-        pool: routes[1].pool,
-        mintInAddress: routes[1].mintInAddress,
-        mintOutAddress: routes[1].mintOutAddress,
-        minimumAmountOut,
-        tokenInAddress,
-        tokenOutAddress,
-      };
-
-      if (routes[1].pool instanceof WeightedPool) {
-        instructions.push(...(await weightedSwap.swapInstructions(args1)));
-      } else if (routes[1].pool instanceof StablePool) {
-        instructions.push(...(await stableSwap.swapInstructions(args1)));
-      } else {
-        throw Error("Pool not supported");
-      }
-
-      return instructions;
-    }
-    // 3-hop swap
-    else if (routes.length === 3) {
-      const signers: Signer[] = [];
-      const instructions: TransactionInstruction[] = [];
-
-      let tokenInAddress: PublicKey | undefined = undefined;
-      if (routes[0].mintInAddress.equals(NATIVE_MINT)) {
-        const keypair = Keypair.generate();
-        signers.push(keypair);
-        tokenInAddress = keypair.publicKey;
-        instructions.push(
-          ...weightedSwap.createTokenAccountInstructions(tokenInAddress),
-          ...weightedSwap.transferWSOLInstructions(tokenInAddress, amountIn),
-        );
-      }
-
-      let tokenOutAddress: PublicKey | undefined = undefined;
-      {
-        const keypair = Keypair.generate();
-        signers.push(keypair);
-        tokenOutAddress = keypair.publicKey;
-        instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[0].mintOutAddress));
-      }
-
-      const args0: SwapInstructionArgs = {
-        pool: routes[0].pool,
-        mintInAddress: routes[0].mintInAddress,
-        mintOutAddress: routes[0].mintOutAddress,
-        amountIn,
-        tokenInAddress,
-        tokenOutAddress,
-      };
-
-      if (routes[0].pool instanceof WeightedPool) {
-        instructions.push(...(await weightedSwap.swapInstructions(args0)));
-      } else if (routes[0].pool instanceof StablePool) {
-        instructions.push(...(await stableSwap.swapInstructions(args0)));
-      } else {
-        throw Error("Pool not supported");
-      }
-
-      tokenInAddress = tokenOutAddress;
-      {
-        const keypair = Keypair.generate();
-        signers.push(keypair);
-        tokenOutAddress = keypair.publicKey;
-        instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[1].mintOutAddress));
-      }
-
-      const args1: SwapInstructionArgs = {
-        pool: routes[1].pool,
-        mintInAddress: routes[1].mintInAddress,
-        mintOutAddress: routes[1].mintOutAddress,
-        tokenInAddress,
-        tokenOutAddress,
-      };
-
-      if (routes[1].pool instanceof WeightedPool) {
-        instructions.push(...(await weightedSwap.swapInstructions(args1)));
-      } else if (routes[1].pool instanceof StablePool) {
-        instructions.push(...(await stableSwap.swapInstructions(args1)));
-      } else {
-        throw Error("Pool not supported");
-      }
-
-      tokenInAddress = tokenOutAddress;
-      if (routes[2].mintOutAddress.equals(NATIVE_MINT)) {
-        const keypair = Keypair.generate();
-        signers.push(keypair);
-        tokenOutAddress = keypair.publicKey;
-        instructions.push(...weightedSwap.createTokenAccountInstructions(tokenOutAddress, routes[2].mintOutAddress));
-      } else {
-        tokenOutAddress = undefined;
-      }
-
-      const args2: SwapInstructionArgs = {
-        pool: routes[2].pool,
-        mintInAddress: routes[2].mintInAddress,
-        mintOutAddress: routes[2].mintOutAddress,
-        minimumAmountOut,
-        tokenInAddress,
-        tokenOutAddress,
-      };
-      if (routes[2].pool instanceof WeightedPool) {
-        instructions.push(...(await weightedSwap.swapInstructions(args2)));
-      } else if (routes[2].pool instanceof StablePool) {
-        instructions.push(...(await stableSwap.swapInstructions(args2)));
-      } else {
-        throw Error("Pool not supported");
-      }
-
-      return instructions;
-    }
-    // 4-hop swap
-    else {
-      throw Error("It only supports up to 3-hop swap");
+      throw Error("Path not supported");
     }
   }
 

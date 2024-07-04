@@ -32,7 +32,7 @@ import {
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID } from "./vault";
 import { Vault, StablePool, StablePoolData } from "../accounts";
-import { SwapInstructionArgs, SwapArgs } from "../utils";
+import { SwapInstructionArgs, SwapArgs, createMemoInstruction } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
@@ -184,6 +184,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses,
     amounts,
     minimumAmountOut,
+    referrer,
     priorityLevel,
     altAccounts,
   }: TransactionArgs<{
@@ -191,11 +192,14 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
     minimumAmountOut?: FloatLike;
+    referrer?: string;
   }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
+
+    if (referrer) instructions.push(createMemoInstruction(referrer));
 
     const { address: userPoolTokenAddress, instruction: createUserPoolTokenInstruction } =
       await this.getOrCreateAssociatedTokenAddressInstruction(pool.mintAddress);
@@ -325,11 +329,14 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintOutAddress,
     amountIn,
     minimumAmountOut,
+    referrer,
     priorityLevel,
     altAccounts,
   }: TransactionArgs<SwapArgs>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
+
+    if (referrer) instructions.push(createMemoInstruction(referrer));
 
     let tokenInAddress;
     if (mintInAddress.equals(NATIVE_MINT)) {
@@ -380,9 +387,9 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     minimumAmountOut,
   }: SwapInstructionArgs): Promise<TransactionInstruction[]> {
     const tokenIn = pool.tokens.find((token) => token.mintAddress.equals(mintInAddress));
-    if (!tokenIn) throw Error("Swap path not found");
+    if (!tokenIn) throw Error("Path not found");
     const tokenOut = pool.tokens.find((token) => token.mintAddress.equals(mintOutAddress));
-    if (!tokenOut) throw Error("Swap path not found");
+    if (!tokenOut) throw Error("Path not found");
 
     const instructions: TransactionInstruction[] = [];
 

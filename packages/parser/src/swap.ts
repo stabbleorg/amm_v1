@@ -32,6 +32,7 @@ export type ChangedBalance = {
   amounts: ChangedTokenAmount[];
   beneficiaryAddress?: string;
   beneficiaryAmount?: bigint;
+  referrer?: string;
 };
 
 export type InstructionMeta = { meta: Instruction };
@@ -75,6 +76,16 @@ export class SwapParser {
 
     const accountKeys = data.transaction.message.getAccountKeys({ addressLookupTableAccounts: altAccounts });
 
+    let referrer;
+    const memo = data.transaction.message.compiledInstructions.find(
+      (ix) =>
+        ix.accountKeyIndexes.length === 0 &&
+        accountKeys.get(ix.programIdIndex)?.toBase58() === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+    );
+    if (memo) {
+      referrer = Buffer.from(memo.data).toString("utf-8");
+    }
+
     for (const [i, compiledInstruction] of data.transaction.message.compiledInstructions.entries()) {
       if (!accountKeys.get(compiledInstruction.programIdIndex)?.equals(this.program.programId)) continue;
 
@@ -100,6 +111,7 @@ export class SwapParser {
             result.push({
               meta: instructionMeta,
               ...(await this.parseDepositInstruction({ accountKeys, keyIndexes, instructions })),
+              referrer,
             });
             break;
           case "withdraw":
@@ -112,6 +124,7 @@ export class SwapParser {
             result.push({
               meta: instructionMeta,
               ...(await this.parseSwapInstruction({ accountKeys, keyIndexes, instructions })),
+              referrer,
             });
             break;
           default:
