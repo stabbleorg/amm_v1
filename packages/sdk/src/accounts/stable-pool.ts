@@ -237,6 +237,10 @@ export class StablePool implements Pool<StablePoolData> {
     );
   }
 
+  getPoolTokenAmountOut(amountsIn: number[], totalSupply: number, tokenAddress?: PublicKey): number {
+    throw Error("Not implemented");
+  }
+
   static getAuthorityAddress(poolAddress: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync([Buffer.from("pool_authority"), poolAddress.toBuffer()], STABLE_SWAP_ID)[0];
   }

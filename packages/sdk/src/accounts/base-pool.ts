@@ -79,4 +79,13 @@ export interface Pool<T> {
    * @returns {number[]} Estimated token amounts out
    */
   getWithdrawalAmountsOut(amountIn: number, totalSupply: number, tokenAddress?: PublicKey): number[];
+
+  /**
+   * Get estimated withdrawal amounts given LP amount
+   * @param {number[]} amountsIn token amounts being deposited
+   * @param {number} totalSupply LP token supply
+   * @param {PublicKey} tokenAddress Optional token mint address for single sided deposit
+   * @returns {number} Estimated LP token amount out
+   */
+  getPoolTokenAmountOut(amountsIn: number[], totalSupply: number, tokenAddress?: PublicKey): number;
 }
