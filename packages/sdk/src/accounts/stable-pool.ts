@@ -238,7 +238,46 @@ export class StablePool implements Pool<StablePoolData> {
   }
 
   getPoolTokenAmountOut(amountsIn: number[], totalSupply: number, tokenAddress?: PublicKey): number {
-    throw Error("Not implemented");
+    const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
+    const currentInvariant = StableMath.calcInvariant(balances, this.amplification);
+
+    if (tokenAddress) {
+      const amounts = Array(this.tokens.length).fill(0);
+      const tokenIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenAddress));
+      const token = this.data.tokens[tokenIndex];
+      const u64Amount = SafeAmount.toU64Amount(amountsIn[0], token.decimals);
+      amounts[tokenIndex] = SafeAmount.toUiAmount(
+        token.scalingUp ? u64Amount.mul(token.scalingFactor) : u64Amount.div(token.scalingFactor),
+        token.decimals,
+      );
+
+      return StableMath.calcPoolTokenOutGivenExactTokensIn(
+        balances,
+        this.amplification,
+        amounts,
+        totalSupply,
+        currentInvariant,
+        this.swapFee,
+      );
+    }
+
+    const amounts = amountsIn.map((amountIn, index) => {
+      const token = this.data.tokens[index];
+      const u64Amount = SafeAmount.toU64Amount(amountIn, token.decimals);
+      return SafeAmount.toUiAmount(
+        token.scalingUp ? u64Amount.mul(token.scalingFactor) : u64Amount.div(token.scalingFactor),
+        token.decimals,
+      );
+    });
+
+    return StableMath.calcPoolTokenOutGivenExactTokensIn(
+      balances,
+      this.amplification,
+      amounts,
+      totalSupply,
+      currentInvariant,
+      this.swapFee,
+    );
   }
 
   static getAuthorityAddress(poolAddress: PublicKey): PublicKey {
