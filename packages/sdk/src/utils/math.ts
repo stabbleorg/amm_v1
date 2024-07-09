@@ -52,6 +52,83 @@ export class WeightedMath {
 
     return nonTaxableAmount + taxableAmountMinusFees;
   }
+
+  static calcPoolTokenOutGivenExactTokenIn(
+    balance: number,
+    normalizedWeight: number,
+    amountIn: number,
+    poolTokenSupply: number,
+    swapFee: number = 0,
+  ): number {
+    const balanceRatioWithFee = (balance + amountIn) / balance;
+    const invariantRatioWithFees = balanceRatioWithFee * normalizedWeight + (1 - normalizedWeight);
+
+    let amountInWithoutFee: number;
+    if (balanceRatioWithFee > invariantRatioWithFees) {
+      const nonTaxableAmount = invariantRatioWithFees > 1 ? balance * (invariantRatioWithFees - 1) : 0;
+      const taxableAmount = amountIn - nonTaxableAmount;
+      const swapFeeAmount = taxableAmount * swapFee;
+      amountInWithoutFee = nonTaxableAmount + taxableAmount - swapFeeAmount;
+    } else {
+      amountInWithoutFee = amountIn;
+    }
+
+    if (amountInWithoutFee === 0) {
+      return 0;
+    }
+
+    const balanceRatio = (balance + amountInWithoutFee) / balance;
+    const invariantRatio = Math.pow(balanceRatio, normalizedWeight);
+
+    if (invariantRatio > 1) {
+      const amountOut = poolTokenSupply * (invariantRatio - 1);
+      return amountOut;
+    }
+    return 0;
+  }
+
+  static calcPoolTokenOutGivenExactTokensIn(
+    balances: number[],
+    normalizedWeights: number[],
+    amountsIn: number[],
+    poolTokenSupply: number,
+    swapFee: number = 0,
+  ): number {
+    const balanceRatiosWithFee: number[] = [];
+    let invariantRatioWithFees = 0;
+
+    for (let i = 0; i < balances.length; i++) {
+      const balanceRatioWithFee = (balances[i] + amountsIn[i]) / balances[i];
+      balanceRatiosWithFee.push(balanceRatioWithFee);
+      invariantRatioWithFees += balanceRatioWithFee * normalizedWeights[i];
+    }
+
+    let invariantRatio = 1;
+    for (let i = 0; i < balances.length; i++) {
+      let amountInWithoutFee: number;
+
+      if (balanceRatiosWithFee[i] > invariantRatioWithFees) {
+        const nonTaxableAmount = invariantRatioWithFees > 1 ? balances[i] * (invariantRatioWithFees - 1) : 0;
+        const swapFeeAmount = (amountsIn[i] - nonTaxableAmount) * swapFee;
+        amountInWithoutFee = amountsIn[i] - swapFeeAmount;
+      } else {
+        amountInWithoutFee = amountsIn[i];
+
+        if (amountInWithoutFee === 0) {
+          continue;
+        }
+      }
+
+      const balanceRatio = (balances[i] + amountInWithoutFee) / balances[i];
+      invariantRatio *= Math.pow(balanceRatio, normalizedWeights[i]);
+    }
+
+    if (invariantRatio > 1) {
+      const amountOut = poolTokenSupply * (invariantRatio - 1);
+      return amountOut;
+    }
+    return 0;
+  }
 }
 
 export class StableMath {
@@ -166,6 +243,50 @@ export class StableMath {
     const amountOut = taxableAmount * (1 - swapFee) + nonTaxableAmount;
 
     return amountOut;
+  }
+
+  static calcPoolTokenOutGivenExactTokensIn(
+    balances: number[],
+    amplification: number,
+    amountsIn: number[],
+    poolTokenSupply: number,
+    currentInvariant: number,
+    swapFee: number = 0,
+  ): number {
+    const sum = balances.reduce((acc, balance) => acc + balance, 0);
+
+    const balanceRatiosWithFee: number[] = [];
+    let invariantRatioWithFees = 0;
+    for (let i = 0; i < balances.length; i++) {
+      const currentWeight = balances[i] / sum;
+      balanceRatiosWithFee.push((balances[i] + amountsIn[i]) / balances[i]);
+      invariantRatioWithFees += balanceRatiosWithFee[i] * currentWeight;
+    }
+
+    const newBalances: number[] = [];
+    for (let i = 0; i < balances.length; i++) {
+      let amountInWithoutFee: number;
+
+      if (balanceRatiosWithFee[i] > invariantRatioWithFees) {
+        const nonTaxableAmount = balances[i] * (invariantRatioWithFees - 1);
+        const taxableAmount = amountsIn[i] - nonTaxableAmount;
+
+        amountInWithoutFee = taxableAmount * (1 - swapFee) + nonTaxableAmount;
+      } else {
+        amountInWithoutFee = amountsIn[i];
+      }
+
+      newBalances.push(balances[i] + amountInWithoutFee);
+    }
+
+    const newInvariant = this.calcInvariant(newBalances, amplification);
+    const invariantRatio = newInvariant / currentInvariant;
+
+    if (invariantRatio > 1) {
+      const amountOut = poolTokenSupply * (invariantRatio - 1);
+      return amountOut;
+    }
+    return 0;
   }
 
   static _getTokenBalanceGivenInvariantAndAllOtherBalances(
