@@ -55,6 +55,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         if num_tokens == 1 {
             let mint = get_token_mint(&ctx.remaining_accounts[0])?;
             let token_index = ctx.accounts.pool.get_token_index(mint);
+            let balance = ctx.accounts.pool.tokens[token_index].balance;
             let balance_in = ctx
                 .accounts
                 .transfer_to_vault(
@@ -66,7 +67,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                 .unwrap();
 
             weighted_math::calc_pool_token_out_given_exact_token_in(
-                ctx.accounts.pool.tokens[token_index].balance,
+                balance,
                 ctx.accounts.pool.tokens[token_index].weight,
                 balance_in,
                 ctx.accounts.mint.supply,
