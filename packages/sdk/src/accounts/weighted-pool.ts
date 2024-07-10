@@ -1,5 +1,4 @@
 import BN from "bn.js";
-import Decimal from "decimal.js";
 import { PublicKey } from "@solana/web3.js";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./base-pool";
@@ -225,9 +224,7 @@ export class WeightedPool implements Pool<WeightedPoolData> {
       return [amountOut];
     }
 
-    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply).map((amountOut, index) =>
-      new Decimal(amountOut).toDP(this.data.tokens[index].decimals, Decimal.ROUND_DOWN).toNumber(),
-    );
+    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply);
   }
 
   getPoolTokenAmountOut(amountsIn: number[], totalSupply: number, tokenAddress?: PublicKey): number {
@@ -242,14 +239,13 @@ export class WeightedPool implements Pool<WeightedPoolData> {
       );
       const balance = SafeAmount.toNano(this.data.tokens[tokenIndex].balance);
 
-      const amountOut = WeightedMath.calcPoolTokenOutGivenExactTokenIn(
+      return WeightedMath.calcPoolTokenOutGivenExactTokenIn(
         balance,
         this.weights[tokenIndex],
         amount,
         totalSupply,
         this.swapFee,
       );
-      return new Decimal(amountOut).toDP(9, Decimal.ROUND_DOWN).toNumber();
     }
 
     const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
@@ -261,14 +257,7 @@ export class WeightedPool implements Pool<WeightedPoolData> {
       );
     });
 
-    const amountOut = WeightedMath.calcPoolTokenOutGivenExactTokensIn(
-      balances,
-      this.weights,
-      amounts,
-      totalSupply,
-      this.swapFee,
-    );
-    return new Decimal(amountOut).toDP(9, Decimal.ROUND_DOWN).toNumber();
+    return WeightedMath.calcPoolTokenOutGivenExactTokensIn(balances, this.weights, amounts, totalSupply, this.swapFee);
   }
 
   static getAuthorityAddress(poolAddress: PublicKey): PublicKey {

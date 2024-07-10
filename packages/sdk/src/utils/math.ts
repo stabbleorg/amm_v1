@@ -1,3 +1,5 @@
+import Decimal from "decimal.js";
+
 export class WeightedMath {
   static MAX_INVARIANT_RATIO = 3;
   static MIN_INVARIANT_RATIO = 0.7;
@@ -26,7 +28,16 @@ export class WeightedMath {
 
     if (amountIn > balanceIn * WeightedMath.MAX_IN_RATIO) return 0;
 
-    return balanceOut * (1 - (balanceIn / (balanceIn + amountIn)) ** (weightIn / weightOut)) * (1 - swapFee);
+    return (
+      balanceOut *
+      (1 -
+        new Decimal(balanceIn / (balanceIn + amountIn))
+          .toDP(9, Decimal.ROUND_UP)
+          .pow(new Decimal(weightIn / weightOut).toDP(9, Decimal.ROUND_DOWN))
+          .toDP(9, Decimal.ROUND_UP)
+          .toNumber()) *
+      (1 - swapFee)
+    );
   }
 
   static calcTokenOutGivenExactPoolTokenIn(
@@ -42,7 +53,11 @@ export class WeightedMath {
       return 0;
     }
 
-    let balanceRatio = Math.pow(invariantRatio, 1 / normalizedWeight);
+    let balanceRatio = new Decimal(invariantRatio)
+      .toDP(9, Decimal.ROUND_UP)
+      .pow(new Decimal(1 / normalizedWeight).toDP(9, Decimal.ROUND_DOWN))
+      .toDP(9, Decimal.ROUND_UP)
+      .toNumber();
 
     let amountOutWithoutFee = balance * (1 - balanceRatio);
 
@@ -78,12 +93,16 @@ export class WeightedMath {
     }
 
     const balanceRatio = (balance + amountInWithoutFee) / balance;
-    const invariantRatio = Math.pow(balanceRatio, normalizedWeight);
+    const invariantRatio = new Decimal(balanceRatio)
+      .toDP(9, Decimal.ROUND_DOWN)
+      .pow(new Decimal(normalizedWeight))
+      .toDP(9, Decimal.ROUND_DOWN)
+      .toNumber();
 
     if (invariantRatio > 1) {
-      const amountOut = poolTokenSupply * (invariantRatio - 1);
-      return amountOut;
+      return new Decimal(poolTokenSupply * (invariantRatio - 1)).toDP(9, Decimal.ROUND_DOWN).toNumber();
     }
+
     return 0;
   }
 
@@ -120,13 +139,18 @@ export class WeightedMath {
       }
 
       const balanceRatio = (balances[i] + amountInWithoutFee) / balances[i];
-      invariantRatio *= Math.pow(balanceRatio, normalizedWeights[i]);
+      const invariant = new Decimal(balanceRatio)
+        .toDP(9, Decimal.ROUND_DOWN)
+        .pow(normalizedWeights[i])
+        .toDP(9, Decimal.ROUND_DOWN);
+
+      invariantRatio = new Decimal(invariantRatio).mul(invariant).toDP(9, Decimal.ROUND_DOWN).toNumber();
     }
 
     if (invariantRatio > 1) {
-      const amountOut = poolTokenSupply * (invariantRatio - 1);
-      return amountOut;
+      return new Decimal(poolTokenSupply * (invariantRatio - 1)).toDP(9, Decimal.ROUND_DOWN).toNumber();
     }
+
     return 0;
   }
 }
@@ -180,7 +204,7 @@ export class StableMath {
     }
     const x = balances[tokenIndexIn];
     const y = balances[tokenIndexOut];
-    const a = amplification * N ** N;
+    const a = amplification * Math.pow(N, N);
     const b = (S - D) * a + D;
     const c = 2 * a * x * y;
     const pX = c + a * y * y + b * y;
@@ -283,9 +307,9 @@ export class StableMath {
     const invariantRatio = newInvariant / currentInvariant;
 
     if (invariantRatio > 1) {
-      const amountOut = poolTokenSupply * (invariantRatio - 1);
-      return amountOut;
+      return new Decimal(poolTokenSupply * (invariantRatio - 1)).toDP(9, Decimal.ROUND_DOWN).toNumber();
     }
+
     return 0;
   }
 
@@ -327,6 +351,8 @@ export class StableMath {
 
 export class BasicMath {
   static calcProportionalAmountsOut(balances: number[], amountIn: number, totalSupply: number): number[] {
-    return balances.map((balance) => balance * (amountIn / totalSupply));
+    return balances.map((balance) =>
+      new Decimal(balance * (amountIn / totalSupply)).toDP(9, Decimal.ROUND_DOWN).toNumber(),
+    );
   }
 }

@@ -1,5 +1,4 @@
 import BN from "bn.js";
-import Decimal from "decimal.js";
 import { PublicKey } from "@solana/web3.js";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./base-pool";
@@ -232,9 +231,7 @@ export class StablePool implements Pool<StablePoolData> {
       return [amountOut];
     }
 
-    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply).map((amountOut, index) =>
-      new Decimal(amountOut).toDP(this.data.tokens[index].decimals, Decimal.ROUND_DOWN).toNumber(),
-    );
+    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply);
   }
 
   getPoolTokenAmountOut(amountsIn: number[], totalSupply: number, tokenAddress?: PublicKey): number {
@@ -253,7 +250,7 @@ export class StablePool implements Pool<StablePoolData> {
         token.scalingUp ? u64Amount.mul(token.scalingFactor) : u64Amount.div(token.scalingFactor),
       );
 
-      const amountOut = StableMath.calcPoolTokenOutGivenExactTokensIn(
+      return StableMath.calcPoolTokenOutGivenExactTokensIn(
         balances,
         this.amplification,
         amounts,
@@ -261,7 +258,6 @@ export class StablePool implements Pool<StablePoolData> {
         currentInvariant,
         this.swapFee,
       );
-      return new Decimal(amountOut).toDP(9, Decimal.ROUND_DOWN).toNumber();
     }
 
     const amounts = amountsIn.map((amountIn, index) => {
@@ -272,7 +268,7 @@ export class StablePool implements Pool<StablePoolData> {
       );
     });
 
-    const amountOut = StableMath.calcPoolTokenOutGivenExactTokensIn(
+    return StableMath.calcPoolTokenOutGivenExactTokensIn(
       balances,
       this.amplification,
       amounts,
@@ -280,7 +276,6 @@ export class StablePool implements Pool<StablePoolData> {
       currentInvariant,
       this.swapFee,
     );
-    return new Decimal(amountOut).toDP(9, Decimal.ROUND_DOWN).toNumber();
   }
 
   static getAuthorityAddress(poolAddress: PublicKey): PublicKey {
