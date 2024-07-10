@@ -233,35 +233,42 @@ export class WeightedPool implements Pool<WeightedPoolData> {
   getPoolTokenAmountOut(amountsIn: number[], totalSupply: number, tokenAddress?: PublicKey): number {
     if (tokenAddress) {
       const tokenIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenAddress));
+      if (tokenIndex === -1) return 0;
 
       const token = this.data.tokens[tokenIndex];
       const u64Amount = SafeAmount.toU64Amount(amountsIn[0], token.decimals);
-      const amount = SafeAmount.toUiAmount(
+      const amount = SafeAmount.toNano(
         token.scalingUp ? u64Amount.mul(token.scalingFactor) : u64Amount.div(token.scalingFactor),
-        token.decimals,
       );
       const balance = SafeAmount.toNano(this.data.tokens[tokenIndex].balance);
 
-      return WeightedMath.calcPoolTokenOutGivenExactTokenIn(
+      const amountOut = WeightedMath.calcPoolTokenOutGivenExactTokenIn(
         balance,
         this.weights[tokenIndex],
         amount,
         totalSupply,
         this.swapFee,
       );
+      return new Decimal(amountOut).toDP(9, Decimal.ROUND_DOWN).toNumber();
     }
 
     const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
     const amounts = amountsIn.map((amountIn, index) => {
       const token = this.data.tokens[index];
       const u64Amount = SafeAmount.toU64Amount(amountIn, token.decimals);
-      return SafeAmount.toUiAmount(
+      return SafeAmount.toNano(
         token.scalingUp ? u64Amount.mul(token.scalingFactor) : u64Amount.div(token.scalingFactor),
-        token.decimals,
       );
     });
 
-    return WeightedMath.calcPoolTokenOutGivenExactTokensIn(balances, this.weights, amounts, totalSupply, this.swapFee);
+    const amountOut = WeightedMath.calcPoolTokenOutGivenExactTokensIn(
+      balances,
+      this.weights,
+      amounts,
+      totalSupply,
+      this.swapFee,
+    );
+    return new Decimal(amountOut).toDP(9, Decimal.ROUND_DOWN).toNumber();
   }
 
   static getAuthorityAddress(poolAddress: PublicKey): PublicKey {
