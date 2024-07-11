@@ -1,5 +1,4 @@
 import BN from "bn.js";
-import Decimal from "decimal.js";
 import { PublicKey } from "@solana/web3.js";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./base-pool";
@@ -225,9 +224,40 @@ export class WeightedPool implements Pool<WeightedPoolData> {
       return [amountOut];
     }
 
-    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply).map((amountOut, index) =>
-      new Decimal(amountOut).toDP(this.data.tokens[index].decimals, Decimal.ROUND_DOWN).toNumber(),
-    );
+    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply);
+  }
+
+  getPoolTokenAmountOut(amountsIn: number[], totalSupply: number, tokenAddress?: PublicKey): number {
+    if (tokenAddress) {
+      const tokenIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenAddress));
+      if (tokenIndex === -1) return 0;
+
+      const token = this.data.tokens[tokenIndex];
+      const u64Amount = SafeAmount.toU64Amount(amountsIn[0], token.decimals);
+      const amount = SafeAmount.toNano(
+        token.scalingUp ? u64Amount.mul(token.scalingFactor) : u64Amount.div(token.scalingFactor),
+      );
+      const balance = SafeAmount.toNano(this.data.tokens[tokenIndex].balance);
+
+      return WeightedMath.calcPoolTokenOutGivenExactTokenIn(
+        balance,
+        this.weights[tokenIndex],
+        amount,
+        totalSupply,
+        this.swapFee,
+      );
+    }
+
+    const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
+    const amounts = amountsIn.map((amountIn, index) => {
+      const token = this.data.tokens[index];
+      const u64Amount = SafeAmount.toU64Amount(amountIn, token.decimals);
+      return SafeAmount.toNano(
+        token.scalingUp ? u64Amount.mul(token.scalingFactor) : u64Amount.div(token.scalingFactor),
+      );
+    });
+
+    return WeightedMath.calcPoolTokenOutGivenExactTokensIn(balances, this.weights, amounts, totalSupply, this.swapFee);
   }
 
   static getAuthorityAddress(poolAddress: PublicKey): PublicKey {

@@ -29,8 +29,8 @@ export function withdraw(program: Command) {
       const mintAddresses = mints.map((mint) => new PublicKey(mint));
 
       if (mints.length === 1) {
-        const amountOut = pool.getWithdrawalAmountsOut(amount, supply, mintAddresses[0]);
-        console.log("Estimation:", amountOut[0]);
+        const [amountOut] = pool.getWithdrawalAmountsOut(amount, supply, mintAddresses[0]);
+        console.log("Estimation:", amountOut);
       } else {
         const amountsOut = pool.getWithdrawalAmountsOut(amount, supply);
         console.log("Estimation:", amountsOut.join(", "));

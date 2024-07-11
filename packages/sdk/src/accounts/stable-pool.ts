@@ -1,5 +1,4 @@
 import BN from "bn.js";
-import Decimal from "decimal.js";
 import { PublicKey } from "@solana/web3.js";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
 import { Pool, PoolData, PoolToken, PoolTokenData } from "./base-pool";
@@ -232,8 +231,50 @@ export class StablePool implements Pool<StablePoolData> {
       return [amountOut];
     }
 
-    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply).map((amountOut, index) =>
-      new Decimal(amountOut).toDP(this.data.tokens[index].decimals, Decimal.ROUND_DOWN).toNumber(),
+    return BasicMath.calcProportionalAmountsOut(this.balances, amountIn, totalSupply);
+  }
+
+  getPoolTokenAmountOut(amountsIn: number[], totalSupply: number, tokenAddress?: PublicKey): number {
+    const balances = this.data.tokens.map((token) => SafeAmount.toNano(token.balance));
+    const currentInvariant = StableMath.calcInvariant(balances, this.amplification);
+
+    if (tokenAddress) {
+      const tokenIndex = this.tokens.findIndex((token) => token.mintAddress.equals(tokenAddress));
+      if (tokenIndex === -1) return 0;
+
+      const amounts = Array(this.tokens.length).fill(0);
+
+      const token = this.data.tokens[tokenIndex];
+      const u64Amount = SafeAmount.toU64Amount(amountsIn[0], token.decimals);
+      amounts[tokenIndex] = SafeAmount.toNano(
+        token.scalingUp ? u64Amount.mul(token.scalingFactor) : u64Amount.div(token.scalingFactor),
+      );
+
+      return StableMath.calcPoolTokenOutGivenExactTokensIn(
+        balances,
+        this.amplification,
+        amounts,
+        totalSupply,
+        currentInvariant,
+        this.swapFee,
+      );
+    }
+
+    const amounts = amountsIn.map((amountIn, index) => {
+      const token = this.data.tokens[index];
+      const u64Amount = SafeAmount.toU64Amount(amountIn, token.decimals);
+      return SafeAmount.toNano(
+        token.scalingUp ? u64Amount.mul(token.scalingFactor) : u64Amount.div(token.scalingFactor),
+      );
+    });
+
+    return StableMath.calcPoolTokenOutGivenExactTokensIn(
+      balances,
+      this.amplification,
+      amounts,
+      totalSupply,
+      currentInvariant,
+      this.swapFee,
     );
   }
 
