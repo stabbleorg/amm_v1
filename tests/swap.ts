@@ -299,6 +299,7 @@ describe("Multi-hop Swap", () => {
         p1.getSwapAmountOut(USDC_MINT_KP.publicKey, USDT_MINT_KP.publicKey, intermediateAmountIn),
     )[0];
 
+    // B[0] 3140815.232974000, B[1] 795757.389906000, Ai 146.779734 didn't converged by 1e-9
     const amountOut = pool_USDC_USDT.getSwapAmountOut(
       USDC_MINT_KP.publicKey,
       USDT_MINT_KP.publicKey,
@@ -329,12 +330,9 @@ describe("Multi-hop Swap", () => {
 
     const keypair = Keypair.generate();
     const instructions: TransactionInstruction[] = [
-      // TODO: Address Lookup Table should be setup
-      // ...weightedSwap.createTokenAccountInstructions(keypair0.publicKey),
-      // ...weightedSwap.transferWSOLInstructions(keypair0.publicKey, amountIn),
       ...weightedSwap.createTokenAccountInstructions(keypair.publicKey, USDC_MINT_KP.publicKey),
       ...(await weightedSwap.swapInstructions({
-        pool: pool_SOL_USDC as WeightedPool,
+        pool: pool_SOL_USDC,
         mintInAddress: NATIVE_MINT,
         mintOutAddress: USDC_MINT_KP.publicKey,
         amountIn,
@@ -342,12 +340,14 @@ describe("Multi-hop Swap", () => {
         tokenOutAddress: keypair.publicKey,
       })),
       ...(await stableSwap.swapInstructions({
-        pool: pool_USDC_USDT as StablePool,
+        pool: pool_USDC_USDT,
         mintInAddress: USDC_MINT_KP.publicKey,
         mintOutAddress: USDT_MINT_KP.publicKey,
         minimumAmountOut,
         tokenInAddress: keypair.publicKey,
       })),
+      weightedSwap.closeTokenAccountInstruction(keypair0.publicKey),
+      weightedSwap.closeTokenAccountInstruction(keypair.publicKey),
     ];
     await vaultCtx.sendSmartTransaction(instructions, [keypair]);
 

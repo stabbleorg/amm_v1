@@ -158,7 +158,7 @@ export class WeightedMath {
 export class StableMath {
   // Convergence threshold
   static INV_THRESHOLD = 100e-9;
-  static BALANCE_THRESHOLD = 1e-9;
+  static BALANCE_THRESHOLD = 2e-9;
 
   static calcInvariant(balances: number[], amplification: number): number {
     const N = balances.length;
