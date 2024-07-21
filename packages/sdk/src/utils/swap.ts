@@ -281,14 +281,18 @@ export class Swap {
     mintInAddress,
     mintOutAddress,
     amountIn,
+    maxDepth = 3,
     directRoutesOnly = false,
   }: {
     pools: Pool<StablePoolData | WeightedPoolData>[];
     mintInAddress: PublicKey;
     mintOutAddress: PublicKey;
     amountIn: number;
+    maxDepth?: number;
     directRoutesOnly?: boolean;
   }): { routes: BatchSwapRoute[]; amountOut: number; spotPrice: number } {
+    if (directRoutesOnly) maxDepth = 1;
+
     let routes: BatchSwapRoute[] = [];
     let amountOut = 0;
 
@@ -310,7 +314,7 @@ export class Swap {
       amountOut = pool.getSwapAmountOut(mintInAddress, mintOutAddress, amountIn);
     }
 
-    if (!directRoutesOnly) {
+    if (maxDepth > 1) {
       // R1 routes
       const pools_R1 = pools
         .filter((p) => pools_R0.map((r0) => !p.address.equals(r0.address)))
@@ -337,7 +341,7 @@ export class Swap {
                   ];
                   amountOut = amountOut_R2;
                 }
-              } else {
+              } else if (maxDepth > 2) {
                 // R3 routes
                 const pools_R3 = pools_R2
                   .filter((p) => !p.address.equals(r2.address))
@@ -365,7 +369,7 @@ export class Swap {
     }
 
     const spotPrice = routes.reduce(
-      (res, route) => res * route.pool.getSpotPrice(route.mintInAddress, route.mintOutAddress),
+      (price, route) => price * route.pool.getSpotPrice(route.mintInAddress, route.mintOutAddress),
       1,
     );
 
