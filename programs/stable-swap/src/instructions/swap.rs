@@ -28,14 +28,14 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
 
     // if amount_in is set to None, it will send full amount given user's in token account
     // this is useful to swap from intermediate token account created in multi-hop swap
-    let amount_in = ctx.accounts.pool.calc_rounded_amount(
-        if amount_in.is_some() {
-            amount_in.unwrap()
-        } else {
-            get_token_balance(&ctx.accounts.user_token_in.to_account_info())?
-        },
-        token_in_index,
-    );
+    let amount_in = if amount_in.is_some() {
+        ctx.accounts
+            .pool
+            .calc_rounded_amount(amount_in.unwrap(), token_in_index)
+    } else {
+        // it does not round down so that intermediate token accounts can be closed after multi-hop swap
+        get_token_balance(&ctx.accounts.user_token_in.to_account_info())?
+    };
 
     let balance_in = ctx.accounts.pool.calc_wrapped_amount(amount_in, token_in_index);
     let balance_out_without_fee = stable_math::calc_out_given_in(

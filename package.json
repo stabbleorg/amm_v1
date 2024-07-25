@@ -5,23 +5,25 @@
     "build": "rm -rf dist && tsc",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "format": "rustfmt programs/**/src/lib.rs"
+    "format": "rustfmt programs/**/src/lib.rs",
+    "postinstall": "bash .anchor/build.sh"
   },
   "workspaces": [
     "packages/*"
   ],
   "devDependencies": {
     "@coral-xyz/anchor": "^0.30.1",
-    "@solana/spl-token": "0.4.6",
-    "@solana/web3.js": "^1.93.2",
+    "@solana/spl-token": "^0.3.11",
+    "@solana/web3.js": "^1.93.4",
     "@types/bn.js": "^5.1.0",
     "@types/chai": "^4.3.5",
     "@types/mocha": "^10.0.1",
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
-    "prettier": "^3.3.2",
+    "postinstall": "^0.10.3",
+    "prettier": "^3.3.3",
     "rustfmt": "^0.1.0",
     "ts-mocha": "^10.0.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.5.4"
   }
 }
