@@ -28,3 +28,28 @@ export function changeSwapFee(program: Command) {
       console.log(signature);
     });
 }
+
+export function transferOwner(program: Command) {
+  program
+    .command("weighted-transfer-owner")
+    .description("transfer ownership")
+    .requiredOption("--pool-k <string>", "pool key", parseKey)
+    .requiredOption("--owner-k <string>", "new owner key")
+    .action(async ({ poolK, ownerK }: { poolK: PublicKey; ownerK: PublicKey }) => {
+      const { provider, simulate } = useContext();
+
+      const weightedSwap = new WeightedSwapContext(provider);
+      const pool = await weightedSwap.loadPool(poolK);
+
+      console.log("Current owner:", pool.ownerAddress.toBase58());
+
+      if (simulate) return;
+
+      const signature = await weightedSwap.transferOwner({
+        pool,
+        ownerAddress: ownerK,
+      });
+
+      console.log(signature);
+    });
+}

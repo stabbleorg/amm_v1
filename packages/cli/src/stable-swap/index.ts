@@ -3,7 +3,7 @@ import { initialize } from "./initialize";
 import { deposit } from "./deposit";
 import { withdraw } from "./withdraw";
 import { swap } from "./swap";
-import { changeAmpFactor, changeSwapFee } from "./config";
+import { changeAmpFactor, changeSwapFee, transferOwner } from "./config";
 import { shutdown } from "./shutdown";
 
 export const setupStableSwapProgram = (program: Command) => {
@@ -13,5 +13,6 @@ export const setupStableSwapProgram = (program: Command) => {
   swap(program);
   changeAmpFactor(program);
   changeSwapFee(program);
+  transferOwner(program);
   shutdown(program);
 };

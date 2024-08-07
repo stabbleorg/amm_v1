@@ -476,6 +476,23 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
 
     return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
   }
+
+  async transferOwner({
+    pool,
+    ownerAddress,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ pool: WeightedPool; ownerAddress: PublicKey }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .transferOwner(ownerAddress)
+      .accountsStrict({
+        owner: this.walletAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
+  }
 }
 
 export class WeightedSwapListener {
