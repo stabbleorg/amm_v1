@@ -158,9 +158,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
         .initialize(
           ampFactor,
           SafeAmount.toGiga(swapFee),
-          mints.map((mint, index) =>
-            maxCaps ? SafeAmount.toU64Amount(maxCaps[index], mint.decimals) : new BN(mint.supply.toString()),
-          ),
+          mints.map((mint, index) => SafeAmount.toU64Amount(maxCaps ? maxCaps[index] : "3000000000", mint.decimals)),
         )
         .accountsStrict({
           owner: this.walletAddress,
@@ -486,6 +484,23 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
   }: TransactionArgs<{ pool: StablePool }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
       .shutdown()
+      .accountsStrict({
+        owner: this.walletAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
+  }
+
+  async transferOwner({
+    pool,
+    ownerAddress,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ pool: StablePool; ownerAddress: PublicKey }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .transferOwner(ownerAddress)
       .accountsStrict({
         owner: this.walletAddress,
         pool: pool.address,
