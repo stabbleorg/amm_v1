@@ -47,7 +47,8 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             &ctx.accounts.pool.get_balances(),
             ctx.accounts.mint.supply,
             amount,
-        );
+        )
+        .unwrap();
 
         for (token_index, user_account) in ctx.remaining_accounts[0..num_tokens].iter().enumerate() {
             let mint = get_token_mint(&user_account)?;
