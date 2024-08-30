@@ -22,7 +22,7 @@ export class WeightedPool implements Pool<WeightedPoolData> {
   static MIN_WEIGHT = 0.1;
   static MAX_WEIGHT = 0.9;
 
-  static MIN_SWAP_FEE = 0.001;
+  static MIN_SWAP_FEE = 0.0001;
   static MAX_SWAP_FEE = 0.025;
 
   static MAX_TOKENS = 4;
