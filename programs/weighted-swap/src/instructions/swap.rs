@@ -51,14 +51,15 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
         assert_eq!(get_token_mint(x_token_account)?, x_token::ID);
         assert_eq!(get_token_owner(x_token_account)?, ctx.accounts.user.key());
         swap_fee_math::calc_swap_fee_in_discount(ctx.accounts.pool.swap_fee, get_token_balance(x_token_account)?)
+            .unwrap()
     } else {
         assert_eq!(num_ra, 0);
         ctx.accounts.pool.swap_fee
     };
 
-    let amount_out_balance = balance_out_without_fee.mul_down(swap_fee.complement());
+    let amount_out_balance = balance_out_without_fee.mul_down(swap_fee.complement()).unwrap();
     let swap_fees_balance = balance_out_without_fee.saturating_sub(amount_out_balance);
-    let beneficiary_fees_balance = swap_fees_balance.mul_down(ctx.accounts.vault.beneficiary_fee);
+    let beneficiary_fees_balance = swap_fees_balance.mul_down(ctx.accounts.vault.beneficiary_fee).unwrap();
 
     let amount_out = ctx
         .accounts

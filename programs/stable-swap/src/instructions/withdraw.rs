@@ -50,7 +50,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             .transfer_to_user(amount_out, &ctx.remaining_accounts[0], &ctx.remaining_accounts[1])?;
     } else {
         let balances_out =
-            base_pool_math::compute_proportional_amounts_out(&balances, ctx.accounts.mint.supply, amount);
+            base_pool_math::compute_proportional_amounts_out(&balances, ctx.accounts.mint.supply, amount).unwrap();
 
         for (token_index, user_account) in ctx.remaining_accounts[0..num_tokens].iter().enumerate() {
             let mint = get_token_mint(&user_account)?;
