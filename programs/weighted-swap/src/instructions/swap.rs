@@ -18,8 +18,16 @@ use vault::{
 };
 
 pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
-    let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_in.mint);
-    let token_out_index = ctx.accounts.pool.get_token_index(ctx.accounts.vault_token_out.mint);
+    let token_in_index = ctx
+        .accounts
+        .pool
+        .get_token_index(ctx.accounts.vault_token_in.mint)
+        .unwrap();
+    let token_out_index = ctx
+        .accounts
+        .pool
+        .get_token_index(ctx.accounts.vault_token_out.mint)
+        .unwrap();
     assert_ne!(token_in_index, token_out_index);
 
     // if amount_in is set to None, it will send full amount given user's in token account
@@ -28,12 +36,17 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
         ctx.accounts
             .pool
             .calc_rounded_amount(amount_in.unwrap(), token_in_index)
+            .unwrap()
     } else {
         // it does not round down so that intermediate token accounts can be closed after multi-hop swap
         get_token_balance(&ctx.accounts.user_token_in.to_account_info())?
     };
 
-    let balance_in = ctx.accounts.pool.calc_wrapped_amount(amount_in, token_in_index);
+    let balance_in = ctx
+        .accounts
+        .pool
+        .calc_wrapped_amount(amount_in, token_in_index)
+        .unwrap();
     let balance_out_without_fee = weighted_math::calc_out_given_in(
         ctx.accounts.pool.tokens[token_in_index].balance,
         ctx.accounts.pool.tokens[token_in_index].weight,
@@ -64,13 +77,15 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
     let amount_out = ctx
         .accounts
         .pool
-        .calc_unwrapped_amount(amount_out_balance, token_out_index);
+        .calc_unwrapped_amount(amount_out_balance, token_out_index)
+        .unwrap();
     require!(amount_out >= minimum_amount_out, SwapError::SlippageOutOfRange);
 
     let beneficiary_fees = ctx
         .accounts
         .pool
-        .calc_unwrapped_amount(beneficiary_fees_balance, token_out_index);
+        .calc_unwrapped_amount(beneficiary_fees_balance, token_out_index)
+        .unwrap();
 
     // add in token balance
     ctx.accounts.pool.tokens[token_in_index].balance += balance_in;
@@ -78,7 +93,8 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
     ctx.accounts.pool.tokens[token_out_index].balance -= ctx
         .accounts
         .pool
-        .calc_wrapped_amount(amount_out + beneficiary_fees, token_out_index);
+        .calc_wrapped_amount(amount_out + beneficiary_fees, token_out_index)
+        .unwrap();
 
     ctx.accounts.pool.emit_balance_updated_event();
 

@@ -43,80 +43,82 @@ pub struct Pool {
 impl Pool {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
-    pub fn get_amplification(&self) -> u64 {
+    pub fn get_amplification(&self) -> Option<u64> {
         let current_ts = Clock::get().unwrap().unix_timestamp;
         let amp_initial_factor = self.amp_initial_factor as u64;
         let amp_target_factor = self.amp_target_factor as u64;
 
         // No need to use checked arithmetic
-        if current_ts <= self.ramp_start_ts {
+        let amp = if current_ts <= self.ramp_start_ts {
             amp_initial_factor.saturating_mul(stable_math::AMP_PRECISION)
         } else if current_ts >= self.ramp_stop_ts {
             amp_target_factor.saturating_mul(stable_math::AMP_PRECISION)
         } else {
-            let ramp_elapsed = current_ts.saturating_sub(self.ramp_start_ts) as u64 / 60 * 60;
+            let ramp_elapsed = (current_ts.saturating_sub(self.ramp_start_ts) as u64)
+                .checked_div(60)?
+                .checked_mul(60)?;
             let ramp_duration = self.ramp_stop_ts.saturating_sub(self.ramp_start_ts) as u64;
             if amp_initial_factor <= amp_target_factor {
                 let amp_offset = (amp_target_factor.saturating_sub(amp_initial_factor))
                     .saturating_mul(stable_math::AMP_PRECISION)
-                    .checked_mul_div_down(ramp_elapsed, ramp_duration)
-                    .unwrap();
+                    .checked_mul_div_down(ramp_elapsed, ramp_duration)?;
                 amp_initial_factor
                     .saturating_mul(stable_math::AMP_PRECISION)
                     .saturating_add(amp_offset)
             } else {
                 let amp_offset = (amp_initial_factor.saturating_sub(amp_target_factor))
                     .saturating_mul(stable_math::AMP_PRECISION)
-                    .checked_mul_div_down(ramp_elapsed, ramp_duration)
-                    .unwrap();
+                    .checked_mul_div_down(ramp_elapsed, ramp_duration)?;
                 amp_initial_factor
                     .saturating_mul(stable_math::AMP_PRECISION)
                     .saturating_sub(amp_offset)
             }
-        }
+        };
+
+        Some(amp)
     }
 
     pub fn get_balances(&self) -> Vec<u64> {
         self.tokens.iter().map(|token| token.balance).collect()
     }
 
-    pub fn get_token_index(&self, mint: Pubkey) -> usize {
-        self.tokens
-            .iter()
-            .enumerate()
-            .find(|(_, token)| token.mint == mint)
-            .unwrap()
-            .0
+    pub fn get_token_index(&self, mint: Pubkey) -> Option<usize> {
+        self.tokens.iter().position(|token| token.mint == mint)
     }
 
     /// scaling up/down from token amount to wrapped balance amount
-    pub fn calc_wrapped_amount(&self, amount: u64, token_index: usize) -> u64 {
-        if self.tokens[token_index].scaling_factor == 1 {
-            amount
-        } else if self.tokens[token_index].scaling_up {
-            amount * self.tokens[token_index].scaling_factor
+    pub fn calc_wrapped_amount(&self, amount: u64, token_index: usize) -> Option<u64> {
+        let pool_token = self.tokens.get(token_index)?;
+        if pool_token.scaling_factor == 1 {
+            Some(amount)
+        } else if pool_token.scaling_up {
+            amount.checked_mul(pool_token.scaling_factor)
         } else {
-            amount / self.tokens[token_index].scaling_factor
+            amount.checked_div(pool_token.scaling_factor)
         }
     }
 
     /// scaling up/down from wrapped balance amount to token amount
-    pub fn calc_unwrapped_amount(&self, amount: u64, token_index: usize) -> u64 {
-        if self.tokens[token_index].scaling_factor == 1 {
-            amount
-        } else if self.tokens[token_index].scaling_up {
-            amount / self.tokens[token_index].scaling_factor
+    pub fn calc_unwrapped_amount(&self, amount: u64, token_index: usize) -> Option<u64> {
+        let pool_token = self.tokens.get(token_index)?;
+        if pool_token.scaling_factor == 1 {
+            Some(amount)
+        } else if pool_token.scaling_up {
+            amount.checked_div(pool_token.scaling_factor)
         } else {
-            amount * self.tokens[token_index].scaling_factor
+            amount.checked_mul(pool_token.scaling_factor)
         }
     }
 
     /// round down token amount not to send the lost amount from wrapped balance amount when it scaled down
-    pub fn calc_rounded_amount(&self, amount: u64, token_index: usize) -> u64 {
-        if self.tokens[token_index].scaling_up {
-            amount
+    pub fn calc_rounded_amount(&self, amount: u64, token_index: usize) -> Option<u64> {
+        let pool_token = self.tokens.get(token_index)?;
+        if pool_token.scaling_up {
+            Some(amount)
         } else {
-            amount / self.tokens[token_index].scaling_factor * self.tokens[token_index].scaling_factor
+            amount
+                .checked_div(pool_token.scaling_factor)?
+                .checked_mul(pool_token.scaling_factor)
         }
     }
 }

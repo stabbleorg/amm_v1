@@ -14,6 +14,7 @@ pub fn process_change_amp_factor(ctx: Context<OwnerOnly>, new_amp_factor: u16, r
         ctx.accounts
             .pool
             .get_amplification()
+            .unwrap()
             .checked_div_up(stable_math::AMP_PRECISION)
             .unwrap(),
     )
