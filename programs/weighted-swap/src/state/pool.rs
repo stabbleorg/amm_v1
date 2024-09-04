@@ -49,43 +49,43 @@ impl Pool {
         self.tokens.iter().map(|token| token.balance).collect()
     }
 
-    pub fn get_token_index(&self, mint: Pubkey) -> usize {
-        self.tokens
-            .iter()
-            .enumerate()
-            .find(|(_, token)| token.mint == mint)
-            .unwrap()
-            .0
+    pub fn get_token_index(&self, mint: Pubkey) -> Option<usize> {
+        self.tokens.iter().position(|token| token.mint == mint)
     }
 
     /// scaling up/down from token amount to wrapped balance amount
-    pub fn calc_wrapped_amount(&self, amount: u64, token_index: usize) -> u64 {
-        if self.tokens[token_index].scaling_factor == 1 {
-            amount
-        } else if self.tokens[token_index].scaling_up {
-            amount * self.tokens[token_index].scaling_factor
+    pub fn calc_wrapped_amount(&self, amount: u64, token_index: usize) -> Option<u64> {
+        let pool_token = self.tokens.get(token_index)?;
+        if pool_token.scaling_factor == 1 {
+            Some(amount)
+        } else if pool_token.scaling_up {
+            amount.checked_mul(pool_token.scaling_factor)
         } else {
-            amount / self.tokens[token_index].scaling_factor
+            amount.checked_div(pool_token.scaling_factor)
         }
     }
 
     /// scaling up/down from wrapped balance amount to token amount
-    pub fn calc_unwrapped_amount(&self, amount: u64, token_index: usize) -> u64 {
-        if self.tokens[token_index].scaling_factor == 1 {
-            amount
-        } else if self.tokens[token_index].scaling_up {
-            amount / self.tokens[token_index].scaling_factor
+    pub fn calc_unwrapped_amount(&self, amount: u64, token_index: usize) -> Option<u64> {
+        let pool_token = self.tokens.get(token_index)?;
+        if pool_token.scaling_factor == 1 {
+            Some(amount)
+        } else if pool_token.scaling_up {
+            amount.checked_div(pool_token.scaling_factor)
         } else {
-            amount * self.tokens[token_index].scaling_factor
+            amount.checked_mul(pool_token.scaling_factor)
         }
     }
 
     /// round down token amount not to send the lost amount from wrapped balance amount when it scaled down
-    pub fn calc_rounded_amount(&self, amount: u64, token_index: usize) -> u64 {
-        if self.tokens[token_index].scaling_up {
-            amount
+    pub fn calc_rounded_amount(&self, amount: u64, token_index: usize) -> Option<u64> {
+        let pool_token = self.tokens.get(token_index)?;
+        if pool_token.scaling_up {
+            Some(amount)
         } else {
-            amount / self.tokens[token_index].scaling_factor * self.tokens[token_index].scaling_factor
+            amount
+                .checked_div(pool_token.scaling_factor)?
+                .checked_mul(pool_token.scaling_factor)
         }
     }
 }

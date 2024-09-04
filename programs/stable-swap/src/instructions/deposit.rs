@@ -21,7 +21,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
     }
 
-    let amplification = ctx.accounts.pool.get_amplification();
+    let amplification = ctx.accounts.pool.get_amplification().unwrap();
 
     // LP amount
     let amount_out = if ctx.accounts.mint.supply == 0 {
@@ -57,7 +57,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         // do_join
         if num_tokens == 1 {
             let mint = get_token_mint(&ctx.remaining_accounts[0])?;
-            let token_index = ctx.accounts.pool.get_token_index(mint);
+            let token_index = ctx.accounts.pool.get_token_index(mint).unwrap();
             let balance_in = ctx
                 .accounts
                 .transfer_to_vault(
@@ -151,8 +151,8 @@ impl<'info> Deposit<'info> {
         user_account: &AccountInfo<'info>,
         vault_account: &AccountInfo<'info>,
     ) -> Result<u64> {
-        let amount_in = self.pool.calc_rounded_amount(amount, token_index);
-        let balance_in = self.pool.calc_wrapped_amount(amount_in, token_index);
+        let amount_in = self.pool.calc_rounded_amount(amount, token_index).unwrap();
+        let balance_in = self.pool.calc_wrapped_amount(amount_in, token_index).unwrap();
         // add token balances
         self.pool.tokens[token_index].balance += balance_in;
 

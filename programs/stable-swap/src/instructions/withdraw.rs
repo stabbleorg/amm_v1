@@ -23,17 +23,17 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
     }
 
-    let amplification = ctx.accounts.pool.get_amplification();
+    let amplification = ctx.accounts.pool.get_amplification().unwrap();
     let balances = ctx.accounts.pool.get_balances();
     let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
     if num_tokens == 1 {
         let mint = get_token_mint(&ctx.remaining_accounts[0])?;
-        let token_index = ctx.accounts.pool.get_token_index(mint);
+        let token_index = ctx.accounts.pool.get_token_index(mint).unwrap();
         let balance_out = stable_math::calc_token_out_given_exact_pool_token_in(
             amplification,
             &balances,
-            ctx.accounts.pool.get_token_index(mint),
+            token_index,
             amount,
             ctx.accounts.mint.supply,
             current_invariant,
@@ -41,10 +41,15 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         )
         .unwrap();
 
-        let amount_out = ctx.accounts.pool.calc_unwrapped_amount(balance_out, token_index);
+        let amount_out = ctx
+            .accounts
+            .pool
+            .calc_unwrapped_amount(balance_out, token_index)
+            .unwrap();
         assert!(amount_out >= minimum_amounts_out[0]); // check slippage
 
-        ctx.accounts.pool.tokens[token_index].balance -= ctx.accounts.pool.calc_wrapped_amount(amount_out, token_index);
+        ctx.accounts.pool.tokens[token_index].balance -=
+            ctx.accounts.pool.calc_wrapped_amount(amount_out, token_index).unwrap();
 
         ctx.accounts
             .transfer_to_user(amount_out, &ctx.remaining_accounts[0], &ctx.remaining_accounts[1])?;
@@ -59,11 +64,12 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             let amount_out = ctx
                 .accounts
                 .pool
-                .calc_unwrapped_amount(balances_out[token_index], token_index);
+                .calc_unwrapped_amount(balances_out[token_index], token_index)
+                .unwrap();
             assert!(amount_out >= minimum_amounts_out[token_index]); // check slippage
 
             ctx.accounts.pool.tokens[token_index].balance -=
-                ctx.accounts.pool.calc_wrapped_amount(amount_out, token_index);
+                ctx.accounts.pool.calc_wrapped_amount(amount_out, token_index).unwrap();
 
             ctx.accounts.transfer_to_user(
                 amount_out,
