@@ -2,13 +2,20 @@ import bs58 from "bs58";
 import { BorshInstructionCoder, Instruction } from "@coral-xyz/anchor";
 import {
   DecodedTransferInstruction,
+  TOKEN_PROGRAM_ID,
   decodeBurnInstruction,
   decodeMintToInstruction,
   decodeTransferInstruction,
   getMultipleAccounts,
 } from "@solana/spl-token";
-import { AddressLookupTableAccount, Connection, PublicKey, TransactionSignature } from "@solana/web3.js";
-import { WeightedSwapProgram, StableSwapProgram } from "@stabbleorg/amm-sdk";
+import {
+  AddressLookupTableAccount,
+  CompiledInstruction,
+  Connection,
+  PublicKey,
+  TransactionSignature,
+} from "@solana/web3.js";
+import { WeightedSwapProgram, StableSwapProgram, AMM_VAULT_ID } from "@stabbleorg/amm-sdk";
 import { ParseInstructionArgs } from "@stabbleorg/anchor-contrib";
 
 export type InitializedPool = {
@@ -87,51 +94,93 @@ export class SwapParser {
     }
 
     for (const [i, compiledInstruction] of data.transaction.message.compiledInstructions.entries()) {
-      if (!accountKeys.get(compiledInstruction.programIdIndex)?.equals(this.program.programId)) continue;
-
       const keyIndexes = compiledInstruction.accountKeyIndexes;
       const instructions = data.meta?.innerInstructions?.find(({ index }) => index === i)?.instructions;
-      const instructionMeta = this.coder.decode(Buffer.from(compiledInstruction.data));
 
-      if (instructionMeta) {
-        switch (instructionMeta.name) {
-          case "initialize":
+      if (accountKeys.get(compiledInstruction.programIdIndex)?.equals(this.program.programId)) {
+        const instructionMeta = this.coder.decode(Buffer.from(compiledInstruction.data));
+        if (instructionMeta) {
+          switch (instructionMeta.name) {
+            case "initialize":
+              result.push({
+                meta: instructionMeta,
+                ...this.parseInitializeInstruction({ accountKeys, keyIndexes }),
+              });
+              break;
+            case "shutdown":
+              result.push({
+                meta: instructionMeta,
+                address: accountKeys.get(keyIndexes[1])!.toBase58(),
+              });
+              break;
+            case "deposit":
+              result.push({
+                meta: instructionMeta,
+                ...(await this.parseDepositInstruction({ accountKeys, keyIndexes, instructions })),
+                referrer,
+              });
+              break;
+            case "withdraw":
+              result.push({
+                meta: instructionMeta,
+                ...(await this.parseWithdrawInstruction({ accountKeys, keyIndexes, instructions })),
+              });
+              break;
+            case "swap":
+              result.push({
+                meta: instructionMeta,
+                ...(await this.parseSwapInstruction({ accountKeys, keyIndexes, instructions })),
+                referrer,
+              });
+              break;
+            default:
+              result.push({
+                meta: instructionMeta,
+              });
+              break;
+          }
+        }
+      } else if (instructions) {
+        const cpiSwapInstructions: CompiledInstruction[][] = [];
+
+        let i = 0;
+        while (i < instructions.length) {
+          const instruction = instructions[i];
+          if (accountKeys.get(instruction.programIdIndex)?.equals(this.program.programId)) {
+            const transferA = instructions[i + 1];
+            if (accountKeys.get(transferA.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
+              const withdrawVault = instructions[i + 2];
+              if (accountKeys.get(withdrawVault.programIdIndex)?.equals(AMM_VAULT_ID)) {
+                const transferB = instructions[i + 3];
+                if (accountKeys.get(transferB.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
+                  const transferC = instructions[i + 4];
+                  if (accountKeys.get(transferC.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
+                    cpiSwapInstructions.push([instruction, transferA, withdrawVault, transferB, transferC]);
+                    i += 4;
+                  } else {
+                    cpiSwapInstructions.push([instruction, transferA, withdrawVault, transferB]);
+                    i += 3;
+                  }
+                }
+              }
+            }
+          }
+          i++;
+        }
+
+        for (const instructions of cpiSwapInstructions) {
+          const anchorMeta = this.coder.decode(Buffer.from(bs58.decode(instructions[0].data)));
+          if (anchorMeta && anchorMeta.name === "swap") {
             result.push({
-              meta: instructionMeta,
-              ...this.parseInitializeInstruction({ accountKeys, keyIndexes }),
-            });
-            break;
-          case "shutdown":
-            result.push({
-              meta: instructionMeta,
-              address: accountKeys.get(keyIndexes[1])!.toBase58(),
-            });
-            break;
-          case "deposit":
-            result.push({
-              meta: instructionMeta,
-              ...(await this.parseDepositInstruction({ accountKeys, keyIndexes, instructions })),
+              meta: anchorMeta,
+              ...(await this.parseSwapInstruction({
+                accountKeys,
+                keyIndexes: instructions[0].accounts,
+                instructions: instructions.slice(1),
+              })),
               referrer,
             });
-            break;
-          case "withdraw":
-            result.push({
-              meta: instructionMeta,
-              ...(await this.parseWithdrawInstruction({ accountKeys, keyIndexes, instructions })),
-            });
-            break;
-          case "swap":
-            result.push({
-              meta: instructionMeta,
-              ...(await this.parseSwapInstruction({ accountKeys, keyIndexes, instructions })),
-              referrer,
-            });
-            break;
-          default:
-            result.push({
-              meta: instructionMeta,
-            });
-            break;
+          }
         }
       }
     }
