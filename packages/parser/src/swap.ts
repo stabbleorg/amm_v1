@@ -148,13 +148,13 @@ export class SwapParser {
           const instruction = instructions[i];
           if (accountKeys.get(instruction.programIdIndex)?.equals(this.program.programId)) {
             const transferA = instructions[i + 1];
-            if (accountKeys.get(transferA.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
+            if (transferA && accountKeys.get(transferA.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
               const withdrawVault = instructions[i + 2];
-              if (accountKeys.get(withdrawVault.programIdIndex)?.equals(AMM_VAULT_ID)) {
+              if (withdrawVault && accountKeys.get(withdrawVault.programIdIndex)?.equals(AMM_VAULT_ID)) {
                 const transferB = instructions[i + 3];
-                if (accountKeys.get(transferB.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
+                if (transferB && accountKeys.get(transferB.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
                   const transferC = instructions[i + 4];
-                  if (accountKeys.get(transferC.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
+                  if (transferC && accountKeys.get(transferC.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
                     cpiSwapInstructions.push([instruction, transferA, withdrawVault, transferB, transferC]);
                     i += 4;
                   } else {

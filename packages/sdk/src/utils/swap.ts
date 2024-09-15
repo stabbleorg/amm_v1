@@ -9,6 +9,7 @@ export type BatchSwapRoute = {
   pool: Pool<StablePoolData | WeightedPoolData>;
   mintInAddress: PublicKey;
   mintOutAddress: PublicKey;
+  amountOut: FloatLike;
 };
 
 export type SwapArgs = {
@@ -310,8 +311,8 @@ export class Swap {
       );
     if (pools_R0.length > 0) {
       const pool = pools_R0[0];
-      routes = [{ pool, mintInAddress, mintOutAddress }];
       amountOut = pool.getSwapAmountOut(mintInAddress, mintOutAddress, amountIn);
+      routes = [{ pool, mintInAddress, mintOutAddress, amountOut }];
     }
 
     if (maxDepth > 1) {
@@ -336,8 +337,8 @@ export class Swap {
               if (t2.mintAddress.equals(mintOutAddress)) {
                 if (amountOut_R2 > amountOut) {
                   routes = [
-                    { pool: r1, mintInAddress, mintOutAddress: t1.mintAddress },
-                    { pool: r2, mintInAddress: t1.mintAddress, mintOutAddress },
+                    { pool: r1, mintInAddress, mintOutAddress: t1.mintAddress, amountOut: amountOut_R1 },
+                    { pool: r2, mintInAddress: t1.mintAddress, mintOutAddress, amountOut: amountOut_R2 },
                   ];
                   amountOut = amountOut_R2;
                 }
@@ -354,9 +355,9 @@ export class Swap {
                   const amountOut_R3 = r3.getSwapAmountOut(t2.mintAddress, mintOutAddress, amountOut_R2);
                   if (amountOut_R3 > amountOut) {
                     routes = [
-                      { pool: r1, mintInAddress, mintOutAddress: t1.mintAddress },
-                      { pool: r2, mintInAddress: t1.mintAddress, mintOutAddress: t2.mintAddress },
-                      { pool: r3, mintInAddress: t2.mintAddress, mintOutAddress },
+                      { pool: r1, mintInAddress, mintOutAddress: t1.mintAddress, amountOut: amountOut_R1 },
+                      { pool: r2, mintInAddress: t1.mintAddress, mintOutAddress: t2.mintAddress, amountOut: amountOut_R2 },
+                      { pool: r3, mintInAddress: t2.mintAddress, mintOutAddress, amountOut: amountOut_R3 },
                     ];
                     amountOut = amountOut_R3;
                   }
