@@ -977,10 +977,10 @@
     rpc-websockets "^9.0.2"
     superstruct "^1.0.4"
 
-"@stabbleorg/anchor-contrib@^1.4.3":
-  version "1.4.3"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-1.4.3.tgz#30ad957a189474b75c5395ca9d52d0860ecfe965"
-  integrity sha512-aG1wAQCQ1BNHEIThqxnBxZcCk6BOQSStdt/pVchRuCyw36s7Xeqib/DLwIthGVdYkuWGmS6eCaVIyyPunXPGkQ==
+"@stabbleorg/anchor-contrib@^1.4.6":
+  version "1.4.6"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-1.4.6.tgz#32b876b7af7a09d4e8e1daba908154072b3948f8"
+  integrity sha512-bAUm/CHwteFhKoWcjHoPpDqUG2F+a+zCLD+YVfYo7vSIGn4oCdEeGec49HAx1a49Q+9o6J1Q03pmAPAHXgGYoQ==
   dependencies:
     "@coral-xyz/anchor" "^0.30.1"
     "@solana/spl-token" "^0.3.11"
@@ -1001,10 +1001,10 @@
   dependencies:
     tslib "^2.4.0"
 
-"@types/bn.js@^5.1.0", "@types/bn.js@^5.1.5":
-  version "5.1.5"
-  resolved "https://registry.yarnpkg.com/@types/bn.js/-/bn.js-5.1.5.tgz#2e0dacdcce2c0f16b905d20ff87aedbc6f7b4bf0"
-  integrity sha512-V46N0zwKRF5Q00AZ6hWtN0T8gGmDUaUzLWQvHFo5yThtVwK/VCenFY3wXVbOvNfajEpsTfQM4IN9k/d6gUVX3A==
+"@types/bn.js@^5.1.6":
+  version "5.1.6"
+  resolved "https://registry.yarnpkg.com/@types/bn.js/-/bn.js-5.1.6.tgz#9ba818eec0c85e4d3c679518428afdf611d03203"
+  integrity sha512-Xh8vSwUeMKeYYrj3cX4lGQgFSF/N03r+tv4AiLl1SucqV+uTQpxRcnM8AkXKHwYP9ZPXOYXRr2KPXpVlIvqh9w==
   dependencies:
     "@types/node" "*"
 
