@@ -93,7 +93,8 @@ export class SwapParser {
       referrer = Buffer.from(memo.data).toString("utf-8");
     }
 
-    for (const [i, compiledInstruction] of data.transaction.message.compiledInstructions.entries()) {
+    let i = 0;
+    for (const compiledInstruction of data.transaction.message.compiledInstructions) {
       const keyIndexes = compiledInstruction.accountKeyIndexes;
       const instructions = data.meta?.innerInstructions?.find(({ index }) => index === i)?.instructions;
 
@@ -143,29 +144,29 @@ export class SwapParser {
       } else if (instructions) {
         const cpiSwapInstructions: CompiledInstruction[][] = [];
 
-        let i = 0;
-        while (i < instructions.length) {
-          const instruction = instructions[i];
+        let j = 0;
+        while (j < instructions.length) {
+          const instruction = instructions[j];
           if (accountKeys.get(instruction.programIdIndex)?.equals(this.program.programId)) {
-            const transferA = instructions[i + 1];
+            const transferA = instructions[j + 1];
             if (transferA && accountKeys.get(transferA.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
-              const withdrawVault = instructions[i + 2];
+              const withdrawVault = instructions[j + 2];
               if (withdrawVault && accountKeys.get(withdrawVault.programIdIndex)?.equals(AMM_VAULT_ID)) {
-                const transferB = instructions[i + 3];
+                const transferB = instructions[j + 3];
                 if (transferB && accountKeys.get(transferB.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
-                  const transferC = instructions[i + 4];
+                  const transferC = instructions[j + 4];
                   if (transferC && accountKeys.get(transferC.programIdIndex)?.equals(TOKEN_PROGRAM_ID)) {
                     cpiSwapInstructions.push([instruction, transferA, withdrawVault, transferB, transferC]);
-                    i += 4;
+                    j += 4;
                   } else {
                     cpiSwapInstructions.push([instruction, transferA, withdrawVault, transferB]);
-                    i += 3;
+                    j += 3;
                   }
                 }
               }
             }
           }
-          i++;
+          j++;
         }
 
         for (const instructions of cpiSwapInstructions) {
@@ -183,6 +184,8 @@ export class SwapParser {
           }
         }
       }
+
+      i++;
     }
 
     return result;

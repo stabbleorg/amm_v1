@@ -356,7 +356,12 @@ export class Swap {
                   if (amountOut_R3 > amountOut) {
                     routes = [
                       { pool: r1, mintInAddress, mintOutAddress: t1.mintAddress, amountOut: amountOut_R1 },
-                      { pool: r2, mintInAddress: t1.mintAddress, mintOutAddress: t2.mintAddress, amountOut: amountOut_R2 },
+                      {
+                        pool: r2,
+                        mintInAddress: t1.mintAddress,
+                        mintOutAddress: t2.mintAddress,
+                        amountOut: amountOut_R2,
+                      },
                       { pool: r3, mintInAddress: t2.mintAddress, mintOutAddress, amountOut: amountOut_R3 },
                     ];
                     amountOut = amountOut_R3;

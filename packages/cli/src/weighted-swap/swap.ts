@@ -33,7 +33,9 @@ export function swap(program: Command) {
         const pool = await weightedSwap.loadPool(poolK);
 
         const amountOut = pool.getSwapAmountOut(mintInK, mintOutK, amount);
-        for (const [index, balance] of pool.balances.entries()) {
+
+        let index = 0;
+        for (const balance of pool.balances) {
           console.log("Balance[%d]: %f", index, balance);
           console.log(
             "Tick[%d]: %f, %s",
@@ -41,6 +43,7 @@ export function swap(program: Command) {
             pool.data.tokens[index].scalingFactor,
             pool.data.tokens[index].scalingUp,
           );
+          index++;
         }
         console.log("Invariant:", pool.invariant);
         console.log("Exchange rate:", amountOut / amount);

@@ -205,7 +205,8 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       await this.getOrCreateAssociatedTokenAddressInstruction(pool.mintAddress);
     if (createUserPoolTokenInstruction) instructions.push(createUserPoolTokenInstruction);
 
-    for (const [index, mintAddress] of mintAddresses.entries()) {
+    let index = 0;
+    for (const mintAddress of mintAddresses) {
       if (mintAddress.equals(NATIVE_MINT)) {
         const keypair = Keypair.generate();
         signers.push(keypair);
@@ -221,6 +222,8 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
 
       const vaultTokenAddress = pool.vault.getAuthorityTokenAddress(mintAddress);
       vaultRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: vaultTokenAddress });
+
+      index++;
     }
 
     instructions.push(
