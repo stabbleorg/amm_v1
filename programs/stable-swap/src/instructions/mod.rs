@@ -13,5 +13,8 @@ pub use withdraw::*;
 pub mod swap;
 pub use swap::*;
 
+pub mod amp_factor;
+pub use amp_factor::*;
+
 pub mod config;
 pub use config::*;

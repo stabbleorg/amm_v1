@@ -1,32 +1,7 @@
 use crate::state::*;
 use anchor_common::validate::*;
 use anchor_lang::prelude::*;
-use bn::safe_math::CheckedDivCeil;
 use math::stable_math;
-
-pub fn process_change_amp_factor(ctx: Context<OwnerOnly>, new_amp_factor: u16, ramp_duration: u32) -> Result<()> {
-    assert_ne!(ctx.accounts.pool.amp_target_factor, new_amp_factor);
-    assert_ne!(ramp_duration, 0);
-    assert!(new_amp_factor >= stable_math::MIN_AMP);
-    assert!(new_amp_factor <= stable_math::MAX_AMP);
-
-    ctx.accounts.pool.amp_initial_factor = u16::try_from(
-        ctx.accounts
-            .pool
-            .get_amplification()
-            .unwrap()
-            .checked_div_up(stable_math::AMP_PRECISION)
-            .unwrap(),
-    )
-    .unwrap();
-    ctx.accounts.pool.amp_target_factor = new_amp_factor;
-    ctx.accounts.pool.ramp_start_ts = Clock::get().unwrap().unix_timestamp;
-    ctx.accounts.pool.ramp_stop_ts = ctx.accounts.pool.ramp_start_ts + ramp_duration as i64;
-
-    ctx.accounts.pool.emit_updated_event();
-
-    Ok(())
-}
 
 pub fn process_change_swap_fee(ctx: Context<OwnerOnly>, new_swap_fee: u64) -> Result<()> {
     assert_ne!(ctx.accounts.pool.swap_fee, new_swap_fee);
