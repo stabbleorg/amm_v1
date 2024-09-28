@@ -84,7 +84,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
         .pool
         .calc_unwrapped_amount(amount_out_balance, token_out_index)
         .unwrap();
-    require!(amount_out >= minimum_amount_out, SwapError::SlippageOutOfRange);
+    require_gte!(amount_out, minimum_amount_out, SwapError::SlippageExceeded);
 
     let beneficiary_fees = ctx
         .accounts

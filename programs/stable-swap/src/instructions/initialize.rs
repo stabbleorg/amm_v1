@@ -1,7 +1,7 @@
 use crate::state::*;
 use anchor_common::validate::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
+use anchor_spl::token_interface::Mint;
 use bn::safe_math::CheckedDivCeil;
 use math::{fixed_math, stable_math};
 use vault::state::Vault;
@@ -84,7 +84,7 @@ impl<'info> Validate<'info> for Initialize<'info> {
 pub struct Initialize<'info> {
     pub owner: Signer<'info>,
 
-    pub mint: Account<'info, Mint>,
+    pub mint: InterfaceAccount<'info, Mint>,
 
     #[account(zero, rent_exempt = enforce)]
     pub pool: Account<'info, Pool>,

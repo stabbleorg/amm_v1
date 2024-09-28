@@ -7,6 +7,7 @@ import {
   MintLayout,
   NATIVE_MINT,
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   createInitializeMint2Instruction,
   createSetAuthorityInstruction,
   unpackMint,
@@ -244,8 +245,13 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
           vault: pool.vault.address,
           vaultAuthority: pool.vault.authorityAddress,
           tokenProgram: TOKEN_PROGRAM_ID,
+          tokenProgram2022: null,
         })
-        .remainingAccounts([...userRemainingAccounts, ...vaultRemainingAccounts])
+        .remainingAccounts([
+          ...userRemainingAccounts,
+          ...vaultRemainingAccounts,
+          ...mintAddresses.map((pubkey) => ({ isSigner: false, isWritable: true, pubkey })),
+        ])
         .instruction(),
     );
 
@@ -314,8 +320,13 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
           vaultAuthority: pool.vault.authorityAddress,
           vaultProgram: AMM_VAULT_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
+          tokenProgram2022: null,
         })
-        .remainingAccounts([...userRemainingAccounts, ...vaultRemainingAccounts])
+        .remainingAccounts([
+          ...userRemainingAccounts,
+          ...vaultRemainingAccounts,
+          ...mintAddresses.map((pubkey) => ({ isSigner: false, isWritable: false, pubkey })),
+        ])
         .instruction(),
     );
 
@@ -455,8 +466,9 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     const instruction = await this.program.methods
       .changeAmpFactor(ampFactor, rampDuration)
       .accountsStrict({
-        owner: this.walletAddress,
+        admin: this.walletAddress,
         pool: pool.address,
+        vault: pool.vaultAddress,
       })
       .instruction();
 

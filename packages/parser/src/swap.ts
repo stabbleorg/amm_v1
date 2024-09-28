@@ -5,6 +5,7 @@ import {
   TOKEN_PROGRAM_ID,
   decodeBurnInstruction,
   decodeMintToInstruction,
+  decodeTransferCheckedInstruction,
   decodeTransferInstruction,
   getMultipleAccounts,
 } from "@solana/spl-token";
@@ -207,7 +208,7 @@ export class SwapParser {
     const transfers = instructions
       .slice(0, instructions.length - 1)
       .map((transferInstruction) =>
-        decodeTransferInstruction({
+        decodeTransferCheckedInstruction({
           programId: accountKeys.get(transferInstruction.programIdIndex)!,
           keys: transferInstruction.accounts.map((index) => ({
             pubkey: accountKeys.get(index)!,
@@ -262,7 +263,7 @@ export class SwapParser {
       .slice(0, instructions.length - 1)
       .filter((_, index) => index % 2 === 1)
       .map((transferInstruction) =>
-        decodeTransferInstruction({
+        decodeTransferCheckedInstruction({
           programId: accountKeys.get(transferInstruction.programIdIndex)!,
           keys: transferInstruction.accounts.map((index) => ({
             pubkey: accountKeys.get(index)!,

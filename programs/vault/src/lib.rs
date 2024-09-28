@@ -37,6 +37,15 @@ pub mod vault {
         process_withdraw(ctx, amount, beneficiary_amount)
     }
 
+    #[access_control(ctx.accounts.validate())]
+    pub fn withdraw_v2<'a, 'b, 'c, 'info>(
+        ctx: Context<'_, '_, '_, 'info, WithdrawV2<'info>>,
+        amount: u64,
+        beneficiary_amount: u64,
+    ) -> Result<()> {
+        process_withdraw_v2(ctx, amount, beneficiary_amount)
+    }
+
     /* Configuration */
 
     pub fn change_beneficiary_fee(ctx: Context<AdminOnly>, new_beneficiary_fee: u64) -> Result<()> {
