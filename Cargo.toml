@@ -18,5 +18,5 @@ anchor-lang = "0.30.1"
 anchor-spl = "0.30.1"
 anchor-common = { git = "https://github.com/stabbleorg/anchor-common.git" }
 solana-program = "1.18.23"
-bn = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "872facf38b06ccd5069ba42c363e333bc259e3ce" }
-math = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "872facf38b06ccd5069ba42c363e333bc259e3ce" }
+bn = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "f15d379afe801dec49e214e88ee14e01493c5a06" }
+math = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "f15d379afe801dec49e214e88ee14e01493c5a06" }
