@@ -1,13 +1,11 @@
 import BN from "bn.js";
 import { assert } from "chai";
 import { AnchorProvider, Provider } from "@coral-xyz/anchor";
-import { NATIVE_MINT } from "@solana/spl-token";
-import { Connection, Keypair, PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { AddressLookupTableAccount, AddressLookupTableProgram, Connection, PublicKey } from "@solana/web3.js";
 import {
   Vault,
   Pool,
-  WeightedPool,
-  StablePool,
   WeightedPoolData,
   StablePoolData,
   VaultContext,
@@ -25,6 +23,7 @@ import {
   DAI_MINT_KP,
   MSOL_MINT_KP,
   STB_MINT_KP,
+  PYUSD_MINT_KP,
 } from "./consts";
 
 describe("Multi-hop Swap", () => {
@@ -40,7 +39,6 @@ describe("Multi-hop Swap", () => {
 
   const guestProvider: Provider = { connection };
 
-  const vaultCtx = new VaultContext(provider);
   const weightedSwap = new WeightedSwapContext(provider);
   const stableSwap = new StableSwapContext(provider);
 
@@ -56,7 +54,17 @@ describe("Multi-hop Swap", () => {
   let weightedVault: Vault;
   let stableVault: Vault;
 
+  const altAccounts: AddressLookupTableAccount[] = [];
+
   before(async () => {
+    const lookupTable = AddressLookupTableProgram.createLookupTable({
+      authority: weightedSwap.walletAddress,
+      payer: weightedSwap.walletAddress,
+      recentSlot: await provider.connection.getSlot("finalized"),
+    });
+    await weightedSwap.sendSmartTransaction([lookupTable[0]]);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     const vaults = await guestVaultCtx.loadVaults();
     weightedVault = vaults.find((vault) => vault.address.equals(WEIGHTED_VAULT_KP.publicKey))!;
     stableVault = vaults.find((vault) => vault.address.equals(STABLE_VAULT_KP.publicKey))!;
@@ -72,6 +80,24 @@ describe("Multi-hop Swap", () => {
       const updatedPool = pools.find((pool) => event.pubkey.equals(pool.address));
       if (updatedPool) updatedPool.refreshData(event.data);
     });
+
+    await weightedSwap.sendSmartTransaction([
+      AddressLookupTableProgram.extendLookupTable({
+        lookupTable: lookupTable[1],
+        authority: weightedSwap.walletAddress,
+        payer: weightedSwap.walletAddress,
+        addresses: [
+          ...vaults.map((vault) => vault.address),
+          ...vaults.map((vault) => vault.authorityAddress),
+          ...pools.map((pool) => pool.address),
+          ...pools.map((pool) => pool.authorityAddress),
+          ...pools.flatMap((pool) => pool.tokens.map((token) => token.mintAddress)),
+        ],
+      }),
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const { value } = await provider.connection.getAddressLookupTable(lookupTable[1]);
+    if (value) altAccounts.push(value);
   });
 
   after(() => {
@@ -136,6 +162,7 @@ describe("Multi-hop Swap", () => {
       ],
       amountIn,
       minimumAmountOut,
+      altAccounts,
     });
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
@@ -206,6 +233,7 @@ describe("Multi-hop Swap", () => {
       ],
       amountIn,
       minimumAmountOut,
+      altAccounts,
     });
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
@@ -267,6 +295,7 @@ describe("Multi-hop Swap", () => {
       ],
       amountIn,
       minimumAmountOut,
+      altAccounts,
     });
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
@@ -316,40 +345,25 @@ describe("Multi-hop Swap", () => {
       weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
     );
 
-    const keypair0 = Keypair.generate();
-    {
-      // transfer WSOL first because transaction size is too big without Address Lookup Table
-      await weightedSwap.sendSmartTransaction(
-        [
-          ...weightedSwap.createTokenAccountInstructions(keypair0.publicKey),
-          ...weightedSwap.transferWSOLInstructions(keypair0.publicKey, amountIn),
-        ],
-        [keypair0],
-      );
-    }
-
-    const keypair = Keypair.generate();
-    const instructions: TransactionInstruction[] = [
-      ...weightedSwap.createTokenAccountInstructions(keypair.publicKey, USDC_MINT_KP.publicKey),
-      ...(await weightedSwap.swapInstructions({
-        pool: pool_SOL_USDC,
-        mintInAddress: NATIVE_MINT,
-        mintOutAddress: USDC_MINT_KP.publicKey,
-        amountIn,
-        tokenInAddress: keypair0.publicKey,
-        tokenOutAddress: keypair.publicKey,
-      })),
-      ...(await stableSwap.swapInstructions({
-        pool: pool_USDC_USDT,
-        mintInAddress: USDC_MINT_KP.publicKey,
-        mintOutAddress: USDT_MINT_KP.publicKey,
-        minimumAmountOut,
-        tokenInAddress: keypair.publicKey,
-      })),
-      weightedSwap.closeTokenAccountInstruction(keypair0.publicKey),
-      weightedSwap.closeTokenAccountInstruction(keypair.publicKey),
-    ];
-    await vaultCtx.sendSmartTransaction(instructions, [keypair]);
+    await Swap.batch({
+      weightedSwap,
+      stableSwap,
+      routes: [
+        {
+          pool: pool_SOL_USDC,
+          mintInAddress: NATIVE_MINT,
+          mintOutAddress: USDC_MINT_KP.publicKey,
+        },
+        {
+          pool: pool_USDC_USDT,
+          mintInAddress: USDC_MINT_KP.publicKey,
+          mintOutAddress: USDT_MINT_KP.publicKey,
+        },
+      ],
+      amountIn,
+      minimumAmountOut,
+      altAccounts,
+    });
 
     const { value: postBalance } = await provider.connection.getTokenAccountBalance(
       weightedSwap.getAssociatedTokenAddress(USDT_MINT_KP.publicKey),
@@ -404,10 +418,17 @@ describe("Multi-hop Swap", () => {
     );
 
     for (const address of Object.keys(balances)) {
-      const { value: balance } = await provider.connection.getTokenAccountBalance(
-        stableVault.getAuthorityTokenAddress(new PublicKey(address)),
-      );
-      assert.equal(balance.amount, balances[address].toString());
+      if (address === PYUSD_MINT_KP.publicKey.toBase58()) {
+        const { value: balance } = await provider.connection.getTokenAccountBalance(
+          stableVault.getAuthorityTokenAddress(new PublicKey(address), TOKEN_2022_PROGRAM_ID),
+        );
+        assert.equal(balance.amount, balances[address].toString());
+      } else {
+        const { value: balance } = await provider.connection.getTokenAccountBalance(
+          stableVault.getAuthorityTokenAddress(new PublicKey(address)),
+        );
+        assert.equal(balance.amount, balances[address].toString());
+      }
     }
   });
 });
