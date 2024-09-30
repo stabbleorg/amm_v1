@@ -3,10 +3,11 @@ use anchor_common::validate::*;
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token,
-    token::{accessor::mint as get_token_mint, mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer},
+    token::Token,
+    token_interface::{mint_to, transfer_checked, Mint, MintTo, Token2022, TokenAccount, TransferChecked},
 };
 use math::stable_math;
-use vault::{state::Vault, ID as VAULT_PROGRAM_ID};
+use vault::{error::SwapError, state::Vault, ID as VAULT_PROGRAM_ID};
 
 pub fn process_deposit<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
@@ -16,7 +17,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     let num_tokens = amounts.len();
 
     assert_ne!(num_tokens, 0);
-    assert_eq!(ctx.remaining_accounts.len(), num_tokens << 1); // amounts.len() * 2
+    assert_eq!(ctx.remaining_accounts.len(), num_tokens * 3);
     if num_tokens > 1 {
         assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
     }
@@ -28,6 +29,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         assert_ne!(num_tokens, 1);
         assert_eq!(ctx.accounts.user.key(), ctx.accounts.pool.owner);
 
+        let offset_mints = num_tokens + num_tokens;
+
         // initial liquidity
         stable_math::calc_invariant(
             amplification,
@@ -35,8 +38,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                 .iter()
                 .enumerate()
                 .map(|(token_index, &amount)| {
-                    let mint = get_token_mint(&ctx.remaining_accounts[token_index]).unwrap();
-                    assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint); // check token orders
+                    let mint = &ctx.remaining_accounts[token_index + offset_mints];
+                    assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint.key()); // check token orders
 
                     ctx.accounts
                         .transfer_to_vault(
@@ -44,6 +47,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                             token_index,
                             &ctx.remaining_accounts[token_index],
                             &ctx.remaining_accounts[token_index + num_tokens],
+                            mint,
                         )
                         .unwrap()
                 })
@@ -56,8 +60,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
 
         // do_join
         if num_tokens == 1 {
-            let mint = get_token_mint(&ctx.remaining_accounts[0])?;
-            let token_index = ctx.accounts.pool.get_token_index(mint).unwrap();
+            let mint = &ctx.remaining_accounts[2];
+            let token_index = ctx.accounts.pool.get_token_index(mint.key()).unwrap();
             let balance_in = ctx
                 .accounts
                 .transfer_to_vault(
@@ -65,6 +69,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     token_index,
                     &ctx.remaining_accounts[0],
                     &ctx.remaining_accounts[1],
+                    mint,
                 )
                 .unwrap();
 
@@ -84,6 +89,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
             )
             .unwrap()
         } else {
+            let offset_mints = num_tokens + num_tokens;
+
             stable_math::calc_pool_token_out_given_exact_tokens_in(
                 amplification,
                 &balances,
@@ -91,8 +98,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     .iter()
                     .enumerate()
                     .map(|(token_index, &amount)| {
-                        let mint = get_token_mint(&ctx.remaining_accounts[token_index]).unwrap();
-                        assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint); // check token orders
+                        let mint = &ctx.remaining_accounts[token_index + offset_mints];
+                        assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint.key()); // check token orders
 
                         ctx.accounts
                             .transfer_to_vault(
@@ -100,6 +107,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                                 token_index,
                                 &ctx.remaining_accounts[token_index],
                                 &ctx.remaining_accounts[token_index + num_tokens],
+                                mint,
                             )
                             .unwrap()
                     })
@@ -112,14 +120,20 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
         }
     };
 
-    assert!(amount_out >= minimum_amount_out); // check slippage
+    require_gte!(amount_out, minimum_amount_out, SwapError::SlippageExceeded);
 
     ctx.accounts.pool.emit_balance_updated_event();
 
     ctx.accounts.pool.authority_seeds(|signer_seed| {
+        let token_program = if ctx.accounts.mint.to_account_info().owner.key() == Token::id() {
+            ctx.accounts.token_program.to_account_info()
+        } else {
+            ctx.accounts.token_program_2022.to_account_info()
+        };
+
         mint_to(
             CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
+                token_program.to_account_info(),
                 MintTo {
                     mint: ctx.accounts.mint.to_account_info(),
                     to: ctx.accounts.user_pool_token.to_account_info(),
@@ -150,29 +164,39 @@ impl<'info> Deposit<'info> {
         token_index: usize,
         user_account: &AccountInfo<'info>,
         vault_account: &AccountInfo<'info>,
+        mint: &AccountInfo<'info>,
     ) -> Result<u64> {
         let amount_in = self.pool.calc_rounded_amount(amount, token_index).unwrap();
         let balance_in = self.pool.calc_wrapped_amount(amount_in, token_index).unwrap();
         // add token balances
         self.pool.tokens[token_index].balance += balance_in;
 
+        let token_program = if mint.owner.key() == Token::id() {
+            self.token_program.to_account_info()
+        } else {
+            self.token_program_2022.to_account_info()
+        };
+
         // check associated token account for vault
-        let expected_vault_account_key = associated_token::get_associated_token_address(
-            &self.vault_authority.key(),
-            &get_token_mint(vault_account)?,
+        let expected_vault_account_key = associated_token::get_associated_token_address_with_program_id(
+            self.vault_authority.key,
+            mint.key,
+            token_program.key,
         );
         assert_eq!(expected_vault_account_key, vault_account.key());
 
-        transfer(
+        transfer_checked(
             CpiContext::new(
-                self.token_program.to_account_info(),
-                Transfer {
+                token_program.to_account_info(),
+                TransferChecked {
                     from: user_account.to_account_info(),
+                    mint: mint.to_account_info(),
                     to: vault_account.to_account_info(),
                     authority: self.user.to_account_info(),
                 },
             ),
             amount_in,
+            self.pool.tokens[token_index].decimals,
         )?;
 
         Ok(balance_in)
@@ -182,12 +206,12 @@ impl<'info> Deposit<'info> {
 #[derive(Accounts)]
 pub struct Deposit<'info> {
     pub user: Signer<'info>,
-    /// CHECK: OK
-    #[account(mut)]
-    pub user_pool_token: Account<'info, TokenAccount>,
 
     #[account(mut)]
-    pub mint: Account<'info, Mint>,
+    pub user_pool_token: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub mint: InterfaceAccount<'info, Mint>,
 
     #[account(mut, has_one = vault, has_one = mint)]
     pub pool: Account<'info, Pool>,
@@ -201,4 +225,5 @@ pub struct Deposit<'info> {
     pub vault_authority: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
+    pub token_program_2022: Program<'info, Token2022>,
 }

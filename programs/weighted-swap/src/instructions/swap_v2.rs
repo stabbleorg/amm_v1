@@ -1,33 +1,29 @@
 use crate::state::*;
 use anchor_common::validate::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{
-    accessor::{amount as get_token_balance, authority as get_token_owner, mint as get_token_mint},
-    transfer, Token, TokenAccount, Transfer,
+use anchor_spl::{
+    associated_token,
+    token::{
+        accessor::{amount as get_token_balance, authority as get_token_owner, mint as get_token_mint},
+        Token,
+    },
+    token_interface::{transfer_checked, Mint, Token2022, TokenAccount, TransferChecked},
 };
 use math::{
     fixed_math::{FixedComplement, FixedMul},
     swap_fee_math, weighted_math,
 };
 use vault::{
-    cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
+    cpi::{accounts::WithdrawV2 as WithdrawVault, withdraw_v2 as withdraw_vault},
     error::SwapError,
     program::Vault as VaultProgram,
     state::{Vault, WithdrawAuthority},
     x_token,
 };
 
-pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
-    let token_in_index = ctx
-        .accounts
-        .pool
-        .get_token_index(ctx.accounts.vault_token_in.mint)
-        .unwrap();
-    let token_out_index = ctx
-        .accounts
-        .pool
-        .get_token_index(ctx.accounts.vault_token_out.mint)
-        .unwrap();
+pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
+    let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.mint_in.key()).unwrap();
+    let token_out_index = ctx.accounts.pool.get_token_index(ctx.accounts.mint_out.key()).unwrap();
     assert_ne!(token_in_index, token_out_index);
 
     // if amount_in is set to None, it will send full amount given user's in token account
@@ -39,7 +35,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
             .unwrap()
     } else {
         // it does not round down so that intermediate token accounts can be closed after multi-hop swap
-        get_token_balance(&ctx.accounts.user_token_in.to_account_info())?
+        ctx.accounts.user_token_in.amount
     };
 
     let balance_in = ctx
@@ -98,19 +94,34 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
 
     ctx.accounts.pool.emit_balance_updated_event();
 
-    transfer(
+    let mint_in = ctx.accounts.mint_in.to_account_info();
+    let token_program = if mint_in.owner.key() == Token::id() {
+        ctx.accounts.token_program.to_account_info()
+    } else {
+        ctx.accounts.token_2022_program.to_account_info()
+    };
+    transfer_checked(
         CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
+            token_program.to_account_info(),
+            TransferChecked {
                 from: ctx.accounts.user_token_in.to_account_info(),
+                mint: mint_in,
                 to: ctx.accounts.vault_token_in.to_account_info(),
                 authority: ctx.accounts.user.to_account_info(),
             },
         ),
         amount_in,
+        ctx.accounts.mint_in.decimals,
     )?;
 
     ctx.accounts.vault.withdraw_authority_seeds(|signer_seed| {
+        let mint_out = ctx.accounts.mint_out.to_account_info();
+        let token_program = if mint_out.owner.key() == Token::id() {
+            ctx.accounts.token_program.to_account_info()
+        } else {
+            ctx.accounts.token_2022_program.to_account_info()
+        };
+
         let cpi = CpiContext::new(
             ctx.accounts.vault_program.to_account_info(),
             WithdrawVault {
@@ -119,7 +130,9 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
                 vault_authority: ctx.accounts.vault_authority.to_account_info(),
                 vault_token: ctx.accounts.vault_token_out.to_account_info(),
                 dest_token: ctx.accounts.user_token_out.to_account_info(),
-                token_program: ctx.accounts.token_program.to_account_info(),
+                beneficiary_token: Some(ctx.accounts.beneficiary_token_out.to_account_info()),
+                mint: mint_out,
+                token_program,
             },
         );
 
@@ -136,35 +149,44 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
     })
 }
 
-impl<'info> Validate<'info> for Swap<'info> {
+impl<'info> Validate<'info> for SwapV2<'info> {
     fn validate(&self) -> Result<()> {
         assert!(self.vault.is_active);
         assert!(self.pool.is_active);
+
+        assert_eq!(
+            self.vault_token_in.key(),
+            associated_token::get_associated_token_address_with_program_id(
+                &self.vault_authority.key,
+                self.mint_in.to_account_info().key,
+                self.mint_in.to_account_info().owner,
+            )
+        );
 
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct Swap<'info> {
+pub struct SwapV2<'info> {
     pub user: Signer<'info>,
 
+    pub mint_in: InterfaceAccount<'info, Mint>,
     /// CHECK: OK
+    pub mint_out: UncheckedAccount<'info>,
+
     #[account(mut)]
-    pub user_token_in: UncheckedAccount<'info>,
+    pub user_token_in: InterfaceAccount<'info, TokenAccount>,
     /// CHECK: OK
     #[account(mut)]
     pub user_token_out: UncheckedAccount<'info>,
 
     /// CHECK: OK
-    #[account(mut,
-        associated_token::mint = vault_token_in.mint,
-        associated_token::authority = vault_authority,
-    )]
-    pub vault_token_in: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub vault_token_in: UncheckedAccount<'info>,
     /// CHECK: OK
     #[account(mut)]
-    pub vault_token_out: Account<'info, TokenAccount>,
+    pub vault_token_out: UncheckedAccount<'info>,
 
     /// CHECK: OK
     #[account(mut)]
@@ -172,11 +194,9 @@ pub struct Swap<'info> {
 
     #[account(mut, has_one = vault)]
     pub pool: Account<'info, Pool>,
-
     /// CHECK: OK
     pub withdraw_authority: UncheckedAccount<'info>,
 
-    #[account(has_one = withdraw_authority)]
     pub vault: Account<'info, Vault>,
     /// CHECK: checked in vault program
     pub vault_authority: UncheckedAccount<'info>,
@@ -184,4 +204,5 @@ pub struct Swap<'info> {
     pub vault_program: Program<'info, VaultProgram>,
 
     pub token_program: Program<'info, Token>,
+    pub token_2022_program: Program<'info, Token2022>,
 }

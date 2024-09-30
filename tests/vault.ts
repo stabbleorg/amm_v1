@@ -1,5 +1,5 @@
 import { AnchorProvider } from "@coral-xyz/anchor";
-import { createAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
+import { createAssociatedTokenAccount, createMint, mintTo, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { VaultContext } from "@stabbleorg/amm-sdk";
 import {
@@ -9,6 +9,7 @@ import {
   USDC_MINT_KP,
   USDT_MINT_KP,
   DAI_MINT_KP,
+  PYUSD_MINT_KP,
   MSOL_MINT_KP,
   STB_MINT_KP,
   BONK_MINT_KP,
@@ -61,6 +62,35 @@ describe("Vault", () => {
       await createAssociatedTokenAccount(provider.connection, MINT_AUTH_KP, DAI_MINT_KP.publicKey, provider.publicKey),
       MINT_AUTH_KP,
       BigInt("70000000000000"), // 700K
+    );
+
+    await createMint(
+      provider.connection,
+      MINT_AUTH_KP,
+      MINT_AUTH_KP.publicKey,
+      null,
+      6,
+      PYUSD_MINT_KP,
+      {},
+      TOKEN_2022_PROGRAM_ID,
+    );
+    await mintTo(
+      provider.connection,
+      MINT_AUTH_KP,
+      PYUSD_MINT_KP.publicKey,
+      await createAssociatedTokenAccount(
+        provider.connection,
+        MINT_AUTH_KP,
+        PYUSD_MINT_KP.publicKey,
+        provider.publicKey,
+        {},
+        TOKEN_2022_PROGRAM_ID,
+      ),
+      MINT_AUTH_KP,
+      BigInt("332000000000000"), // 332M
+      [],
+      {},
+      TOKEN_2022_PROGRAM_ID,
     );
 
     await createMint(provider.connection, MINT_AUTH_KP, MINT_AUTH_KP.publicKey, null, 9, MSOL_MINT_KP);
