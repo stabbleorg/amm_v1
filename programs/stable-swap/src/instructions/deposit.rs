@@ -126,9 +126,9 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
 
     ctx.accounts.pool.authority_seeds(|signer_seed| {
         let token_program = if ctx.accounts.mint.to_account_info().owner.key() == Token::id() {
-            ctx.accounts.token_program.as_ref().unwrap().to_account_info()
+            ctx.accounts.token_program.to_account_info()
         } else {
-            ctx.accounts.token_program_2022.as_ref().unwrap().to_account_info()
+            ctx.accounts.token_program_2022.to_account_info()
         };
 
         mint_to(
@@ -172,9 +172,9 @@ impl<'info> Deposit<'info> {
         self.pool.tokens[token_index].balance += balance_in;
 
         let token_program = if mint.owner.key() == Token::id() {
-            self.token_program.as_ref().unwrap().to_account_info()
+            self.token_program.to_account_info()
         } else {
-            self.token_program_2022.as_ref().unwrap().to_account_info()
+            self.token_program_2022.to_account_info()
         };
 
         // check associated token account for vault
@@ -224,6 +224,6 @@ pub struct Deposit<'info> {
     #[account(seeds = [Vault::AUTHORITY_PREFIX, &vault.key().to_bytes()], bump = vault.authority_bump, seeds::program = VAULT_PROGRAM_ID)]
     pub vault_authority: UncheckedAccount<'info>,
 
-    pub token_program: Option<Program<'info, Token>>,
-    pub token_program_2022: Option<Program<'info, Token2022>>,
+    pub token_program: Program<'info, Token>,
+    pub token_program_2022: Program<'info, Token2022>,
 }

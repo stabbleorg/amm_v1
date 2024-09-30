@@ -90,9 +90,9 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     ctx.accounts.pool.emit_balance_updated_event();
 
     let token_program = if ctx.accounts.mint.to_account_info().owner.key() == Token::id() {
-        ctx.accounts.token_program.as_ref().unwrap().to_account_info()
+        ctx.accounts.token_program.to_account_info()
     } else {
-        ctx.accounts.token_program_2022.as_ref().unwrap().to_account_info()
+        ctx.accounts.token_program_2022.to_account_info()
     };
 
     burn(
@@ -126,9 +126,9 @@ impl<'info> Withdraw<'info> {
         mint: &AccountInfo<'info>,
     ) -> Result<()> {
         let token_program = if mint.owner.key() == Token::id() {
-            self.token_program.as_ref().unwrap().to_account_info()
+            self.token_program.to_account_info()
         } else {
-            self.token_program_2022.as_ref().unwrap().to_account_info()
+            self.token_program_2022.to_account_info()
         };
 
         self.vault.withdraw_authority_seeds(|signer_seed| {
@@ -143,7 +143,7 @@ impl<'info> Withdraw<'info> {
                         dest_token: user_account.to_account_info(),
                         beneficiary_token: None,
                         mint: mint.to_account_info(),
-                        token_program: token_program.to_account_info(),
+                        token_program,
                     },
                 )
                 .with_signer(&[signer_seed]),
@@ -176,6 +176,6 @@ pub struct Withdraw<'info> {
 
     pub vault_program: Program<'info, VaultProgram>,
 
-    pub token_program: Option<Program<'info, Token>>,
-    pub token_program_2022: Option<Program<'info, Token2022>>,
+    pub token_program: Program<'info, Token>,
+    pub token_program_2022: Program<'info, Token2022>,
 }

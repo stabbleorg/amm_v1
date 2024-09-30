@@ -49,6 +49,11 @@ pub mod weighted_swap {
         process_swap(ctx, amount_in, minimum_amount_out)
     }
 
+    #[access_control(ctx.accounts.validate())]
+    pub fn swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
+        process_swap_v2(ctx, amount_in, minimum_amount_out)
+    }
+
     /* Configuration */
 
     pub fn change_swap_fee(ctx: Context<OwnerOnly>, new_swap_fee: u64) -> Result<()> {
