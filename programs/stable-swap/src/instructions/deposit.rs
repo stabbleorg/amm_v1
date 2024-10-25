@@ -1,5 +1,5 @@
 use crate::state::*;
-use anchor_common::validate::*;
+use anchor_common::{token::get_transfer_inverse_fee, validate::*};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token,
@@ -160,7 +160,7 @@ impl<'info> Validate<'info> for Deposit<'info> {
 impl<'info> Deposit<'info> {
     fn transfer_to_vault(
         &mut self,
-        amount: u64,
+        amount: u64, // amount after fee (Token2022)
         token_index: usize,
         user_account: &AccountInfo<'info>,
         vault_account: &AccountInfo<'info>,
@@ -185,6 +185,8 @@ impl<'info> Deposit<'info> {
         );
         assert_eq!(expected_vault_account_key, vault_account.key());
 
+        let transfer_fee = get_transfer_inverse_fee(mint, amount_in, Clock::get()?.epoch)?;
+        let amount_in = amount_in + transfer_fee;
         transfer_checked(
             CpiContext::new(
                 token_program.to_account_info(),

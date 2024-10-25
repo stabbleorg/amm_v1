@@ -13,7 +13,12 @@ pub mod stable_swap {
 
     /// initialize a pool
     #[access_control(ctx.accounts.validate())]
-    pub fn initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64, max_caps: Vec<u64>) -> Result<()> {
+    pub fn initialize<'a, 'b, 'c, 'info>(
+        ctx: Context<'_, '_, 'info, 'info, Initialize<'info>>,
+        amp_factor: u16,
+        swap_fee: u64,
+        max_caps: Vec<u64>,
+    ) -> Result<()> {
         process_initialize(ctx, amp_factor, swap_fee, &max_caps)
     }
 

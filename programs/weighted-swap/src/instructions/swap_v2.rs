@@ -1,5 +1,5 @@
 use crate::state::*;
-use anchor_common::validate::*;
+use anchor_common::{token::get_transfer_fee, validate::*};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token,
@@ -26,22 +26,23 @@ pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amo
     let token_out_index = ctx.accounts.pool.get_token_index(ctx.accounts.mint_out.key()).unwrap();
     assert_ne!(token_in_index, token_out_index);
 
+    let epoch = Clock::get()?.epoch;
+
     // if amount_in is set to None, it will send full amount given user's in token account
     // this is useful to swap from intermediate token account created in multi-hop swap
     let amount_in = if amount_in.is_some() {
-        ctx.accounts
-            .pool
-            .calc_rounded_amount(amount_in.unwrap(), token_in_index)
-            .unwrap()
+        amount_in.unwrap()
     } else {
-        // it does not round down so that intermediate token accounts can be closed after multi-hop swap
         ctx.accounts.user_token_in.amount
     };
+
+    let transfer_fee = get_transfer_fee(&ctx.accounts.mint_in.to_account_info(), amount_in, epoch)?;
+    let post_fee_amount_in = amount_in.saturating_sub(transfer_fee);
 
     let balance_in = ctx
         .accounts
         .pool
-        .calc_wrapped_amount(amount_in, token_in_index)
+        .calc_wrapped_amount(post_fee_amount_in, token_in_index)
         .unwrap();
     let balance_out_without_fee = weighted_math::calc_out_given_in(
         ctx.accounts.pool.tokens[token_in_index].balance,
@@ -75,7 +76,9 @@ pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amo
         .pool
         .calc_unwrapped_amount(amount_out_balance, token_out_index)
         .unwrap();
-    require_gte!(amount_out, minimum_amount_out, SwapError::SlippageExceeded);
+    let transfer_fee = get_transfer_fee(&ctx.accounts.mint_out.to_account_info(), amount_out, epoch)?;
+    let post_fee_amount_out = amount_out - transfer_fee;
+    require_gte!(post_fee_amount_out, minimum_amount_out, SwapError::SlippageExceeded);
 
     let beneficiary_fees = ctx
         .accounts

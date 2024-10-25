@@ -1,5 +1,5 @@
 use crate::state::*;
-use anchor_common::validate::*;
+use anchor_common::{token::get_transfer_fee, validate::*};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::Token,
@@ -43,18 +43,14 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         )
         .unwrap();
 
-        let amount_out = ctx
-            .accounts
-            .pool
-            .calc_unwrapped_amount(balance_out, token_index)
-            .unwrap();
-        require_gte!(amount_out, minimum_amounts_out[0], SwapError::SlippageExceeded);
-
-        ctx.accounts.pool.tokens[token_index].balance -=
-            ctx.accounts.pool.calc_wrapped_amount(amount_out, token_index).unwrap();
-
-        ctx.accounts
-            .transfer_to_user(amount_out, &ctx.remaining_accounts[0], &ctx.remaining_accounts[1], mint)?;
+        ctx.accounts.transfer_to_user(
+            balance_out,
+            minimum_amounts_out[0],
+            token_index,
+            &ctx.remaining_accounts[0],
+            &ctx.remaining_accounts[1],
+            mint,
+        )?;
     } else {
         let balances_out =
             base_pool_math::compute_proportional_amounts_out(&balances, ctx.accounts.mint.supply, amount).unwrap();
@@ -64,22 +60,10 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             let mint = &ctx.remaining_accounts[token_index + offset_mints];
             assert_eq!(ctx.accounts.pool.tokens[token_index].mint, mint.key()); // check token orders
 
-            let amount_out = ctx
-                .accounts
-                .pool
-                .calc_unwrapped_amount(balances_out[token_index], token_index)
-                .unwrap();
-            require_gte!(
-                amount_out,
-                minimum_amounts_out[token_index],
-                SwapError::SlippageExceeded
-            );
-
-            ctx.accounts.pool.tokens[token_index].balance -=
-                ctx.accounts.pool.calc_wrapped_amount(amount_out, token_index).unwrap();
-
             ctx.accounts.transfer_to_user(
-                amount_out,
+                balances_out[token_index],
+                minimum_amounts_out[token_index],
+                token_index,
                 &user_account,
                 &ctx.remaining_accounts[token_index + num_tokens],
                 mint,
@@ -120,11 +104,21 @@ impl<'info> Validate<'info> for Withdraw<'info> {
 impl<'info> Withdraw<'info> {
     fn transfer_to_user(
         &mut self,
-        amount: u64,
+        balance_out: u64,
+        minimum_amount_out: u64,
+        token_index: usize,
         user_account: &AccountInfo<'info>,
         vault_account: &AccountInfo<'info>,
         mint: &AccountInfo<'info>,
     ) -> Result<()> {
+        let amount_out = self.pool.calc_unwrapped_amount(balance_out, token_index).unwrap();
+        // remove token balances
+        self.pool.tokens[token_index].balance -= self.pool.calc_wrapped_amount(amount_out, token_index).unwrap();
+
+        let transfer_fee = get_transfer_fee(mint, amount_out, Clock::get()?.epoch)?;
+        let amount_out = amount_out.saturating_sub(transfer_fee);
+        require_gte!(amount_out, minimum_amount_out, SwapError::SlippageExceeded);
+
         let token_program = if mint.owner.key() == Token::id() {
             self.token_program.to_account_info()
         } else {
@@ -147,7 +141,7 @@ impl<'info> Withdraw<'info> {
                     },
                 )
                 .with_signer(&[signer_seed]),
-                amount,
+                amount_out,
                 0,
             )
         })

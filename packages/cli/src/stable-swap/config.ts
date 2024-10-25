@@ -82,3 +82,27 @@ export function transferOwner(program: Command) {
       console.log(signature);
     });
 }
+
+export function acceptOwner(program: Command) {
+  program
+    .command("stable-accept-owner")
+    .description("accept ownership")
+    .requiredOption("--pool-k <string>", "pool key", parseKey)
+    .action(async ({ poolK }: { poolK: PublicKey }) => {
+      const { provider, simulate } = useContext();
+
+      const stableSwap = new StableSwapContext(provider);
+      const pool = await stableSwap.loadPool(poolK);
+
+      console.log("Current owner:", pool.ownerAddress.toBase58());
+      console.log("Pending owner:", pool.data.pendingOwner?.toBase58());
+
+      if (simulate) return;
+
+      const signature = await stableSwap.acceptOwner({
+        pool,
+      });
+
+      console.log(signature);
+    });
+}

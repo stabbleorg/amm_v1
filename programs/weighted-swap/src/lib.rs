@@ -13,7 +13,12 @@ pub mod weighted_swap {
 
     /// initialize a pool
     #[access_control(ctx.accounts.validate())]
-    pub fn initialize(ctx: Context<Initialize>, swap_fee: u64, weights: Vec<u64>, max_caps: Vec<u64>) -> Result<()> {
+    pub fn initialize<'a, 'b, 'c, 'info>(
+        ctx: Context<'_, '_, 'info, 'info, Initialize<'info>>,
+        swap_fee: u64,
+        weights: Vec<u64>,
+        max_caps: Vec<u64>,
+    ) -> Result<()> {
         process_initialize(ctx, swap_fee, weights, &max_caps)
     }
 
