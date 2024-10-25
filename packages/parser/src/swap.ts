@@ -10,6 +10,7 @@ import {
   decodeTransferCheckedInstruction,
   decodeTransferInstruction,
   getMultipleAccounts,
+  unpackAccount,
 } from "@solana/spl-token";
 import {
   AddressLookupTableAccount,
@@ -235,10 +236,9 @@ export class SwapParser {
     keyIndexes,
     instructions = [],
   }: ParseInstructionArgs): Promise<ChangedBalance> {
-    const transfers = instructions
-      .slice(0, instructions.length - 1)
-      .map((transferInstruction) =>
-        decodeTransferCheckedInstruction({
+    const transfers = instructions.slice(0, instructions.length - 1).map((transferInstruction) =>
+      decodeTransferCheckedInstruction(
+        {
           programId: accountKeys.get(transferInstruction.programIdIndex)!,
           keys: transferInstruction.accounts.map((index) => ({
             pubkey: accountKeys.get(index)!,
@@ -246,17 +246,10 @@ export class SwapParser {
             isWritable: true,
           })),
           data: Buffer.from(bs58.decode(transferInstruction.data)),
-        }),
-      )
-      .map((transfer) => ({
-        toAddress: transfer.keys.destination.pubkey,
-        amount: transfer.data.amount,
-      }));
-    const tokenAccounts = await getMultipleAccounts(
-      this.connection,
-      transfers.map((transfer) => transfer.toAddress),
+        },
+        accountKeys.get(transferInstruction.programIdIndex)!,
+      ),
     );
-
     const mintToInstruction = instructions[instructions.length - 1];
     const mintTo = decodeMintToInstruction({
       programId: accountKeys.get(mintToInstruction.programIdIndex)!,
@@ -272,9 +265,9 @@ export class SwapParser {
       poolAddress: accountKeys.get(keyIndexes[3])!.toBase58(),
       userAddress: accountKeys.get(keyIndexes[0])!.toBase58(),
       amounts: [
-        ...transfers.map((transfer, index) => ({
-          mintAddress: tokenAccounts[index].mint.toBase58(),
-          amount: transfer.amount,
+        ...transfers.map((transfer) => ({
+          mintAddress: transfer.keys.mint.pubkey.toBase58(),
+          amount: transfer.data.amount,
         })),
         {
           mintAddress: mintTo.keys.mint.pubkey.toBase58(),
@@ -293,25 +286,19 @@ export class SwapParser {
       .slice(0, instructions.length - 1)
       .filter((_, index) => index % 2 === 1)
       .map((transferInstruction) =>
-        decodeTransferCheckedInstruction({
-          programId: accountKeys.get(transferInstruction.programIdIndex)!,
-          keys: transferInstruction.accounts.map((index) => ({
-            pubkey: accountKeys.get(index)!,
-            isSigner: false,
-            isWritable: true,
-          })),
-          data: Buffer.from(bs58.decode(transferInstruction.data)),
-        }),
-      )
-      .map((transfer) => ({
-        fromAddress: transfer.keys.source.pubkey,
-        amount: transfer.data.amount,
-      }));
-    const tokenAccounts = await getMultipleAccounts(
-      this.connection,
-      transfers.map((transfer) => transfer.fromAddress),
-    );
-
+        decodeTransferCheckedInstruction(
+          {
+            programId: accountKeys.get(transferInstruction.programIdIndex)!,
+            keys: transferInstruction.accounts.map((index) => ({
+              pubkey: accountKeys.get(index)!,
+              isSigner: false,
+              isWritable: true,
+            })),
+            data: Buffer.from(bs58.decode(transferInstruction.data)),
+          },
+          accountKeys.get(transferInstruction.programIdIndex)!,
+        ),
+      );
     const burnInstruction = instructions[instructions.length - 1];
     const burn = decodeBurnInstruction({
       programId: accountKeys.get(burnInstruction.programIdIndex)!,
@@ -327,9 +314,9 @@ export class SwapParser {
       poolAddress: accountKeys.get(keyIndexes[3])!.toBase58(),
       userAddress: accountKeys.get(keyIndexes[0])!.toBase58(),
       amounts: [
-        ...transfers.map((transfer, index) => ({
-          mintAddress: tokenAccounts[index].mint.toBase58(),
-          amount: -transfer.amount,
+        ...transfers.map((transfer) => ({
+          mintAddress: transfer.keys.mint.pubkey.toBase58(),
+          amount: -transfer.data.amount,
         })),
         {
           mintAddress: burn.keys.mint.pubkey.toBase58(),
@@ -414,41 +401,52 @@ export class SwapParser {
     const transferBInstruction = hasFee ? instructions[3] : instructions[2];
     const transferCInstruction = hasFee ? instructions[2] : null;
 
-    const transferA = decodeTransferCheckedInstruction({
-      programId: accountKeys.get(transferAInstruction.programIdIndex)!,
-      keys: transferAInstruction.accounts.map((index) => ({
-        pubkey: accountKeys.get(index)!,
-        isSigner: false,
-        isWritable: true,
-      })),
-      data: Buffer.from(bs58.decode(transferAInstruction.data)),
-    });
-    const accountAddresses: PublicKey[] = [transferA.keys.destination.pubkey];
-    const transferB = decodeTransferCheckedInstruction({
-      programId: accountKeys.get(transferBInstruction.programIdIndex)!,
-      keys: transferBInstruction.accounts.map((index) => ({
-        pubkey: accountKeys.get(index)!,
-        isSigner: false,
-        isWritable: true,
-      })),
-      data: Buffer.from(bs58.decode(transferBInstruction.data)),
-    });
-    let transferC: DecodedTransferCheckedInstruction | null = null;
-    if (transferCInstruction) {
-      transferC = decodeTransferCheckedInstruction({
-        programId: accountKeys.get(transferCInstruction.programIdIndex)!,
-        keys: transferCInstruction.accounts.map((index) => ({
+    const transferA = decodeTransferCheckedInstruction(
+      {
+        programId: accountKeys.get(transferAInstruction.programIdIndex)!,
+        keys: transferAInstruction.accounts.map((index) => ({
           pubkey: accountKeys.get(index)!,
           isSigner: false,
           isWritable: true,
         })),
-        data: Buffer.from(bs58.decode(transferCInstruction.data)),
-      });
+        data: Buffer.from(bs58.decode(transferAInstruction.data)),
+      },
+      accountKeys.get(transferAInstruction.programIdIndex)!,
+    );
+    const accountAddresses: PublicKey[] = [transferA.keys.destination.pubkey];
+    const transferB = decodeTransferCheckedInstruction(
+      {
+        programId: accountKeys.get(transferBInstruction.programIdIndex)!,
+        keys: transferBInstruction.accounts.map((index) => ({
+          pubkey: accountKeys.get(index)!,
+          isSigner: false,
+          isWritable: true,
+        })),
+        data: Buffer.from(bs58.decode(transferBInstruction.data)),
+      },
+      accountKeys.get(transferBInstruction.programIdIndex)!,
+    );
+    let transferC: DecodedTransferCheckedInstruction | null = null;
+    if (transferCInstruction) {
+      transferC = decodeTransferCheckedInstruction(
+        {
+          programId: accountKeys.get(transferCInstruction.programIdIndex)!,
+          keys: transferCInstruction.accounts.map((index) => ({
+            pubkey: accountKeys.get(index)!,
+            isSigner: false,
+            isWritable: true,
+          })),
+          data: Buffer.from(bs58.decode(transferCInstruction.data)),
+        },
+        accountKeys.get(transferCInstruction.programIdIndex)!,
+      );
       accountAddresses.push(transferC.keys.destination.pubkey);
     } else {
       accountAddresses.push(transferB.keys.source.pubkey);
     }
-    const tokenAccounts = await getMultipleAccounts(this.connection, accountAddresses);
+
+    const infos = await this.connection.getMultipleAccountsInfo(accountAddresses);
+    const tokenAccounts = accountAddresses.map((address, i) => unpackAccount(address, infos[i], infos[i]?.owner));
 
     let beneficiaryAddress;
     let beneficiaryAmount;

@@ -55,6 +55,7 @@ describe("Pool", () => {
   const stableSwapListener = new StableSwapListener(guestStableSwap.program);
 
   const parser = new SwapParser(guestWeightedSwap.program);
+  const parser2 = new SwapParser(guestStableSwap.program);
 
   const pools: Pool<WeightedPoolData | StablePoolData>[] = [];
 
@@ -765,7 +766,7 @@ describe("Pool", () => {
   });
 
   describe("PYUSD-USDC", () => {
-    it("should create stable pool", async () => {
+    it("should create/deposit/withdraw/swap", async () => {
       const mintAddresses = [PYUSD_MINT_KP.publicKey, USDC_MINT_KP.publicKey];
       const ampFactor = 3000;
 
@@ -783,11 +784,12 @@ describe("Pool", () => {
       await vaultCtx.createMissingTokenAccounts({ vault: stableVault, mintAddresses });
 
       // add initial liquidity
-      await stableSwap.deposit({
+      const signature = await stableSwap.deposit({
         pool,
         mintAddresses,
         amounts: ["300000", "300000"],
       });
+      await parser2.parse(signature);
 
       // add liquidity
       await stableSwap.deposit({

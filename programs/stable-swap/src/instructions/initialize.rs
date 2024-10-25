@@ -1,12 +1,18 @@
 use crate::state::*;
-use anchor_common::validate::*;
+use anchor_common::{token::is_supported_mint, validate::*};
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
+use anchor_spl::token_interface::Mint as MintInterface;
 use bn::safe_math::CheckedDivCeil;
 use math::{fixed_math, stable_math};
-use vault::state::Vault;
+use vault::{error::SwapError, state::Vault};
 
-pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u64, max_caps: &Vec<u64>) -> Result<()> {
+pub fn process_initialize<'a, 'b, 'c, 'info>(
+    ctx: Context<'_, '_, 'info, 'info, Initialize<'info>>,
+    amp_factor: u16,
+    swap_fee: u64,
+    max_caps: &Vec<u64>,
+) -> Result<()> {
     let num_tokens = ctx.remaining_accounts.len();
 
     assert_eq!(num_tokens, max_caps.len());
@@ -33,8 +39,14 @@ pub fn process_initialize(ctx: Context<Initialize>, amp_factor: u16, swap_fee: u
     });
 
     for (token_index, account) in ctx.remaining_accounts.iter().enumerate() {
+        let interface_account = InterfaceAccount::try_from(account).unwrap();
+        require!(
+            is_supported_mint(&interface_account).unwrap(),
+            SwapError::NotSupportedMint
+        );
+
         let mut buff: &[u8] = &account.try_borrow_data()?;
-        let data = Mint::try_deserialize(&mut buff)?;
+        let data = MintInterface::try_deserialize(&mut buff)?;
         let decimals = data.decimals as u32;
         assert!(decimals <= fixed_math::SCALE);
 

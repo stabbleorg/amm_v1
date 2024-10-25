@@ -4,4 +4,7 @@ use anchor_lang::prelude::*;
 pub enum SwapError {
     #[msg("Slippage exceeded")]
     SlippageExceeded,
+
+    #[msg("Not supported mint")]
+    NotSupportedMint,
 }

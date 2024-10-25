@@ -14,9 +14,9 @@ incremental = false
 codegen-units = 1
 
 [workspace.dependencies]
+solana-program = "1.18.23"
 anchor-lang = "0.30.1"
 anchor-spl = "0.30.1"
-anchor-common = { git = "https://github.com/stabbleorg/anchor-common.git" }
-solana-program = "1.18.23"
+anchor-common = { git = "https://github.com/stabbleorg/anchor-common.git", rev = "1463700c653df2613baaf1e2512370564b399e37" }
 bn = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "f15d379afe801dec49e214e88ee14e01493c5a06" }
 math = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "f15d379afe801dec49e214e88ee14e01493c5a06" }
