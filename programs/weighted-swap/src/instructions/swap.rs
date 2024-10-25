@@ -167,8 +167,11 @@ pub struct Swap<'info> {
     pub vault_token_out: Account<'info, TokenAccount>,
 
     /// CHECK: OK
-    #[account(mut)]
-    pub beneficiary_token_out: UncheckedAccount<'info>,
+    #[account(mut,
+        associated_token::mint = vault_token_out.mint,
+        associated_token::authority = vault.beneficiary,
+    )]
+    pub beneficiary_token_out: Account<'info, TokenAccount>,
 
     #[account(mut, has_one = vault)]
     pub pool: Account<'info, Pool>,

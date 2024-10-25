@@ -125,29 +125,44 @@ pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amo
             ctx.accounts.token_2022_program.to_account_info()
         };
 
-        let cpi = CpiContext::new(
-            ctx.accounts.vault_program.to_account_info(),
-            WithdrawVault {
-                withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
-                vault: ctx.accounts.vault.to_account_info(),
-                vault_authority: ctx.accounts.vault_authority.to_account_info(),
-                vault_token: ctx.accounts.vault_token_out.to_account_info(),
-                dest_token: ctx.accounts.user_token_out.to_account_info(),
-                beneficiary_token: Some(ctx.accounts.beneficiary_token_out.to_account_info()),
-                mint: mint_out,
-                token_program,
-            },
-        );
-
         if beneficiary_fees > 0 {
             withdraw_vault(
-                cpi.with_remaining_accounts(vec![ctx.accounts.beneficiary_token_out.to_account_info()])
-                    .with_signer(&[signer_seed]),
+                CpiContext::new(
+                    ctx.accounts.vault_program.to_account_info(),
+                    WithdrawVault {
+                        withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
+                        vault: ctx.accounts.vault.to_account_info(),
+                        vault_authority: ctx.accounts.vault_authority.to_account_info(),
+                        vault_token: ctx.accounts.vault_token_out.to_account_info(),
+                        dest_token: ctx.accounts.user_token_out.to_account_info(),
+                        beneficiary_token: Some(ctx.accounts.beneficiary_token_out.to_account_info()),
+                        mint: mint_out,
+                        token_program,
+                    },
+                )
+                .with_signer(&[signer_seed]),
                 amount_out,
                 beneficiary_fees,
             )
         } else {
-            withdraw_vault(cpi.with_signer(&[signer_seed]), amount_out, 0)
+            withdraw_vault(
+                CpiContext::new(
+                    ctx.accounts.vault_program.to_account_info(),
+                    WithdrawVault {
+                        withdraw_authority: ctx.accounts.withdraw_authority.to_account_info(),
+                        vault: ctx.accounts.vault.to_account_info(),
+                        vault_authority: ctx.accounts.vault_authority.to_account_info(),
+                        vault_token: ctx.accounts.vault_token_out.to_account_info(),
+                        dest_token: ctx.accounts.user_token_out.to_account_info(),
+                        beneficiary_token: None,
+                        mint: mint_out,
+                        token_program,
+                    },
+                )
+                .with_signer(&[signer_seed]),
+                amount_out,
+                0,
+            )
         }
     })
 }
@@ -163,6 +178,15 @@ impl<'info> Validate<'info> for SwapV2<'info> {
                 &self.vault_authority.key,
                 self.mint_in.to_account_info().key,
                 self.mint_in.to_account_info().owner,
+            )
+        );
+
+        assert_eq!(
+            self.beneficiary_token_out.key(),
+            associated_token::get_associated_token_address_with_program_id(
+                &self.vault.beneficiary,
+                self.mint_out.to_account_info().key,
+                self.mint_out.to_account_info().owner,
             )
         );
 
