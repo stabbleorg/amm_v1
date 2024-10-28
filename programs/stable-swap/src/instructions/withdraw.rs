@@ -116,8 +116,8 @@ impl<'info> Withdraw<'info> {
         self.pool.tokens[token_index].balance -= self.pool.calc_wrapped_amount(amount_out, token_index).unwrap();
 
         let transfer_fee = get_transfer_fee(mint, amount_out, Clock::get()?.epoch)?;
-        let amount_out = amount_out.saturating_sub(transfer_fee);
-        require_gte!(amount_out, minimum_amount_out, SwapError::SlippageExceeded);
+        let post_fee_amount_out = amount_out.saturating_sub(transfer_fee);
+        require_gte!(post_fee_amount_out, minimum_amount_out, SwapError::SlippageExceeded);
 
         let token_program = if mint.owner.key() == Token::id() {
             self.token_program.to_account_info()
