@@ -1,6 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{accessor::authority as get_token_owner, transfer, Token, Transfer};
+use anchor_spl::token::{transfer, Token, Transfer};
 
 pub fn process_withdraw<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
@@ -9,24 +9,25 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
 ) -> Result<()> {
     ctx.accounts.vault.authority_seeds(|signer_seed| {
         if beneficiary_amount > 0 {
+            // CHECK: checked by swap programs
             let beneficiary_token_account = &ctx.remaining_accounts[0];
-            assert_eq!(
-                ctx.accounts.vault.beneficiary,
-                get_token_owner(beneficiary_token_account)?
-            );
 
-            transfer(
-                CpiContext::new(
-                    ctx.accounts.token_program.to_account_info(),
-                    Transfer {
-                        from: ctx.accounts.vault_token.to_account_info(),
-                        to: beneficiary_token_account.to_account_info(),
-                        authority: ctx.accounts.vault_authority.to_account_info(),
-                    },
-                )
-                .with_signer(&[signer_seed]),
-                beneficiary_amount,
-            )?;
+            // it does not transfer beneficiary fees if `beneficiary_token_account` is closed
+            // to prevent unexpected errors for Jupiter's shared router
+            if beneficiary_token_account.owner.key() == ctx.accounts.token_program.key() {
+                transfer(
+                    CpiContext::new(
+                        ctx.accounts.token_program.to_account_info(),
+                        Transfer {
+                            from: ctx.accounts.vault_token.to_account_info(),
+                            to: beneficiary_token_account.to_account_info(),
+                            authority: ctx.accounts.vault_authority.to_account_info(),
+                        },
+                    )
+                    .with_signer(&[signer_seed]),
+                    beneficiary_amount,
+                )?;
+            }
         }
 
         transfer(

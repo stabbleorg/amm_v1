@@ -1,7 +1,7 @@
 use crate::state::*;
 use anchor_common::validate::Validate;
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
+use anchor_spl::token_interface::{transfer_checked, Mint, TransferChecked};
 
 pub fn process_withdraw_v2<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, WithdrawV2<'info>>,
@@ -11,22 +11,25 @@ pub fn process_withdraw_v2<'a, 'b, 'c, 'info>(
     ctx.accounts.vault.authority_seeds(|signer_seed| {
         if beneficiary_amount > 0 {
             let beneficiary_token_account = ctx.accounts.beneficiary_token.as_ref().unwrap();
-            assert_eq!(beneficiary_token_account.owner, ctx.accounts.vault.beneficiary);
 
-            transfer_checked(
-                CpiContext::new(
-                    ctx.accounts.token_program.to_account_info(),
-                    TransferChecked {
-                        from: ctx.accounts.vault_token.to_account_info(),
-                        mint: ctx.accounts.mint.to_account_info(),
-                        to: beneficiary_token_account.to_account_info(),
-                        authority: ctx.accounts.vault_authority.to_account_info(),
-                    },
-                )
-                .with_signer(&[signer_seed]),
-                beneficiary_amount,
-                ctx.accounts.mint.decimals,
-            )?;
+            // it does not transfer beneficiary fees if `beneficiary_token_account` is closed
+            // to prevent unexpected errors for Jupiter's shared router
+            if beneficiary_token_account.owner.key() == ctx.accounts.token_program.key() {
+                transfer_checked(
+                    CpiContext::new(
+                        ctx.accounts.token_program.to_account_info(),
+                        TransferChecked {
+                            from: ctx.accounts.vault_token.to_account_info(),
+                            mint: ctx.accounts.mint.to_account_info(),
+                            to: beneficiary_token_account.to_account_info(),
+                            authority: ctx.accounts.vault_authority.to_account_info(),
+                        },
+                    )
+                    .with_signer(&[signer_seed]),
+                    beneficiary_amount,
+                    ctx.accounts.mint.decimals,
+                )?;
+            }
         }
 
         transfer_checked(
@@ -67,16 +70,16 @@ pub struct WithdrawV2<'info> {
     /// CHECK: OK
     #[account(mut)]
     pub vault_token: UncheckedAccount<'info>,
-
     /// CHECK: OK
     #[account(mut)]
     pub dest_token: UncheckedAccount<'info>,
 
+    /// CHECK: checked by swap programs
     #[account(mut)]
-    pub beneficiary_token: Option<InterfaceAccount<'info, TokenAccount>>,
+    pub beneficiary_token: Option<UncheckedAccount<'info>>,
 
     pub mint: InterfaceAccount<'info, Mint>,
 
-    /// CHECK: OK
+    /// CHECK: checked by swap programs
     pub token_program: UncheckedAccount<'info>,
 }

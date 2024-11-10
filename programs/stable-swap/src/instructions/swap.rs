@@ -1,9 +1,12 @@
 use crate::state::*;
 use anchor_common::validate::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{
-    accessor::{amount as get_token_balance, authority as get_token_owner, mint as get_token_mint},
-    transfer, Token, TokenAccount, Transfer,
+use anchor_spl::{
+    associated_token,
+    token::{
+        accessor::{amount as get_token_balance, authority as get_token_owner, mint as get_token_mint},
+        transfer, Token, TokenAccount, Transfer,
+    },
 };
 use math::{
     fixed_math::{FixedComplement, FixedMul},
@@ -146,6 +149,11 @@ impl<'info> Validate<'info> for Swap<'info> {
         assert!(self.vault.is_active);
         assert!(self.pool.is_active);
 
+        assert_eq!(
+            self.beneficiary_token_out.key(),
+            associated_token::get_associated_token_address(&self.vault.beneficiary, &self.vault_token_out.mint)
+        );
+
         Ok(())
     }
 }
@@ -172,11 +180,8 @@ pub struct Swap<'info> {
     pub vault_token_out: Account<'info, TokenAccount>,
 
     /// CHECK: OK
-    #[account(mut,
-        associated_token::mint = vault_token_out.mint,
-        associated_token::authority = vault.beneficiary,
-    )]
-    pub beneficiary_token_out: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub beneficiary_token_out: UncheckedAccount<'info>,
 
     #[account(mut, has_one = vault)]
     pub pool: Account<'info, Pool>,
