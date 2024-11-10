@@ -236,9 +236,36 @@ export class SwapParser {
     keyIndexes,
     instructions = [],
   }: ParseInstructionArgs): Promise<ChangedBalance> {
-    const transfers = instructions.slice(0, instructions.length - 1).map((transferInstruction) =>
-      decodeTransferCheckedInstruction(
-        {
+    const token22PgAccount = accountKeys.get(keyIndexes[8]);
+    const isV2 = token22PgAccount && token22PgAccount.equals(TOKEN_2022_PROGRAM_ID);
+
+    const transferInstructions = instructions.slice(0, instructions.length - 1);
+    const depositAmounts: ChangedTokenAmount[] = [];
+
+    if (isV2) {
+      const transfers = transferInstructions.map((transferInstruction) =>
+        decodeTransferCheckedInstruction(
+          {
+            programId: accountKeys.get(transferInstruction.programIdIndex)!,
+            keys: transferInstruction.accounts.map((index) => ({
+              pubkey: accountKeys.get(index)!,
+              isSigner: false,
+              isWritable: true,
+            })),
+            data: Buffer.from(bs58.decode(transferInstruction.data)),
+          },
+          accountKeys.get(transferInstruction.programIdIndex)!,
+        ),
+      );
+      depositAmounts.push(
+        ...transfers.map((transfer, index) => ({
+          mintAddress: transfer.keys.mint.pubkey.toBase58(),
+          amount: transfer.data.amount,
+        })),
+      );
+    } else {
+      const transfers = transferInstructions.map((transferInstruction) =>
+        decodeTransferInstruction({
           programId: accountKeys.get(transferInstruction.programIdIndex)!,
           keys: transferInstruction.accounts.map((index) => ({
             pubkey: accountKeys.get(index)!,
@@ -246,10 +273,20 @@ export class SwapParser {
             isWritable: true,
           })),
           data: Buffer.from(bs58.decode(transferInstruction.data)),
-        },
-        accountKeys.get(transferInstruction.programIdIndex)!,
-      ),
-    );
+        }),
+      );
+      const tokenAccounts = await getMultipleAccounts(
+        this.connection,
+        transfers.map((transfer) => new PublicKey(transfer.keys.source)),
+      );
+      depositAmounts.push(
+        ...transfers.map((transfer, index) => ({
+          mintAddress: tokenAccounts[index].mint.toBase58(),
+          amount: transfer.data.amount,
+        })),
+      );
+    }
+
     const mintToInstruction = instructions[instructions.length - 1];
     const mintTo = decodeMintToInstruction({
       programId: accountKeys.get(mintToInstruction.programIdIndex)!,
@@ -265,10 +302,7 @@ export class SwapParser {
       poolAddress: accountKeys.get(keyIndexes[3])!.toBase58(),
       userAddress: accountKeys.get(keyIndexes[0])!.toBase58(),
       amounts: [
-        ...transfers.map((transfer) => ({
-          mintAddress: transfer.keys.mint.pubkey.toBase58(),
-          amount: transfer.data.amount,
-        })),
+        ...depositAmounts,
         {
           mintAddress: mintTo.keys.mint.pubkey.toBase58(),
           amount: -mintTo.data.amount,
@@ -282,10 +316,14 @@ export class SwapParser {
     keyIndexes,
     instructions = [],
   }: ParseInstructionArgs): Promise<ChangedBalance> {
-    const transfers = instructions
-      .slice(0, instructions.length - 1)
-      .filter((_, index) => index % 2 === 1)
-      .map((transferInstruction) =>
+    const token22PgAccount = accountKeys.get(keyIndexes[9]);
+    const isV2 = token22PgAccount && token22PgAccount.equals(TOKEN_2022_PROGRAM_ID);
+
+    const transferInstructions = instructions.slice(0, instructions.length - 1).filter((_, index) => index % 2 === 1);
+    const withdrawAmounts: ChangedTokenAmount[] = [];
+
+    if (isV2) {
+      const transfers = transferInstructions.map((transferInstruction) =>
         decodeTransferCheckedInstruction(
           {
             programId: accountKeys.get(transferInstruction.programIdIndex)!,
@@ -299,6 +337,36 @@ export class SwapParser {
           accountKeys.get(transferInstruction.programIdIndex)!,
         ),
       );
+      withdrawAmounts.push(
+        ...transfers.map((transfer) => ({
+          mintAddress: transfer.keys.mint.pubkey.toBase58(),
+          amount: -transfer.data.amount,
+        })),
+      );
+    } else {
+      const transfers = transferInstructions.map((transferInstruction) =>
+        decodeTransferInstruction({
+          programId: accountKeys.get(transferInstruction.programIdIndex)!,
+          keys: transferInstruction.accounts.map((index) => ({
+            pubkey: accountKeys.get(index)!,
+            isSigner: false,
+            isWritable: true,
+          })),
+          data: Buffer.from(bs58.decode(transferInstruction.data)),
+        }),
+      );
+      const tokenAccounts = await getMultipleAccounts(
+        this.connection,
+        transfers.map((transfer) => new PublicKey(transfer.keys.source)),
+      );
+      withdrawAmounts.push(
+        ...transfers.map((transfer, index) => ({
+          mintAddress: tokenAccounts[index].mint.toBase58(),
+          amount: -transfer.data.amount,
+        })),
+      );
+    }
+
     const burnInstruction = instructions[instructions.length - 1];
     const burn = decodeBurnInstruction({
       programId: accountKeys.get(burnInstruction.programIdIndex)!,
@@ -314,10 +382,7 @@ export class SwapParser {
       poolAddress: accountKeys.get(keyIndexes[3])!.toBase58(),
       userAddress: accountKeys.get(keyIndexes[0])!.toBase58(),
       amounts: [
-        ...transfers.map((transfer) => ({
-          mintAddress: transfer.keys.mint.pubkey.toBase58(),
-          amount: -transfer.data.amount,
-        })),
+        ...withdrawAmounts,
         {
           mintAddress: burn.keys.mint.pubkey.toBase58(),
           amount: burn.data.amount,
