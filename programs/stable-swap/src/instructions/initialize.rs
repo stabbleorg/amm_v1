@@ -1,7 +1,7 @@
 use crate::state::*;
 use anchor_common::{token::is_supported_mint, validate::*};
 use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
+use anchor_spl::token::{Mint, Token};
 use anchor_spl::token_interface::Mint as MintInterface;
 use bn::safe_math::CheckedDivCeil;
 use math::{fixed_math, stable_math};
@@ -39,11 +39,13 @@ pub fn process_initialize<'a, 'b, 'c, 'info>(
     });
 
     for (token_index, account) in ctx.remaining_accounts.iter().enumerate() {
-        let interface_account = InterfaceAccount::try_from(account).unwrap();
-        require!(
-            is_supported_mint(&interface_account).unwrap(),
-            SwapError::NotSupportedMint
-        );
+        // TODO: it should support Token 2022 once Jupiter is fully ready
+        assert_eq!(account.owner.key(), Token::id());
+        // let interface_account = InterfaceAccount::try_from(account).unwrap();
+        // require!(
+        //     is_supported_mint(&interface_account).unwrap(),
+        //     SwapError::NotSupportedMint
+        // );
 
         let mut buff: &[u8] = &account.try_borrow_data()?;
         let data = MintInterface::try_deserialize(&mut buff)?;
