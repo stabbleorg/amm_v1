@@ -1,6 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{transfer, Token, Transfer};
+use anchor_spl::token::{accessor::authority as get_token_owner, transfer, Token, Transfer};
 
 pub fn process_withdraw<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
@@ -15,6 +15,12 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             // it does not transfer beneficiary fees if `beneficiary_token_account` is closed
             // to prevent unexpected errors for Jupiter's shared router
             if beneficiary_token_account.owner.key() == ctx.accounts.token_program.key() {
+                // TODO: remove it once swap programs are upgraded
+                assert_eq!(
+                    ctx.accounts.vault.beneficiary,
+                    get_token_owner(beneficiary_token_account)?
+                );
+
                 transfer(
                     CpiContext::new(
                         ctx.accounts.token_program.to_account_info(),
