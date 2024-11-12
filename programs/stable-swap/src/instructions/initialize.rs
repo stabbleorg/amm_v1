@@ -40,7 +40,7 @@ pub fn process_initialize<'a, 'b, 'c, 'info>(
 
     for (token_index, account) in ctx.remaining_accounts.iter().enumerate() {
         // TODO: it should support Token 2022 once Jupiter is fully ready
-        assert_eq!(account.owner.key(), Token::id());
+        require_eq!(account.owner.key(), Token::id(), SwapError::NotSupportedMint);
         // let interface_account = InterfaceAccount::try_from(account).unwrap();
         // require!(
         //     is_supported_mint(&interface_account).unwrap(),
