@@ -149,7 +149,6 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
 impl<'info> Validate<'info> for Deposit<'info> {
     fn validate(&self) -> Result<()> {
         assert!(self.vault.is_active);
-        assert!(self.pool.is_active);
 
         assert_eq!(self.user_pool_token.owner, self.user.key());
 
