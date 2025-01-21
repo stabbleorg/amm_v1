@@ -14,7 +14,7 @@ export function deposit(program: Command) {
     .requiredOption("--mints <strings...>", "mint keys")
     .requiredOption("--amounts <numbers...>", "amounts")
     .action(async ({ poolK, mints, amounts }: { poolK: PublicKey; mints: string[]; amounts: string[] }) => {
-      const { provider, simulate } = useContext();
+      const { provider, priorityLevel, simulate } = useContext();
 
       const weightedSwap = new WeightedSwapContext(provider);
       const pool = await weightedSwap.loadPool(poolK);
@@ -39,6 +39,7 @@ export function deposit(program: Command) {
         pool,
         mintAddresses,
         amounts,
+        priorityLevel,
       });
 
       console.log(signature);
