@@ -1,3 +1,6 @@
+export * from "./types";
+export * from "./errors";
+
 import { EnrichedTransaction } from "helius-sdk";
 import { ClosePool, CreatePool, InstructionLog, PoolActivity, TransactionVariant } from "./types";
 import {
