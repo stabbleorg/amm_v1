@@ -5,9 +5,11 @@ import {
   parseClose,
   parseCreate,
   parseDeposit,
+  parseDepositCpi,
   parseSwap,
   parseSwapCpi,
   parseWithdraw,
+  parseWithdrawCpi,
 } from "./utils";
 
 export const parseTransaction = ({
@@ -106,7 +108,6 @@ export const parseTransaction = ({
               transaction.tokenTransfers!,
               mintDecimals,
             );
-
             poolActivities.push(
               ...cpiSwaps.map<InstructionLog<PoolActivity>>((activity) => ({
                 signature: transaction.signature,
@@ -117,6 +118,40 @@ export const parseTransaction = ({
               })),
             );
             i += cpiSwaps.length === 3 ? 5 : 4;
+            break;
+          case TransactionVariant.DEPOSIT:
+            const cpiDeposits = parseDepositCpi(
+              instruction.innerInstructions.slice(i),
+              transaction.tokenTransfers!,
+              mintDecimals,
+            );
+            poolActivities.push(
+              ...cpiDeposits.map<InstructionLog<PoolActivity>>((activity) => ({
+                signature: transaction.signature,
+                instructionIndex: instructionOffset + i,
+                parentProgramId: instruction.programId,
+                programId: innerInstruction.programId,
+                ...activity,
+              })),
+            );
+            i += cpiDeposits.length + 1;
+            break;
+          case TransactionVariant.WITHDRAW:
+            const cpiWithdraws = parseWithdrawCpi(
+              instruction.innerInstructions.slice(i),
+              transaction.tokenTransfers!,
+              mintDecimals,
+            );
+            poolActivities.push(
+              ...cpiWithdraws.map<InstructionLog<PoolActivity>>((activity) => ({
+                signature: transaction.signature,
+                instructionIndex: instructionOffset + i,
+                parentProgramId: instruction.programId,
+                programId: innerInstruction.programId,
+                ...activity,
+              })),
+            );
+            i += cpiWithdraws.length * 2;
             break;
           default:
             i++;

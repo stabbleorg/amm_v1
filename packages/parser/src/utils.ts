@@ -43,28 +43,30 @@ export function getTokenBurnFromInnerInstruction(
   innerInstruction: InnerInstruction,
   mintDecimals: Record<string, number>,
 ): TokenTransfer | null {
-  const data = burnInstructionData.decode(Buffer.from(Array.from(bs58.decode(innerInstruction.data))));
-  const transfer = tokenTransfers.find(
-    (transfer) =>
-      transfer.tokenAmount === SafeAmount.toUiAmount(data.amount, mintDecimals[transfer.mint]) &&
-      transfer.mint === innerInstruction.accounts[1] &&
-      transfer.fromTokenAccount === innerInstruction.accounts[0] &&
-      transfer.fromUserAccount === innerInstruction.accounts[2],
-  );
+  let transfer;
+  const buffer = Buffer.from(Array.from(bs58.decode(innerInstruction.data)));
 
-  if (!transfer) {
-    const data = burnCheckedInstructionData.decode(Buffer.from(Array.from(bs58.decode(innerInstruction.data))));
-    const transfer = tokenTransfers.find(
+  if (buffer.length === 9) {
+    const data = burnInstructionData.decode(buffer);
+    transfer = tokenTransfers.find(
       (transfer) =>
         transfer.tokenAmount === SafeAmount.toUiAmount(data.amount, mintDecimals[transfer.mint]) &&
         transfer.mint === innerInstruction.accounts[1] &&
         transfer.fromTokenAccount === innerInstruction.accounts[0] &&
         transfer.fromUserAccount === innerInstruction.accounts[2],
     );
-    return transfer ?? null;
+  } else if (buffer.length === 10) {
+    const data = burnCheckedInstructionData.decode(buffer);
+    transfer = tokenTransfers.find(
+      (transfer) =>
+        transfer.tokenAmount === SafeAmount.toUiAmount(data.amount, mintDecimals[transfer.mint]) &&
+        transfer.mint === innerInstruction.accounts[1] &&
+        transfer.fromTokenAccount === innerInstruction.accounts[0] &&
+        transfer.fromUserAccount === innerInstruction.accounts[2],
+    );
   }
 
-  return transfer;
+  return transfer ?? null;
 }
 
 export function getTokenMintToFromInnerInstruction(
@@ -72,26 +74,28 @@ export function getTokenMintToFromInnerInstruction(
   innerInstruction: InnerInstruction,
   mintDecimals: Record<string, number>,
 ): TokenTransfer | null {
-  const data = mintToInstructionData.decode(Buffer.from(Array.from(bs58.decode(innerInstruction.data))));
-  const transfer = tokenTransfers.find(
-    (transfer) =>
-      transfer.tokenAmount === SafeAmount.toUiAmount(data.amount, mintDecimals[transfer.mint]) &&
-      transfer.mint === innerInstruction.accounts[0] &&
-      transfer.toTokenAccount === innerInstruction.accounts[1],
-  );
+  let transfer;
+  const buffer = Buffer.from(Array.from(bs58.decode(innerInstruction.data)));
 
-  if (!transfer) {
-    const data = mintToCheckedInstructionData.decode(Buffer.from(Array.from(bs58.decode(innerInstruction.data))));
-    const transfer = tokenTransfers.find(
+  if (buffer.length === 9) {
+    const data = mintToInstructionData.decode(buffer);
+    transfer = tokenTransfers.find(
       (transfer) =>
         transfer.tokenAmount === SafeAmount.toUiAmount(data.amount, mintDecimals[transfer.mint]) &&
         transfer.mint === innerInstruction.accounts[0] &&
         transfer.toTokenAccount === innerInstruction.accounts[1],
     );
-    return transfer ?? null;
+  } else if (buffer.length === 10) {
+    const data = mintToCheckedInstructionData.decode(buffer);
+    transfer = tokenTransfers.find(
+      (transfer) =>
+        transfer.tokenAmount === SafeAmount.toUiAmount(data.amount, mintDecimals[transfer.mint]) &&
+        transfer.mint === innerInstruction.accounts[0] &&
+        transfer.toTokenAccount === innerInstruction.accounts[1],
+    );
   }
 
-  return transfer;
+  return transfer ?? null;
 }
 
 export function getTokenTransferFromInnerInstruction(
@@ -99,28 +103,30 @@ export function getTokenTransferFromInnerInstruction(
   innerInstruction: InnerInstruction,
   mintDecimals: Record<string, number>,
 ): TokenTransfer | null {
-  const data = transferInstructionData.decode(Buffer.from(Array.from(bs58.decode(innerInstruction.data))));
-  const transfer = tokenTransfers.find(
-    (transfer) =>
-      transfer.tokenAmount === SafeAmount.toUiAmount(data.amount, mintDecimals[transfer.mint]) &&
-      transfer.fromTokenAccount === innerInstruction.accounts[0] &&
-      transfer.toTokenAccount === innerInstruction.accounts[1] &&
-      transfer.fromUserAccount === innerInstruction.accounts[2],
-  );
+  let transfer;
+  const buffer = Buffer.from(Array.from(bs58.decode(innerInstruction.data)));
 
-  if (!transfer) {
-    const data = transferCheckedInstructionData.decode(Buffer.from(Array.from(bs58.decode(innerInstruction.data))));
-    const transfer = tokenTransfers.find(
+  if (buffer.length === 9) {
+    const data = transferInstructionData.decode(buffer);
+    transfer = tokenTransfers.find(
+      (transfer) =>
+        transfer.tokenAmount === SafeAmount.toUiAmount(data.amount, mintDecimals[transfer.mint]) &&
+        transfer.fromTokenAccount === innerInstruction.accounts[0] &&
+        transfer.toTokenAccount === innerInstruction.accounts[1] &&
+        transfer.fromUserAccount === innerInstruction.accounts[2],
+    );
+  } else if (buffer.length === 10) {
+    const data = transferCheckedInstructionData.decode(buffer);
+    transfer = tokenTransfers.find(
       (transfer) =>
         transfer.tokenAmount === SafeAmount.toUiAmount(data.amount, mintDecimals[transfer.mint]) &&
         transfer.fromTokenAccount === innerInstruction.accounts[0] &&
         transfer.toTokenAccount === innerInstruction.accounts[2] &&
         transfer.fromUserAccount === innerInstruction.accounts[3],
     );
-    return transfer ?? null;
   }
 
-  return transfer;
+  return transfer ?? null;
 }
 
 export function parseSwap(
@@ -190,19 +196,6 @@ export function parseSwap(
   return activities;
 }
 
-export function parseSwapCpi(
-  innerInstructions: InnerInstruction[],
-  tokenTransfers: TokenTransfer[],
-  mintDecimals: Record<string, number>,
-): PoolActivity[] {
-  const instruction: Instruction = {
-    ...innerInstructions[0],
-    innerInstructions: innerInstructions.slice(1),
-  };
-
-  return parseSwap(instruction, tokenTransfers, mintDecimals);
-}
-
 export function parseDeposit(
   instruction: Instruction,
   tokenTransfers: TokenTransfer[],
@@ -216,37 +209,31 @@ export function parseDeposit(
       : TransactionVariant.DEPOSIT_V2;
   const poolAddress = instruction.accounts[3];
 
-  for (let i = 0; i < instruction.innerInstructions.length - 1; i++) {
-    const transfer = getTokenTransferFromInnerInstruction(
-      tokenTransfers,
-      instruction.innerInstructions[i],
-      mintDecimals,
-    );
-    if (!transfer) throw TokenTransferNotFound;
+  for (const innerInstruction of instruction.innerInstructions) {
+    const mintTo = getTokenMintToFromInnerInstruction(tokenTransfers, innerInstruction, mintDecimals);
 
-    activities.push({
-      address: poolAddress,
-      tokenAddress: transfer.mint,
-      userAddress: transfer.fromUserAccount,
-      amount: transfer.tokenAmount,
-      variant,
-    });
+    if (mintTo !== null) {
+      activities.push({
+        address: poolAddress,
+        tokenAddress: mintTo.mint,
+        userAddress: mintTo.toUserAccount,
+        amount: -mintTo.tokenAmount,
+        variant,
+      });
+      break;
+    } else {
+      const transfer = getTokenTransferFromInnerInstruction(tokenTransfers, innerInstruction, mintDecimals);
+      if (!transfer) throw TokenTransferNotFound;
+
+      activities.push({
+        address: poolAddress,
+        tokenAddress: transfer.mint,
+        userAddress: transfer.fromUserAccount,
+        amount: transfer.tokenAmount,
+        variant,
+      });
+    }
   }
-
-  const mintTo = getTokenMintToFromInnerInstruction(
-    tokenTransfers,
-    instruction.innerInstructions[instruction.innerInstructions.length - 1],
-    mintDecimals,
-  );
-  if (!mintTo) throw TokenTransferNotFound;
-
-  activities.push({
-    address: poolAddress,
-    tokenAddress: mintTo.mint,
-    userAddress: mintTo.toUserAccount,
-    amount: -mintTo.tokenAmount,
-    variant,
-  });
 
   return activities;
 }
@@ -269,33 +256,29 @@ export function parseWithdraw(
       innerInstruction.programId === TOKEN_2022_PROGRAM_ADDRESS || innerInstruction.programId === TOKEN_PROGRAM_ADDRESS,
   );
 
-  for (let i = 0; i < tokenInstructions.length - 1; i++) {
-    const transfer = getTokenTransferFromInnerInstruction(tokenTransfers, tokenInstructions[i], mintDecimals);
-    if (!transfer) throw TokenTransferNotFound;
+  for (const innerInstruction of tokenInstructions) {
+    const burn = getTokenBurnFromInnerInstruction(tokenTransfers, innerInstruction, mintDecimals);
+    if (burn) {
+      activities.push({
+        address: poolAddress,
+        tokenAddress: burn.mint,
+        userAddress: burn.toUserAccount,
+        amount: burn.tokenAmount,
+        variant,
+      });
+    } else {
+      const transfer = getTokenTransferFromInnerInstruction(tokenTransfers, innerInstruction, mintDecimals);
+      if (!transfer) throw TokenTransferNotFound;
 
-    activities.push({
-      address: poolAddress,
-      tokenAddress: transfer.mint,
-      userAddress: transfer.fromUserAccount,
-      amount: -transfer.tokenAmount,
-      variant,
-    });
+      activities.push({
+        address: poolAddress,
+        tokenAddress: transfer.mint,
+        userAddress: transfer.fromUserAccount,
+        amount: -transfer.tokenAmount,
+        variant,
+      });
+    }
   }
-
-  const burn = getTokenBurnFromInnerInstruction(
-    tokenTransfers,
-    tokenInstructions[tokenInstructions.length - 1],
-    mintDecimals,
-  );
-  if (!burn) throw TokenTransferNotFound;
-
-  activities.push({
-    address: poolAddress,
-    tokenAddress: burn.mint,
-    userAddress: burn.toUserAccount,
-    amount: burn.tokenAmount,
-    variant,
-  });
 
   return activities;
 }
@@ -314,4 +297,43 @@ export function parseClose(instruction: Instruction): ClosePool {
     address: instruction.accounts[1],
     variant: TransactionVariant.CLOSE,
   };
+}
+
+export function parseSwapCpi(
+  innerInstructions: InnerInstruction[],
+  tokenTransfers: TokenTransfer[],
+  mintDecimals: Record<string, number>,
+): PoolActivity[] {
+  const instruction: Instruction = {
+    ...innerInstructions[0],
+    innerInstructions: innerInstructions.slice(1),
+  };
+
+  return parseSwap(instruction, tokenTransfers, mintDecimals);
+}
+
+export function parseDepositCpi(
+  innerInstructions: InnerInstruction[],
+  tokenTransfers: TokenTransfer[],
+  mintDecimals: Record<string, number>,
+): PoolActivity[] {
+  const instruction: Instruction = {
+    ...innerInstructions[0],
+    innerInstructions: innerInstructions.slice(1),
+  };
+
+  return parseDeposit(instruction, tokenTransfers, mintDecimals);
+}
+
+export function parseWithdrawCpi(
+  innerInstructions: InnerInstruction[],
+  tokenTransfers: TokenTransfer[],
+  mintDecimals: Record<string, number>,
+): PoolActivity[] {
+  const instruction: Instruction = {
+    ...innerInstructions[0],
+    innerInstructions: innerInstructions.slice(1),
+  };
+
+  return parseWithdraw(instruction, tokenTransfers, mintDecimals);
 }
