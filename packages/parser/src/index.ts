@@ -166,8 +166,6 @@ export const parseTransaction = ({
               parentProgramId: null,
               programId: instruction.programId,
             });
-            i++;
-            break;
           default:
             i++;
             break;
