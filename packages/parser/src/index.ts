@@ -7,6 +7,7 @@ import {
   getTransactionVariant,
   parseClose,
   parseCreate,
+  parseCreateCpi,
   parseDeposit,
   parseDepositCpi,
   parseSwap,
@@ -156,6 +157,15 @@ export const parseTransaction = ({
             );
             i += cpiWithdraws.length * 2;
             break;
+          case TransactionVariant.CREATE:
+            const cpiCreate = parseCreateCpi(instruction.innerInstructions.slice(i));
+            creates.push({
+              ...cpiCreate,
+              signature: transaction.signature,
+              instructionIndex: instructionOffset,
+              parentProgramId: null,
+              programId: instruction.programId,
+            });
           default:
             i++;
             break;
