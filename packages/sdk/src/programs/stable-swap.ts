@@ -590,6 +590,80 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
 
     return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
   }
+
+  async createStrategy({
+    pool,
+    ampMinFactor,
+    ampMaxFactor,
+    rampMinStep,
+    rampMaxStep,
+    rampMinDuration,
+    rampMaxDuration,
+    keypair = Keypair.generate(),
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{
+    pool: StablePool;
+    ampMinFactor: number;
+    ampMaxFactor: number;
+    rampMinStep: number;
+    rampMaxStep: number;
+    rampMinDuration: number;
+    rampMaxDuration: number;
+    keypair?: Keypair;
+  }>): Promise<AddressWithTransactionSignature> {
+    const size = this.program.account.strategy.size;
+    const signature = await this.sendSmartTransaction(
+      [
+        SystemProgram.createAccount({
+          fromPubkey: this.walletAddress,
+          newAccountPubkey: keypair.publicKey,
+          space: size,
+          lamports: await this.provider.connection.getMinimumBalanceForRentExemption(size),
+          programId: this.program.programId,
+        }),
+        await this.program.methods
+          .createStrategy(ampMinFactor, ampMaxFactor, rampMinStep, rampMaxStep, rampMinDuration, rampMaxDuration)
+          .accountsStrict({
+            ownerOnly: {
+              owner: this.walletAddress,
+              pool: pool.address,
+            },
+            strategy: keypair.publicKey,
+          })
+          .instruction(),
+      ],
+      [keypair],
+      altAccounts,
+      priorityLevel,
+    );
+
+    return { address: keypair.publicKey, signature };
+  }
+
+  async execStrategy({
+    pool,
+    address,
+    rampStep,
+    rampDuration,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{
+    pool: StablePool;
+    address: PublicKey;
+    rampStep: number;
+    rampDuration: number;
+  }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .execStrategy(rampStep, rampDuration)
+      .accountsStrict({
+        strategy: address,
+        pool: pool.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
+  }
 }
 
 export class StableSwapListener {
