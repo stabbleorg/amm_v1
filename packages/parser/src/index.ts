@@ -35,12 +35,24 @@ export const parseTransaction = ({
     const instructionOffset = index * 1000; // assume there are less than 1000 instructions in a single transaction
     const instructionVariant = getTransactionVariant(instruction);
 
+    const confidentMintDecimals = transaction.accountData
+      .filter((data) => data.tokenBalanceChanges)
+      .flatMap((data) => data.tokenBalanceChanges)
+      .reduce((map, change) => {
+        if (change && change.rawTokenAmount && change.rawTokenAmount.decimals) {
+          map[change.mint] = change.rawTokenAmount.decimals;
+        }
+        return map;
+      }, mintDecimals);
+    const tokenTransfers =
+      transaction.tokenTransfers?.filter((transfer) => confidentMintDecimals[transfer.mint] !== undefined) || [];
+
     if (instructionVariant) {
       switch (instructionVariant) {
         case TransactionVariant.SWAP:
         case TransactionVariant.SWAP_V2:
           poolActivities.push(
-            ...parseSwap(instruction, transaction.tokenTransfers!, mintDecimals).map<InstructionLog<PoolActivity>>(
+            ...parseSwap(instruction, tokenTransfers, confidentMintDecimals).map<InstructionLog<PoolActivity>>(
               (activity) => ({
                 signature: transaction.signature,
                 instructionIndex: instructionOffset,
@@ -53,7 +65,7 @@ export const parseTransaction = ({
           break;
         case TransactionVariant.DEPOSIT:
           poolActivities.push(
-            ...parseDeposit(instruction, transaction.tokenTransfers!, mintDecimals).map<InstructionLog<PoolActivity>>(
+            ...parseDeposit(instruction, tokenTransfers, confidentMintDecimals).map<InstructionLog<PoolActivity>>(
               (activity) => ({
                 signature: transaction.signature,
                 instructionIndex: instructionOffset,
@@ -66,7 +78,7 @@ export const parseTransaction = ({
           break;
         case TransactionVariant.WITHDRAW:
           poolActivities.push(
-            ...parseWithdraw(instruction, transaction.tokenTransfers!, mintDecimals).map<InstructionLog<PoolActivity>>(
+            ...parseWithdraw(instruction, tokenTransfers, confidentMintDecimals).map<InstructionLog<PoolActivity>>(
               (activity) => ({
                 signature: transaction.signature,
                 instructionIndex: instructionOffset,
@@ -109,8 +121,8 @@ export const parseTransaction = ({
           case TransactionVariant.SWAP_V2:
             const cpiSwaps = parseSwapCpi(
               instruction.innerInstructions.slice(i),
-              transaction.tokenTransfers!,
-              mintDecimals,
+              tokenTransfers,
+              confidentMintDecimals,
             );
             poolActivities.push(
               ...cpiSwaps.map<InstructionLog<PoolActivity>>((activity) => ({
@@ -126,8 +138,8 @@ export const parseTransaction = ({
           case TransactionVariant.DEPOSIT:
             const cpiDeposits = parseDepositCpi(
               instruction.innerInstructions.slice(i),
-              transaction.tokenTransfers!,
-              mintDecimals,
+              tokenTransfers,
+              confidentMintDecimals,
             );
             poolActivities.push(
               ...cpiDeposits.map<InstructionLog<PoolActivity>>((activity) => ({
@@ -143,8 +155,8 @@ export const parseTransaction = ({
           case TransactionVariant.WITHDRAW:
             const cpiWithdraws = parseWithdrawCpi(
               instruction.innerInstructions.slice(i),
-              transaction.tokenTransfers!,
-              mintDecimals,
+              tokenTransfers,
+              confidentMintDecimals,
             );
             poolActivities.push(
               ...cpiWithdraws.map<InstructionLog<PoolActivity>>((activity) => ({
