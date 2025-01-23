@@ -1,6 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{accessor::authority as get_token_owner, transfer, Token, Transfer};
+use anchor_spl::token::{transfer, Token, Transfer};
 
 pub fn process_withdraw<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,

@@ -1,5 +1,5 @@
 use crate::state::*;
-use anchor_common::{token::is_supported_mint, validate::*};
+use anchor_common::validate::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token};
 use anchor_spl::token_interface::Mint as MintInterface;
