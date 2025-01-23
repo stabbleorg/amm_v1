@@ -17,7 +17,7 @@ pub fn process_create_strategy(
     require_gt!(ramp_min_duration, 0);
 
     ctx.accounts.strategy.set_inner(Strategy {
-        pool: ctx.accounts.owner_only.owner.key(),
+        pool: ctx.accounts.owner_only.pool.key(),
         is_active: false,
         amp_min_factor,
         amp_max_factor,
