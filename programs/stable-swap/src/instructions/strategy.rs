@@ -13,6 +13,7 @@ pub fn process_create_strategy(
 ) -> Result<()> {
     require_gte!(amp_min_factor, stable_math::MIN_AMP);
     require_gte!(stable_math::MAX_AMP, amp_max_factor);
+    require_gt!(amp_max_factor, amp_min_factor);
     require_gt!(ramp_max_duration, ramp_min_duration);
     require_gt!(ramp_min_duration, 0);
 
