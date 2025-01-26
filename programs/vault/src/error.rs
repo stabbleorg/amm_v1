@@ -7,4 +7,7 @@ pub enum SwapError {
 
     #[msg("Not supported mint")]
     NotSupportedMint,
+
+    #[msg("Max supply exceeded")]
+    MaxSupplyExceeded,
 }

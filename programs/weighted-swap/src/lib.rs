@@ -65,6 +65,10 @@ pub mod weighted_swap {
         process_change_swap_fee(ctx, new_swap_fee)
     }
 
+    pub fn change_max_supply(ctx: Context<OwnerOnly>, new_max_supply: u64) -> Result<()> {
+        process_change_max_supply(ctx, new_max_supply)
+    }
+
     pub fn pause(ctx: Context<OwnerOnly>) -> Result<()> {
         process_pause(ctx)
     }

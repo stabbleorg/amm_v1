@@ -31,6 +31,7 @@ pub fn process_initialize<'a, 'b, 'c, 'info>(
         invariant: 0,
         swap_fee,
         tokens: vec![],
+        max_supply: 0,
         pending_owner: None,
     });
 

@@ -258,7 +258,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         .remainingAccounts([
           ...userRemainingAccounts,
           ...vaultRemainingAccounts,
-          ...mintAddresses.map((pubkey) => ({ isSigner: false, isWritable: true, pubkey })),
+          ...mintAddresses.map((pubkey) => ({ isSigner: false, isWritable: false, pubkey })),
         ])
         .instruction(),
     );
@@ -516,6 +516,23 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
   }: TransactionArgs<{ pool: WeightedPool; swapFee: FloatLike }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
       .changeSwapFee(SafeAmount.toGiga(swapFee))
+      .accountsStrict({
+        owner: this.walletAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
+  }
+
+  async changeMaxSupply({
+    pool,
+    maxSupply,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ pool: WeightedPool; maxSupply: FloatLike }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .changeMaxSupply(SafeAmount.toU64Amount(maxSupply, WeightedPool.POOL_TOKEN_DECIMALS))
       .accountsStrict({
         owner: this.walletAddress,
         pool: pool.address,

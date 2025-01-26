@@ -69,6 +69,10 @@ pub mod stable_swap {
         process_change_swap_fee(ctx, new_swap_fee)
     }
 
+    pub fn change_max_supply(ctx: Context<OwnerOnly>, new_max_supply: u64) -> Result<()> {
+        process_change_max_supply(ctx, new_max_supply)
+    }
+
     pub fn pause(ctx: Context<OwnerOnly>) -> Result<()> {
         process_pause(ctx)
     }
@@ -89,5 +93,35 @@ pub mod stable_swap {
     #[access_control(ctx.accounts.validate())]
     pub fn reject_owner(ctx: Context<PendingOwnerOnly>) -> Result<()> {
         process_reject_owner(ctx)
+    }
+
+    /* Dynamic amplification */
+
+    pub fn create_strategy(
+        ctx: Context<CreateStrategy>,
+        amp_min_factor: u16,
+        amp_max_factor: u16,
+        ramp_min_step: u16,
+        ramp_max_step: u16,
+        ramp_min_duration: u32,
+        ramp_max_duration: u32,
+    ) -> Result<()> {
+        process_create_strategy(
+            ctx,
+            amp_min_factor,
+            amp_max_factor,
+            ramp_min_step,
+            ramp_max_step,
+            ramp_min_duration,
+            ramp_max_duration,
+        )
+    }
+
+    pub fn approve_strategy(ctx: Context<ApproveStrategy>) -> Result<()> {
+        process_approve_strategy(ctx)
+    }
+
+    pub fn exec_strategy(ctx: Context<ExecStrategy>, ramp_step: u16, ramp_duration: u32) -> Result<()> {
+        process_exec_strategy(ctx, ramp_step, ramp_duration)
     }
 }

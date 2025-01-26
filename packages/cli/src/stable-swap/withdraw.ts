@@ -14,7 +14,7 @@ export function withdraw(program: Command) {
     .requiredOption("--mints <strings...>", "mint keys")
     .requiredOption("--amount <number>", "amount", Number)
     .action(async ({ poolK, mints, amount }: { poolK: PublicKey; mints: string[]; amount: number }) => {
-      const { provider, simulate } = useContext();
+      const { provider, priorityLevel, simulate } = useContext();
 
       const stableSwap = new StableSwapContext(provider);
       const pool = await stableSwap.loadPool(poolK);
@@ -42,6 +42,7 @@ export function withdraw(program: Command) {
         pool,
         mintAddresses,
         amount,
+        priorityLevel,
       });
 
       console.log(signature);

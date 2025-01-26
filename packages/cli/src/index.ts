@@ -10,13 +10,14 @@ import { setContext } from "./context";
 import { parseKeypair } from "./utils";
 
 program
-  .version("1.3.0")
+  .version("1.4.0")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
+  .option("-p, --priority-level <string...>", "priority fee level", "High")
   .option("-a, --alt-keys <string...>", "Address Lookup Table keys")
   .option("-s, --simulate", "simulate transaction")
   .hook("preAction", async (cmd: Command) => {
-    const { keypair, url, altKeys, simulate } = cmd.opts();
+    const { keypair, url, priorityLevel, altKeys, simulate } = cmd.opts();
 
     let rpcEndpoint: string;
     switch (url) {
@@ -49,6 +50,7 @@ program
     setContext({
       provider,
       altAccounts,
+      priorityLevel,
       simulate: Boolean(simulate),
     });
   });

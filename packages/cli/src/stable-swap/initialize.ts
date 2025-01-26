@@ -42,7 +42,7 @@ export function initialize(program: Command) {
         symbol?: string;
         uri?: string;
       }) => {
-        const { provider } = useContext();
+        const { provider, priorityLevel } = useContext();
 
         const vaultContext = new VaultContext(provider);
         const stableSwap = new StableSwapContext(provider);
@@ -61,6 +61,7 @@ export function initialize(program: Command) {
           name,
           symbol,
           uri,
+          priorityLevel,
         });
 
         await vaultContext.createMissingTokenAccounts({ vault, mintAddresses });
