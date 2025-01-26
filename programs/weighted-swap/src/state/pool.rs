@@ -35,6 +35,8 @@ pub struct Pool {
 
     pub tokens: Vec<PoolToken>,
 
+    pub max_supply: u64,
+
     pub pending_owner: Option<Pubkey>,
 }
 
@@ -115,6 +117,7 @@ where
 pub struct PoolUpdatedData {
     pub is_active: bool,
     pub swap_fee: u64,
+    pub max_supply: u64,
 }
 
 #[event]
@@ -137,6 +140,7 @@ where
             data: PoolUpdatedData {
                 is_active: self.as_ref().is_active,
                 swap_fee: self.as_ref().swap_fee,
+                max_supply: self.as_ref().max_supply,
             },
         });
     }

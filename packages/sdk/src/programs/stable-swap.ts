@@ -542,6 +542,23 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
   }
 
+  async changeMaxSupply({
+    pool,
+    maxSupply,
+    priorityLevel,
+    altAccounts,
+  }: TransactionArgs<{ pool: StablePool; maxSupply: FloatLike }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .changeMaxSupply(SafeAmount.toU64Amount(maxSupply, StablePool.POOL_TOKEN_DECIMALS))
+      .accountsStrict({
+        owner: this.walletAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
+  }
+
   async shutdown({
     pool,
     priorityLevel,

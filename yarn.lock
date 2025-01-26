@@ -1088,18 +1088,6 @@
     rpc-websockets "^9.0.2"
     superstruct "^1.0.4"
 
-"@stabbleorg/amm-parser@^1.3.6":
-  version "1.3.8"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/amm-parser/-/amm-parser-1.3.8.tgz#affedd3425562b125b9eb72603afee749527c571"
-  integrity sha512-Pq58Qvn8xTdqELIDDF6u5pYOm403aOlpUT9goezL4/U4H9RctJ0eOcpVkGyT0VgDMu95ZSoDcNWwISnH4vf0+g==
-  dependencies:
-    "@coral-xyz/anchor" "^0.30.1"
-    "@solana/spl-token" "^0.3.11"
-    "@solana/web3.js" "^1.93.4"
-    "@stabbleorg/amm-sdk" "^1.3.2"
-    "@stabbleorg/anchor-contrib" "^1.4.17"
-    bs58 "^5.0.0"
-
 "@stabbleorg/anchor-contrib@^1.4.17":
   version "1.4.17"
   resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-1.4.17.tgz#aeeec3a2c5bf2cd2456ce3c08aa7e8efac5f93d6"

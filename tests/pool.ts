@@ -1,5 +1,4 @@
 import { assert } from "chai";
-import { BN } from "bn.js";
 import { AnchorProvider, Provider } from "@coral-xyz/anchor";
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
@@ -16,7 +15,6 @@ import {
   WeightedSwapListener,
   StableSwapListener,
 } from "@stabbleorg/amm-sdk";
-import { ChangedBalance, InitializedPool, SwapParser } from "@stabbleorg/amm-parser";
 import {
   WEIGHTED_VAULT_KP,
   STABLE_VAULT_KP,
@@ -53,9 +51,6 @@ describe("Pool", () => {
 
   const weightedSwapListener = new WeightedSwapListener(guestWeightedSwap.program);
   const stableSwapListener = new StableSwapListener(guestStableSwap.program);
-
-  const parser = new SwapParser(guestWeightedSwap.program);
-  const parser2 = new SwapParser(guestStableSwap.program);
 
   const pools: Pool<WeightedPoolData | StablePoolData>[] = [];
 
@@ -104,11 +99,6 @@ describe("Pool", () => {
       pools.push(pool);
       POOL_ID_STB_USDC = pool.address;
 
-      const parsedResults = await parser.parse(signature);
-      const parsedResult = parsedResults[0] as InitializedPool;
-      assert.equal(parsedResult.address, pool.address.toBase58());
-      assert.equal(parsedResult.mintAddress, pool.mintAddress.toBase58());
-
       // STB: $0.03, USDC: $1
       const bRatio_STB_USDC = calcBalanceRatio(0.5, 0.03, 0.5, 1);
       const usdcAmount = 1000000;
@@ -151,18 +141,6 @@ describe("Pool", () => {
       const ratio = balance.uiAmount! / amountOut;
       assert.ok(ratio > 100);
       assert.ok(ratio < 100.00004);
-
-      const parsedResults = await parser.parse(signature);
-      const parsedResult = parsedResults[0] as ChangedBalance;
-      assert.equal(parsedResult.poolAddress, pool.address.toBase58());
-      assert.equal(parsedResult.userAddress, weightedSwap.walletAddress.toBase58());
-      assert.equal(parsedResult.amounts[0].mintAddress, STB_MINT_KP.publicKey.toBase58());
-      assert.equal(parsedResult.amounts[1].mintAddress, USDC_MINT_KP.publicKey.toBase58());
-      assert.equal(parsedResult.amounts[2].mintAddress, pool.mintAddress.toBase58());
-      assert.equal(
-        (-parsedResult.amounts[2].amount).toString(),
-        new BN(postBalance.amount).sub(new BN(balance.amount)).toString(),
-      );
 
       const { value: stbBalance } = await provider.connection.getTokenAccountBalance(
         weightedSwap.getAssociatedTokenAddress(STB_MINT_KP.publicKey),
@@ -223,18 +201,6 @@ describe("Pool", () => {
       const amountOut = postBalance.uiAmount! - balance.uiAmount!;
       // assert.ok(amountOut <= estimatedAmountOut)
       assert.ok(amountOut >= minimumAmountOut);
-
-      const parsedResults = await parser.parse(signature);
-      const parsedResult = parsedResults[0] as ChangedBalance;
-      assert.equal(parsedResult.poolAddress, pool.address.toBase58());
-      assert.equal(parsedResult.userAddress, weightedSwap.walletAddress.toBase58());
-      assert.equal(parsedResult.amounts[0].mintAddress, STB_MINT_KP.publicKey.toBase58());
-      assert.equal(parsedResult.amounts[1].mintAddress, USDC_MINT_KP.publicKey.toBase58());
-      assert.equal(parsedResult.beneficiaryAddress, pool.vault.beneficiaryAddress.toBase58());
-      assert.equal(
-        (-parsedResult.amounts[1].amount).toString(),
-        new BN(postBalance.amount).sub(new BN(balance.amount)).toString(),
-      );
     });
 
     it("should make imbalanced deposit", async () => {
@@ -287,21 +253,6 @@ describe("Pool", () => {
       );
       const usdcAmountOut = postUsdcBalance.uiAmount! - usdcBalance.uiAmount!;
       assert.ok(usdcAmount > usdcAmountOut);
-
-      const parsedResults = await parser.parse(signature);
-      const parsedResult = parsedResults[0] as ChangedBalance;
-      assert.equal(parsedResult.poolAddress, pool.address.toBase58());
-      assert.equal(parsedResult.userAddress, weightedSwap.walletAddress.toBase58());
-      assert.equal(parsedResult.amounts[0].mintAddress, pool.tokens[0].mintAddress.toBase58());
-      assert.equal(parsedResult.amounts[1].mintAddress, pool.tokens[1].mintAddress.toBase58());
-      assert.equal(
-        (-parsedResult.amounts[0].amount).toString(),
-        new BN(postStbBalance.amount).sub(new BN(stbBalance.amount)).toString(),
-      );
-      assert.equal(
-        (-parsedResult.amounts[1].amount).toString(),
-        new BN(postUsdcBalance.amount).sub(new BN(usdcBalance.amount)).toString(),
-      );
     });
 
     it("should make single deposit", async () => {
@@ -789,7 +740,6 @@ describe("Pool", () => {
         mintAddresses,
         amounts: ["300000", "300000"],
       });
-      await parser2.parse(signature);
 
       // add liquidity
       await stableSwap.deposit({

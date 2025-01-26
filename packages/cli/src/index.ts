@@ -10,10 +10,10 @@ import { setContext } from "./context";
 import { parseKeypair } from "./utils";
 
 program
-  .version("1.3.3")
+  .version("1.4.0")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
-  .option("-p, --priority-level <string...>", "priority fee level")
+  .option("-p, --priority-level <string...>", "priority fee level", "High")
   .option("-a, --alt-keys <string...>", "Address Lookup Table keys")
   .option("-s, --simulate", "simulate transaction")
   .hook("preAction", async (cmd: Command) => {
@@ -50,7 +50,7 @@ program
     setContext({
       provider,
       altAccounts,
-      priorityLevel: "High",
+      priorityLevel,
       simulate: Boolean(simulate),
     });
   });

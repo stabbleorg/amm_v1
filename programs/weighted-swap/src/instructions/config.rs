@@ -15,6 +15,16 @@ pub fn process_change_swap_fee(ctx: Context<OwnerOnly>, new_swap_fee: u64) -> Re
     Ok(())
 }
 
+pub fn process_change_max_supply(ctx: Context<OwnerOnly>, new_max_supply: u64) -> Result<()> {
+    assert_ne!(ctx.accounts.pool.max_supply, new_max_supply);
+
+    ctx.accounts.pool.max_supply = new_max_supply;
+
+    ctx.accounts.pool.emit_updated_event();
+
+    Ok(())
+}
+
 pub fn process_pause(ctx: Context<OwnerOnly>) -> Result<()> {
     assert!(ctx.accounts.pool.is_active);
 
