@@ -122,6 +122,12 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
 
     require_gte!(amount_out, minimum_amount_out, SwapError::SlippageExceeded);
 
+    // Maximum LP token supply
+    if ctx.accounts.pool.max_supply > 0 {
+        let post_supply = ctx.accounts.mint.supply + amount_out;
+        require_gt!(ctx.accounts.pool.max_supply, post_supply, SwapError::MaxSupplyExceeded);
+    }
+
     ctx.accounts.pool.emit_balance_updated_event();
 
     ctx.accounts.pool.authority_seeds(|signer_seed| {

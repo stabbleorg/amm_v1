@@ -58,6 +58,31 @@ export function changeSwapFee(program: Command) {
     });
 }
 
+export function changeMaxSupply(program: Command) {
+  program
+    .command("stable-max-supply")
+    .description("change max supply of LP token")
+    .requiredOption("--pool-k <string>", "pool key", parseKey)
+    .requiredOption("--max-supply <string>", "new max supply")
+    .action(async ({ poolK, maxSupply }: { poolK: PublicKey; maxSupply: string }) => {
+      const { provider, simulate } = useContext();
+
+      const stableSwap = new StableSwapContext(provider);
+      const pool = await stableSwap.loadPool(poolK);
+
+      console.log("Current max supply:", pool.maxSupply);
+
+      if (simulate) return;
+
+      const signature = await stableSwap.changeMaxSupply({
+        pool,
+        maxSupply,
+      });
+
+      console.log(signature);
+    });
+}
+
 export function transferOwner(program: Command) {
   program
     .command("stable-transfer-owner")

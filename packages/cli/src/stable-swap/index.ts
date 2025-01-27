@@ -3,17 +3,23 @@ import { initialize } from "./initialize";
 import { deposit } from "./deposit";
 import { withdraw } from "./withdraw";
 import { swap } from "./swap";
-import { changeAmpFactor, changeSwapFee, transferOwner, acceptOwner } from "./config";
+import { simulate } from "./simulate";
+import { changeAmpFactor, changeSwapFee, changeMaxSupply, transferOwner, acceptOwner } from "./config";
 import { shutdown } from "./shutdown";
+import { createStrategy, execStrategy } from "./strategy";
 
 export const setupStableSwapProgram = (program: Command) => {
   initialize(program);
   deposit(program);
   withdraw(program);
   swap(program);
+  simulate(program);
   changeAmpFactor(program);
   changeSwapFee(program);
+  changeMaxSupply(program);
   transferOwner(program);
   acceptOwner(program);
   shutdown(program);
+  createStrategy(program);
+  execStrategy(program);
 };
