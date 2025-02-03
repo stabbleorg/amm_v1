@@ -3,21 +3,17 @@ use anchor_common::validate::*;
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token,
-    token::{
-        accessor::{amount as get_token_balance, authority as get_token_owner, mint as get_token_mint},
-        transfer, Token, TokenAccount, Transfer,
-    },
+    token::{accessor::amount as get_token_balance, transfer, Token, TokenAccount, Transfer},
 };
 use math::{
     fixed_math::{FixedComplement, FixedMul},
-    swap_fee_math, weighted_math,
+    weighted_math,
 };
 use vault::{
     cpi::{accounts::Withdraw as WithdrawVault, withdraw as withdraw_vault},
     error::SwapError,
     program::Vault as VaultProgram,
     state::{Vault, WithdrawAuthority},
-    x_token,
 };
 
 pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
@@ -59,20 +55,7 @@ pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_o
     )
     .unwrap();
 
-    let num_ra = ctx.remaining_accounts.len();
-    let swap_fee = if num_ra == 1 {
-        // optional xSTB token account for swap fee discount
-        let x_token_account = &ctx.remaining_accounts[0];
-        assert_eq!(x_token_account.owner.key(), ctx.accounts.token_program.key());
-        assert_eq!(get_token_mint(x_token_account)?, x_token::ID);
-        assert_eq!(get_token_owner(x_token_account)?, ctx.accounts.user.key());
-        swap_fee_math::calc_swap_fee_in_discount(ctx.accounts.pool.swap_fee, get_token_balance(x_token_account)?)
-            .unwrap()
-    } else {
-        assert_eq!(num_ra, 0);
-        ctx.accounts.pool.swap_fee
-    };
-
+    let swap_fee = ctx.accounts.pool.swap_fee;
     let amount_out_balance = balance_out_without_fee.mul_down(swap_fee.complement()).unwrap();
     let swap_fees_balance = balance_out_without_fee.saturating_sub(amount_out_balance);
     let beneficiary_fees_balance = swap_fees_balance.mul_down(ctx.accounts.vault.beneficiary_fee).unwrap();
