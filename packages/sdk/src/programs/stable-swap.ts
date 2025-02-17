@@ -20,6 +20,7 @@ import {
   SystemProgram,
   TransactionInstruction,
   TransactionSignature,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import {
   DataUpdatedEvent,
@@ -33,7 +34,7 @@ import {
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID } from "./vault";
 import { Vault, StablePool, StablePoolData } from "../accounts";
-import { SwapInstructionArgs, SwapArgs, createMemoInstruction } from "../utils";
+import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
@@ -182,23 +183,27 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     pool,
     mintAddresses,
     amounts,
-    minimumAmountOut,
-    referrer,
+    minimumAmountOut = 0,
+    preTxBuffer,
     priorityLevel,
-    altAccounts,
+    altAccounts = [],
   }: TransactionArgs<{
     pool: StablePool;
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
     minimumAmountOut?: FloatLike;
-    referrer?: string;
+    preTxBuffer?: Buffer;
   }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
 
-    if (referrer) instructions.push(createMemoInstruction(referrer));
+    if (preTxBuffer) {
+      const { instructions: ixs, altAccounts: alts } = await this.getInstructionsFromBuffer(preTxBuffer);
+      instructions.push(...ixs);
+      if (alts) altAccounts.push(...alts);
+    }
 
     const { address: userPoolTokenAddress, instruction: createUserPoolTokenInstruction } =
       await this.getOrCreateAssociatedTokenAddressInstruction(pool.mintAddress);
@@ -358,14 +363,11 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintOutAddress,
     amountIn,
     minimumAmountOut,
-    referrer,
     priorityLevel,
     altAccounts,
   }: TransactionArgs<SwapArgs>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
-
-    if (referrer) instructions.push(createMemoInstruction(referrer));
 
     let tokenInAddress, tokenInProgramId;
     if (mintInAddress.equals(NATIVE_MINT)) {

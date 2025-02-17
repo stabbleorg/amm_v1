@@ -18,8 +18,10 @@ import {
   PublicKey,
   Signer,
   SystemProgram,
+  Transaction,
   TransactionInstruction,
   TransactionSignature,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import {
   DataUpdatedEvent,
@@ -33,7 +35,7 @@ import {
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_ID } from "./vault";
 import { Vault, WeightedPool, WeightedPoolData } from "../accounts";
-import { SwapInstructionArgs, SwapArgs, createMemoInstruction } from "../utils";
+import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type WeightedSwap as IDLType } from "../generated/weighted_swap";
 import IDL from "../generated/idl/weighted_swap.json";
 
@@ -184,23 +186,27 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     pool,
     mintAddresses,
     amounts,
-    minimumAmountOut,
-    referrer,
+    minimumAmountOut = 0,
+    preTxBuffer,
     priorityLevel,
-    altAccounts,
+    altAccounts = [],
   }: TransactionArgs<{
     pool: WeightedPool;
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
     minimumAmountOut?: FloatLike;
-    referrer?: string;
+    preTxBuffer?: Buffer;
   }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
 
-    if (referrer) instructions.push(createMemoInstruction(referrer));
+    if (preTxBuffer) {
+      const { instructions: ixs, altAccounts: alts } = await this.getInstructionsFromBuffer(preTxBuffer);
+      instructions.push(...ixs);
+      if (alts) altAccounts.push(...alts);
+    }
 
     const { address: userPoolTokenAddress, instruction: createUserPoolTokenInstruction } =
       await this.getOrCreateAssociatedTokenAddressInstruction(pool.mintAddress);
@@ -242,7 +248,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
               pool.data.tokens.find((data) => data.mint.equals(mintAddresses[index]))!.decimals,
             ),
           ),
-          SafeAmount.toU64Amount(minimumAmountOut || 0, WeightedPool.POOL_TOKEN_DECIMALS),
+          SafeAmount.toU64Amount(minimumAmountOut, WeightedPool.POOL_TOKEN_DECIMALS),
         )
         .accountsStrict({
           user: this.walletAddress,
@@ -360,14 +366,11 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     mintOutAddress,
     amountIn,
     minimumAmountOut,
-    referrer,
     priorityLevel,
     altAccounts,
   }: TransactionArgs<SwapArgs>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
-
-    if (referrer) instructions.push(createMemoInstruction(referrer));
 
     let tokenInAddress, tokenInProgramId;
     if (mintInAddress.equals(NATIVE_MINT)) {
