@@ -184,7 +184,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses,
     amounts,
     minimumAmountOut = 0,
-    preTxBuffer,
+    preTxBuffers = [],
     priorityLevel,
     altAccounts = [],
   }: TransactionArgs<{
@@ -192,17 +192,20 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
     minimumAmountOut?: FloatLike;
-    preTxBuffer?: Buffer;
+    preTxBuffers?: Buffer[];
   }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
     const signers: Signer[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
 
-    if (preTxBuffer) {
-      const { instructions: ixs, altAccounts: alts } = await this.getInstructionsFromBuffer(preTxBuffer);
-      instructions.push(...ixs);
-      if (alts) altAccounts.push(...alts);
+    if (preTxBuffers.length) {
+      for (const preTxBuffer of preTxBuffers) {
+        const { instructions: ixs, addressLookupTableAccounts: alts } =
+          await this.getInstructionsFromBuffer(preTxBuffer);
+        instructions.push(...ixs);
+        if (alts) altAccounts.push(...alts);
+      }
     }
 
     const { address: userPoolTokenAddress, instruction: createUserPoolTokenInstruction } =
