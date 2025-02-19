@@ -10,7 +10,7 @@ import { setContext } from "./context";
 import { parseKeypair } from "./utils";
 
 program
-  .version("1.5.1")
+  .version("1.5.2")
   .option("-k, --keypair <path>", "wallet keypair", parseKeypair)
   .option("-u, --url <string>", "RPC monk or url", "devnet")
   .option("-p, --priority-level <string...>", "priority fee level", "High")

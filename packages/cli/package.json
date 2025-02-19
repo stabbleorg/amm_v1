@@ -1,6 +1,6 @@
 {
   "name": "@stabbleorg/amm-cli",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "main": "src",
   "types": "src/index.d.ts",
   "license": "MIT",
@@ -11,8 +11,8 @@
     "@coral-xyz/anchor": "^0.30.1",
     "@solana/spl-token": "^0.4.12",
     "@solana/web3.js": "^1.93.4",
-    "@stabbleorg/amm-sdk": "^1.5.1",
-    "@stabbleorg/anchor-contrib": "^1.5.1",
+    "@stabbleorg/amm-sdk": "^1.5.2",
+    "@stabbleorg/anchor-contrib": "^1.5.2",
     "commander": "^11.0.0",
     "table": "^6.9.0"
   }
