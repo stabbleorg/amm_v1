@@ -53,7 +53,7 @@ export const parseTransaction = ({
         case TransactionVariant.SWAP_V2:
           poolActivities.push(
             ...parseSwap(instruction, tokenTransfers, confidentMintDecimals)
-              .filter((activity) => activity.amount > 0)
+              .filter((activity) => activity.amount !== 0)
               .map<InstructionLog<PoolActivity>>((activity) => ({
                 signature: transaction.signature,
                 instructionIndex: instructionOffset,
@@ -66,7 +66,7 @@ export const parseTransaction = ({
         case TransactionVariant.DEPOSIT:
           poolActivities.push(
             ...parseDeposit(instruction, tokenTransfers, confidentMintDecimals)
-              .filter((activity) => activity.amount > 0)
+              .filter((activity) => activity.amount !== 0)
               .map<InstructionLog<PoolActivity>>((activity) => ({
                 signature: transaction.signature,
                 instructionIndex: instructionOffset,
@@ -79,7 +79,7 @@ export const parseTransaction = ({
         case TransactionVariant.WITHDRAW:
           poolActivities.push(
             ...parseWithdraw(instruction, tokenTransfers, confidentMintDecimals)
-              .filter((activity) => activity.amount > 0)
+              .filter((activity) => activity.amount !== 0)
               .map<InstructionLog<PoolActivity>>((activity) => ({
                 signature: transaction.signature,
                 instructionIndex: instructionOffset,
@@ -126,7 +126,7 @@ export const parseTransaction = ({
             );
             poolActivities.push(
               ...cpiSwaps
-                .filter((activity) => activity.amount > 0)
+                .filter((activity) => activity.amount !== 0)
                 .map<InstructionLog<PoolActivity>>((activity) => ({
                   signature: transaction.signature,
                   instructionIndex: instructionOffset + i,
@@ -145,7 +145,7 @@ export const parseTransaction = ({
             );
             poolActivities.push(
               ...cpiDeposits
-                .filter((activity) => activity.amount > 0)
+                .filter((activity) => activity.amount !== 0)
                 .map<InstructionLog<PoolActivity>>((activity) => ({
                   signature: transaction.signature,
                   instructionIndex: instructionOffset + i,
@@ -164,7 +164,7 @@ export const parseTransaction = ({
             );
             poolActivities.push(
               ...cpiWithdraws
-                .filter((activity) => activity.amount > 0)
+                .filter((activity) => activity.amount !== 0)
                 .map<InstructionLog<PoolActivity>>((activity) => ({
                   signature: transaction.signature,
                   instructionIndex: instructionOffset + i,

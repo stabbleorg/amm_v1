@@ -287,7 +287,7 @@ export function parseWithdraw(
       activities.push({
         address: poolAddress,
         tokenAddress: burn.mint,
-        userAddress: burn.toUserAccount,
+        userAddress: burn.fromUserAccount,
         amount: burn.tokenAmount,
         variant,
       });
@@ -298,7 +298,7 @@ export function parseWithdraw(
       activities.push({
         address: poolAddress,
         tokenAddress: transfer.mint,
-        userAddress: transfer.fromUserAccount,
+        userAddress: transfer.toUserAccount,
         amount: -transfer.tokenAmount,
         variant,
       });
