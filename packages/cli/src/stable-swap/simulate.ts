@@ -26,7 +26,7 @@ export function simulate(program: Command) {
       console.log("%s -> SOL", mintB.substring(0, 5));
       const t0_data = [["Amount In", "stabble Price", "Jupiter price", "Difference (%)"]];
       for (const amountIn of [0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 1, 2]) {
-        const quotURI = `https://quote-api.jup.ag/v6/quote?inputMint=${mintB}&outputMint=${mintA}&amount=${SafeAmount.toGiga(amountIn).toString()}`;
+        const quotURI = `https://api.jup.ag/swap/v1/quote?inputMint=${mintB}&outputMint=${mintA}&amount=${SafeAmount.toGiga(amountIn).toString()}`;
         const { outAmount } = (await (await fetch(quotURI)).json()) as any;
         const amountOutJupiter = SafeAmount.toNano(outAmount);
 
@@ -44,7 +44,7 @@ export function simulate(program: Command) {
       console.log("SOL -> %s", mintA.substring(0, 5));
       const t1_data = [["Amount In", "stabble Price", "Jupiter price", "Difference (%)"]];
       for (const amountIn of [0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 1, 2]) {
-        const quotURI = `https://quote-api.jup.ag/v6/quote?inputMint=${mintA}&outputMint=${mintB}&amount=${SafeAmount.toGiga(amountIn).toString()}`;
+        const quotURI = `https://api.jup.ag/swap/v1/quote?inputMint=${mintA}&outputMint=${mintB}&amount=${SafeAmount.toGiga(amountIn).toString()}`;
         const { outAmount } = (await (await fetch(quotURI)).json()) as any;
         const amountOutJupiter = SafeAmount.toNano(outAmount);
 
