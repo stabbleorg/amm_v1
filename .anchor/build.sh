@@ -1,6 +1,7 @@
 #!/bin/bash
 
-anchor build
+anchor build -- -- -Znext-lockfile-bump
+
 cp -r ./target/idl ./packages/sdk/src/generated
 
 if [ ! -f "mpl_token_metadata.so" ]; then

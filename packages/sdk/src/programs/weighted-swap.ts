@@ -87,6 +87,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     symbol = "",
     uri = "",
     priorityLevel,
+    maxPriorityMicroLamports,
     altAccounts,
   }: TransactionArgs<{
     vault: Vault;
@@ -100,7 +101,8 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     symbol?: string;
     uri?: string;
   }>): Promise<AddressWithTransactionSignature> {
-    const size = this.program.account.pool.size + (WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length + 4);
+    // https://www.anchor-lang.com/docs/references/space#type-chart
+    const size = this.program.account.pool.size + (4 + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length) + 8;
     const poolAuthorityAddress = WeightedPool.getAuthorityAddress(keypair.publicKey);
     const mintAccounts = await this.provider.connection.getMultipleAccountsInfo(mintAddresses);
     const mints = mintAccounts.map((account, index) => unpackMint(mintAddresses[index], account!, account!.owner));
@@ -177,7 +179,13 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         .instruction(),
     ];
 
-    const signature = await this.sendSmartTransaction(instructions, [keypair, poolMintKP], altAccounts, priorityLevel);
+    const signature = await this.sendSmartTransaction(
+      instructions,
+      [keypair, poolMintKP],
+      altAccounts,
+      priorityLevel,
+      maxPriorityMicroLamports,
+    );
 
     return { address: keypair.publicKey, signature };
   }
@@ -189,6 +197,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     minimumAmountOut = 0,
     preTxBuffers = [],
     priorityLevel,
+    maxPriorityMicroLamports,
     altAccounts = [],
   }: TransactionArgs<{
     pool: WeightedPool;
@@ -274,7 +283,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
 
     if (signers.length) instructions.push(this.closeTokenAccountInstruction(signers[0].publicKey));
 
-    return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
+    return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel, maxPriorityMicroLamports);
   }
 
   async withdraw({
@@ -283,6 +292,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     amount,
     minimumAmountsOut,
     priorityLevel,
+    maxPriorityMicroLamports,
     altAccounts,
   }: TransactionArgs<{
     pool: WeightedPool;
@@ -360,7 +370,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
 
     if (signers.length) instructions.push(this.closeTokenAccountInstruction(signers[0].publicKey));
 
-    return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
+    return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel, maxPriorityMicroLamports);
   }
 
   async swap({
@@ -370,6 +380,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     amountIn,
     minimumAmountOut,
     priorityLevel,
+    maxPriorityMicroLamports,
     altAccounts,
   }: TransactionArgs<SwapArgs>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
@@ -417,7 +428,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     if (tokenInAddress) instructions.push(this.closeTokenAccountInstruction(tokenInAddress));
     if (tokenOutAddress) instructions.push(this.closeTokenAccountInstruction(tokenOutAddress));
 
-    return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel);
+    return this.sendSmartTransaction(instructions, signers, altAccounts, priorityLevel, maxPriorityMicroLamports);
   }
 
   async swapInstructions({
@@ -518,6 +529,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     pool,
     swapFee,
     priorityLevel,
+    maxPriorityMicroLamports,
     altAccounts,
   }: TransactionArgs<{ pool: WeightedPool; swapFee: FloatLike }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
@@ -528,13 +540,14 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       })
       .instruction();
 
-    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports);
   }
 
   async changeMaxSupply({
     pool,
     maxSupply,
     priorityLevel,
+    maxPriorityMicroLamports,
     altAccounts,
   }: TransactionArgs<{ pool: WeightedPool; maxSupply: FloatLike }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
@@ -545,12 +558,13 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       })
       .instruction();
 
-    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports);
   }
 
   async shutdown({
     pool,
     priorityLevel,
+    maxPriorityMicroLamports,
     altAccounts,
   }: TransactionArgs<{ pool: WeightedPool }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
@@ -561,13 +575,14 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       })
       .instruction();
 
-    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports);
   }
 
   async transferOwner({
     pool,
     ownerAddress,
     priorityLevel,
+    maxPriorityMicroLamports,
     altAccounts,
   }: TransactionArgs<{ pool: WeightedPool; ownerAddress: PublicKey }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
@@ -578,7 +593,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       })
       .instruction();
 
-    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel);
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports);
   }
 }
 
