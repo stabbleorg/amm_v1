@@ -1,6 +1,6 @@
 #!/bin/bash
 
-anchor build -- -- -Znext-lockfile-bump
+anchor build
 
 cp -r ./target/idl ./packages/sdk/src/generated
 
