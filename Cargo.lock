@@ -360,6 +360,7 @@ dependencies = [
 [[package]]
 name = "bn"
 version = "0.1.0"
+source = "git+https://github.com/stabbleorg/amm-sdk.git?rev=71843f4d848e133e87ce3f42e011b78bf926c5a3#71843f4d848e133e87ce3f42e011b78bf926c5a3"
 dependencies = [
  "uint",
 ]
@@ -694,6 +695,7 @@ dependencies = [
 [[package]]
 name = "fixed-exp"
 version = "0.1.0"
+source = "git+https://github.com/stabbleorg/amm-sdk.git?rev=71843f4d848e133e87ce3f42e011b78bf926c5a3#71843f4d848e133e87ce3f42e011b78bf926c5a3"
 dependencies = [
  "fixed",
  "num-traits",
@@ -919,6 +921,7 @@ checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
 [[package]]
 name = "math"
 version = "0.1.0"
+source = "git+https://github.com/stabbleorg/amm-sdk.git?rev=71843f4d848e133e87ce3f42e011b78bf926c5a3#71843f4d848e133e87ce3f42e011b78bf926c5a3"
 dependencies = [
  "bn",
  "fixed",
