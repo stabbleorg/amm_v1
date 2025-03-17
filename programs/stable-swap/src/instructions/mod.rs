@@ -24,3 +24,6 @@ pub use amp_factor::*;
 
 pub mod config;
 pub use config::*;
+
+pub mod swap_fee;
+pub use swap_fee::*;

@@ -69,6 +69,10 @@ pub mod stable_swap {
         process_change_swap_fee(ctx, new_swap_fee)
     }
 
+    pub fn reset_min_swap_fee(ctx: Context<ResetMinSwapFee>) -> Result<()> {
+        process_reset_min_swap_fee(ctx)
+    }
+
     pub fn change_max_supply(ctx: Context<OwnerOnly>, new_max_supply: u64) -> Result<()> {
         process_change_max_supply(ctx, new_max_supply)
     }

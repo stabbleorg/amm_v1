@@ -1,6 +1,6 @@
 import type { Command } from "commander";
-import { PublicKey } from "@solana/web3.js";
-import { StableSwapContext } from "@stabbleorg/amm-sdk";
+import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { StablePool, StableSwapContext, VaultContext } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
@@ -54,6 +54,37 @@ export function changeSwapFee(program: Command) {
         swapFee,
       });
 
+      console.log(signature);
+    });
+}
+
+export function resetMinSwapFee(program: Command) {
+  program
+    .command("stable-min-swap-fee")
+    .description("reset min swap fee")
+    .requiredOption("--vault-k <string>", "vault key", parseKey)
+    .action(async ({ vaultK }: { vaultK: PublicKey }) => {
+      const { provider, simulate } = useContext();
+
+      const vaultContext = new VaultContext(provider);
+      const vault = await vaultContext.loadVault(vaultK);
+
+      const stableSwap = new StableSwapContext(provider);
+      const pools = await stableSwap.loadPools(vault);
+
+      const instructions: TransactionInstruction[] = [];
+      for (const pool of pools.filter((pool) => pool.swapFee < StablePool.MIN_SWAP_FEE)) {
+        instructions.push(
+          await stableSwap.program.methods
+            .resetMinSwapFee()
+            .accountsStrict({
+              pool: pool.address,
+            })
+            .instruction(),
+        );
+      }
+
+      const signature = await stableSwap.sendSmartTransaction(instructions);
       console.log(signature);
     });
 }
