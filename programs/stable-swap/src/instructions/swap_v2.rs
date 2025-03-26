@@ -18,15 +18,15 @@ use vault::{
 };
 
 pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
-    let amplification = ctx.accounts.pool.get_amplification().unwrap();
+    let clock = Clock::get()?;
+
+    let amplification = ctx.accounts.pool.get_amplification(clock.unix_timestamp).unwrap();
     let balances = ctx.accounts.pool.get_balances();
     let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.mint_in.key()).unwrap();
     let token_out_index = ctx.accounts.pool.get_token_index(ctx.accounts.mint_out.key()).unwrap();
     assert_ne!(token_in_index, token_out_index);
-
-    let epoch = Clock::get()?.epoch;
 
     // if amount_in is set to None, it will send full amount given user's in token account
     // this is useful to swap from intermediate token account created in multi-hop swap
@@ -36,7 +36,7 @@ pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amo
         ctx.accounts.user_token_in.amount
     };
 
-    let transfer_fee = get_transfer_fee(&ctx.accounts.mint_in.to_account_info(), amount_in, epoch)?;
+    let transfer_fee = get_transfer_fee(&ctx.accounts.mint_in.to_account_info(), amount_in, clock.epoch)?;
     let post_fee_amount_in = amount_in.saturating_sub(transfer_fee);
 
     let balance_in = ctx
@@ -64,7 +64,7 @@ pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amo
         .pool
         .calc_unwrapped_amount(amount_out_balance, token_out_index)
         .unwrap();
-    let transfer_fee = get_transfer_fee(&ctx.accounts.mint_out.to_account_info(), amount_out, epoch)?;
+    let transfer_fee = get_transfer_fee(&ctx.accounts.mint_out.to_account_info(), amount_out, clock.epoch)?;
     let post_fee_amount_out = amount_out - transfer_fee;
     require_gte!(post_fee_amount_out, minimum_amount_out, SwapError::SlippageExceeded);
 

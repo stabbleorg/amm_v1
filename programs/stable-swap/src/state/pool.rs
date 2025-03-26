@@ -1,5 +1,5 @@
 use anchor_common::located::*;
-use anchor_lang::{prelude::*, solana_program::sysvar::clock::Clock};
+use anchor_lang::prelude::*;
 use bn::safe_math::CheckedMulDiv;
 use math::stable_math;
 
@@ -45,8 +45,7 @@ pub struct Pool {
 impl Pool {
     pub const AUTHORITY_PREFIX: &'static [u8] = b"pool_authority";
 
-    pub fn get_amplification(&self) -> Option<u64> {
-        let current_ts = Clock::get().unwrap().unix_timestamp;
+    pub fn get_amplification(&self, current_ts: i64) -> Option<u64> {
         let amp_initial_factor = self.amp_initial_factor as u64;
         let amp_target_factor = self.amp_target_factor as u64;
 

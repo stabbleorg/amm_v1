@@ -1,5 +1,8 @@
 use crate::state::*;
-use anchor_common::{token::get_transfer_inverse_fee, validate::*};
+use anchor_common::{
+    token::{get_transfer_fee, get_transfer_inverse_fee},
+    validate::*,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token,
@@ -21,6 +24,8 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
     if num_tokens > 1 {
         assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
     }
+
+    let epoch = Clock::get()?.epoch;
 
     // LP amount
     let amount_out = if ctx.accounts.mint.supply == 0 {
@@ -45,6 +50,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                             &ctx.remaining_accounts[token_index],
                             &ctx.remaining_accounts[token_index + num_tokens],
                             mint,
+                            epoch,
                         )
                         .unwrap()
                 })
@@ -69,6 +75,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                     &ctx.remaining_accounts[0],
                     &ctx.remaining_accounts[1],
                     mint,
+                    epoch,
                 )
                 .unwrap();
 
@@ -100,6 +107,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                                 &ctx.remaining_accounts[token_index],
                                 &ctx.remaining_accounts[token_index + num_tokens],
                                 mint,
+                                epoch,
                             )
                             .unwrap()
                     })
@@ -156,14 +164,18 @@ impl<'info> Validate<'info> for Deposit<'info> {
 impl<'info> Deposit<'info> {
     fn transfer_to_vault(
         &mut self,
-        amount: u64, // amount after fee (Token2022)
+        amount: u64,
         token_index: usize,
         user_account: &AccountInfo<'info>,
         vault_account: &AccountInfo<'info>,
         mint: &AccountInfo<'info>,
+        epoch: u64,
     ) -> Result<u64> {
-        let amount_in = self.pool.calc_rounded_amount(amount, token_index).unwrap();
-        let balance_in = self.pool.calc_wrapped_amount(amount, token_index).unwrap();
+        let transfer_fee = get_transfer_fee(mint, amount, epoch)?;
+        let post_fee_amount = amount.saturating_sub(transfer_fee);
+
+        let amount_in = self.pool.calc_rounded_amount(post_fee_amount, token_index).unwrap();
+        let balance_in = self.pool.calc_wrapped_amount(post_fee_amount, token_index).unwrap();
         // add token balances
         self.pool.tokens[token_index].balance += balance_in;
 
@@ -181,8 +193,8 @@ impl<'info> Deposit<'info> {
         );
         assert_eq!(expected_vault_account_key, vault_account.key());
 
-        let transfer_fee: u64 = get_transfer_inverse_fee(mint, amount_in, Clock::get()?.epoch)?;
-        let amount_in = amount_in + transfer_fee;
+        let transfer_fee = get_transfer_inverse_fee(mint, amount_in, epoch)?;
+        let pre_fee_amount = amount_in + transfer_fee;
         transfer_checked(
             CpiContext::new(
                 token_program.to_account_info(),
@@ -193,7 +205,7 @@ impl<'info> Deposit<'info> {
                     authority: self.user.to_account_info(),
                 },
             ),
-            amount_in,
+            pre_fee_amount,
             self.pool.tokens[token_index].decimals,
         )?;
 

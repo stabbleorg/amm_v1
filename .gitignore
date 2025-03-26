@@ -3,11 +3,11 @@
 !.anchor/build.sh
 .npmrc
 target
+tests/fixtures
 **/*.rs.bk
 dist
 node_modules
 test-ledger
 .yarn
 *.log
-*.so
 /*.sh

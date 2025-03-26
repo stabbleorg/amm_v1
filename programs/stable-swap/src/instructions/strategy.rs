@@ -47,7 +47,7 @@ pub fn process_exec_strategy(ctx: Context<ExecStrategy>, ramp_step: u16, ramp_du
     require_gte!(ramp_duration, ctx.accounts.strategy.ramp_min_duration);
     require_gte!(ctx.accounts.strategy.ramp_max_duration, ramp_duration);
 
-    let current_time = Clock::get().unwrap().unix_timestamp;
+    let current_time = Clock::get()?.unix_timestamp;
     require_gt!(current_time, ctx.accounts.pool.ramp_stop_ts);
 
     if ctx.accounts.pool.amp_initial_factor > ctx.accounts.pool.amp_target_factor {

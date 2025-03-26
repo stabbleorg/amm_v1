@@ -17,7 +17,11 @@ use vault::{
 };
 
 pub fn process_swap(ctx: Context<Swap>, amount_in: Option<u64>, minimum_amount_out: u64) -> Result<()> {
-    let amplification = ctx.accounts.pool.get_amplification().unwrap();
+    let amplification = ctx
+        .accounts
+        .pool
+        .get_amplification(Clock::get()?.unix_timestamp)
+        .unwrap();
     let balances = ctx.accounts.pool.get_balances();
     let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
 

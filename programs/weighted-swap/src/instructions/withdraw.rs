@@ -25,6 +25,8 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
         assert_eq!(num_tokens, ctx.accounts.pool.tokens.len());
     }
 
+    let epoch = Clock::get()?.epoch;
+
     if num_tokens == 1 {
         let mint = &ctx.remaining_accounts[2];
         let token_index = ctx.accounts.pool.get_token_index(mint.key()).unwrap();
@@ -44,6 +46,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
             &ctx.remaining_accounts[0],
             &ctx.remaining_accounts[1],
             mint,
+            epoch,
         )?;
     } else {
         let balances_out = base_pool_math::compute_proportional_amounts_out(
@@ -65,6 +68,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
                 &user_account,
                 &ctx.remaining_accounts[token_index + num_tokens],
                 mint,
+                epoch,
             )?;
         }
     };
@@ -107,12 +111,13 @@ impl<'info> Withdraw<'info> {
         user_account: &AccountInfo<'info>,
         vault_account: &AccountInfo<'info>,
         mint: &AccountInfo<'info>,
+        epoch: u64,
     ) -> Result<()> {
         let amount_out = self.pool.calc_unwrapped_amount(balance_out, token_index).unwrap();
         // remove token balances
         self.pool.tokens[token_index].balance -= self.pool.calc_wrapped_amount(amount_out, token_index).unwrap();
 
-        let transfer_fee = get_transfer_fee(mint, amount_out, Clock::get()?.epoch)?;
+        let transfer_fee = get_transfer_fee(mint, amount_out, epoch)?;
         let post_fee_amount_out = amount_out.saturating_sub(transfer_fee);
         require_gte!(post_fee_amount_out, minimum_amount_out, SwapError::SlippageExceeded);
 

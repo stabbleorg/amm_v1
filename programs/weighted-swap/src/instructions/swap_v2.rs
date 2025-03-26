@@ -22,8 +22,6 @@ pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amo
     let token_out_index = ctx.accounts.pool.get_token_index(ctx.accounts.mint_out.key()).unwrap();
     assert_ne!(token_in_index, token_out_index);
 
-    let epoch = Clock::get()?.epoch;
-
     // if amount_in is set to None, it will send full amount given user's in token account
     // this is useful to swap from intermediate token account created in multi-hop swap
     let amount_in = if amount_in.is_some() {
@@ -31,6 +29,8 @@ pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amo
     } else {
         ctx.accounts.user_token_in.amount
     };
+
+    let epoch = Clock::get()?.epoch;
 
     let transfer_fee = get_transfer_fee(&ctx.accounts.mint_in.to_account_info(), amount_in, epoch)?;
     let post_fee_amount_in = amount_in.saturating_sub(transfer_fee);
