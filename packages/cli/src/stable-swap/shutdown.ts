@@ -10,12 +10,12 @@ export function shutdown(program: Command) {
     .description("shutdown stable pool")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
     .action(async ({ poolK }: { poolK: PublicKey }) => {
-      const { provider } = useContext();
+      const { provider, priorityLevel, simulate } = useContext();
 
       const stableSwap = new StableSwapContext(provider);
       const pool = await stableSwap.loadPool(poolK);
 
-      const signature = await stableSwap.shutdown({ pool });
+      const signature = await stableSwap.shutdown({ pool, priorityLevel, simulate });
 
       console.log(signature);
     });

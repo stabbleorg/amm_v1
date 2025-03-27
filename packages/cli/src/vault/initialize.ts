@@ -24,7 +24,7 @@ export function initialize(program: Command) {
         beneficiaryK: PublicKey;
         vaultKP?: Keypair;
       }) => {
-        const { provider } = useContext();
+        const { provider, priorityLevel, simulate } = useContext();
 
         const vaultContext = new VaultContext(provider);
 
@@ -33,6 +33,8 @@ export function initialize(program: Command) {
           beneficiaryAddress: beneficiaryK,
           beneficiaryFee,
           kind,
+          priorityLevel,
+          simulate,
         });
 
         console.log("Vault:", address.toBase58());

@@ -42,7 +42,7 @@ export function initialize(program: Command) {
         symbol?: string;
         uri?: string;
       }) => {
-        const { provider, priorityLevel } = useContext();
+        const { provider, priorityLevel, simulate } = useContext();
 
         const vaultContext = new VaultContext(provider);
         const weightedSwap = new WeightedSwapContext(provider);
@@ -62,9 +62,10 @@ export function initialize(program: Command) {
           symbol,
           uri,
           priorityLevel,
+          simulate,
         });
 
-        await vaultContext.createMissingTokenAccounts({ vault, mintAddresses });
+        await vaultContext.createMissingTokenAccounts({ vault, mintAddresses, priorityLevel, simulate });
 
         console.log("Pool:", address.toBase58());
         console.log(signature);

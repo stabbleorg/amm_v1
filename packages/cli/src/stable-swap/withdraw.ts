@@ -43,6 +43,7 @@ export function withdraw(program: Command) {
         mintAddresses,
         amount,
         priorityLevel,
+        simulate,
       });
 
       console.log(signature);

@@ -7,8 +7,8 @@ import { AMM_VAULT_ID } from "../programs";
 export type VaultData = {
   admin: PublicKey;
   withdrawAuthority: PublicKey;
-  withdrawAuthorityBump: number;
-  authorityBump: number;
+  // withdrawAuthorityBump: number;
+  // authorityBump: number;
   isActive: boolean;
   beneficiary: PublicKey;
   beneficiaryFee: BN;

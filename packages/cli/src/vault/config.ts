@@ -11,16 +11,16 @@ export function changeBeneficiary(program: Command) {
     .requiredOption("--vault-k <string>", "vault key", parseKey)
     .requiredOption("--beneficiary-k <string>", "new beneficiary key", parseKey)
     .action(async ({ vaultK, beneficiaryK }: { vaultK: PublicKey; beneficiaryK: PublicKey }) => {
-      const { provider, simulate } = useContext();
+      const { provider, priorityLevel, simulate } = useContext();
 
       const vaultContext = new VaultContext(provider);
       const vault = await vaultContext.loadVault(vaultK);
 
-      if (simulate) return;
-
       const signature = await vaultContext.changeBeneficiary({
         vault,
         beneficiaryAddress: beneficiaryK,
+        priorityLevel,
+        simulate,
       });
 
       console.log(signature);
@@ -34,16 +34,16 @@ export function transferAdmin(program: Command) {
     .requiredOption("--vault-k <string>", "vault key", parseKey)
     .requiredOption("--admin-k <string>", "new admin key", parseKey)
     .action(async ({ vaultK, adminK }: { vaultK: PublicKey; adminK: PublicKey }) => {
-      const { provider, simulate } = useContext();
+      const { provider, priorityLevel, simulate } = useContext();
 
       const vaultContext = new VaultContext(provider);
       const vault = await vaultContext.loadVault(vaultK);
 
-      if (simulate) return;
-
       const signature = await vaultContext.transferAdmin({
         vault,
         adminAddress: adminK,
+        priorityLevel,
+        simulate,
       });
 
       console.log(signature);

@@ -33,13 +33,12 @@ export function deposit(program: Command) {
         console.log("Estimation:", amountOut);
       }
 
-      if (simulate) return;
-
       const signature = await stableSwap.deposit({
         pool,
         mintAddresses,
         amounts,
         priorityLevel,
+        simulate,
       });
 
       console.log(signature);

@@ -11,18 +11,18 @@ export function changeSwapFee(program: Command) {
     .requiredOption("--pool-k <string>", "pool key", parseKey)
     .requiredOption("--swap-fee <string>", "new swap fee")
     .action(async ({ poolK, swapFee }: { poolK: PublicKey; swapFee: string }) => {
-      const { provider, simulate } = useContext();
+      const { provider, priorityLevel, simulate } = useContext();
 
       const weightedSwap = new WeightedSwapContext(provider);
       const pool = await weightedSwap.loadPool(poolK);
 
       console.log("Current swap fee:", pool.swapFee);
 
-      if (simulate) return;
-
       const signature = await weightedSwap.changeSwapFee({
         pool,
         swapFee,
+        priorityLevel,
+        simulate,
       });
 
       console.log(signature);

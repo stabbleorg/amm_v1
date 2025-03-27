@@ -36,13 +36,12 @@ export function withdraw(program: Command) {
         console.log("Estimation:", amountsOut.join(", "));
       }
 
-      if (simulate) return;
-
       const signature = await weightedSwap.withdraw({
         pool,
         mintAddresses,
         amount,
         priorityLevel,
+        simulate,
       });
 
       console.log(signature);

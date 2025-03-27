@@ -30,7 +30,7 @@ export function swap(program: Command) {
         amount: string;
         slippage?: number;
       }) => {
-        const { provider, altAccounts, simulate } = useContext();
+        const { provider, altAccounts, priorityLevel, simulate } = useContext();
 
         const vaultContext = new VaultContext(provider);
         const weightedSwap = new WeightedSwapContext(provider);
@@ -69,7 +69,6 @@ export function swap(program: Command) {
               )
               .join("\n"),
           );
-          return;
         }
 
         const signature = await Swap.batch({
@@ -79,6 +78,8 @@ export function swap(program: Command) {
           amountIn: amount,
           minimumAmountOut,
           altAccounts,
+          priorityLevel,
+          simulate,
         });
 
         console.log(signature);
