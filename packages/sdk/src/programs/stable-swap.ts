@@ -33,14 +33,18 @@ import {
   TOKEN_MINT_RENT_FEE_LAMPORTS,
   AddressWithTransactionSignature,
 } from "@stabbleorg/anchor-contrib";
-import { AMM_VAULT_ID } from "./vault";
+import { AMM_VAULT_PROGRAM_ID } from "./vault";
 import { Vault, StablePool, StablePoolData } from "../accounts";
 import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
-import { simulate } from "../../../cli/src/stable-swap/simulate";
 
+/**
+ * @deprecated Use `STABLE_SWAP_PROGRAM_ID` instead.
+ */
 export const STABLE_SWAP_ID = new PublicKey(IDL.address);
+export const STABLE_SWAP_PROGRAM_ID = new PublicKey(IDL.address);
+
 export type StableSwapProgram = Program<IDLType>;
 
 export class StableSwapContext<T extends Provider = Provider> extends WalletContext<T> {
@@ -369,7 +373,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
           withdrawAuthority: pool.vault.withdrawAuthorityAddress,
           vault: pool.vault.address,
           vaultAuthority: pool.vault.authorityAddress,
-          vaultProgram: AMM_VAULT_ID,
+          vaultProgram: AMM_VAULT_PROGRAM_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
           tokenProgram2022: TOKEN_2022_PROGRAM_ID,
         })
@@ -542,7 +546,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
           withdrawAuthority: pool.vault.withdrawAuthorityAddress,
           vault: pool.vault.address,
           vaultAuthority: pool.vault.authorityAddress,
-          vaultProgram: AMM_VAULT_ID,
+          vaultProgram: AMM_VAULT_PROGRAM_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
           token2022Program: TOKEN_2022_PROGRAM_ID,
         })

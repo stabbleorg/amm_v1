@@ -2,7 +2,7 @@ import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { SafeAmount } from "@stabbleorg/anchor-contrib";
-import { AMM_VAULT_ID } from "../programs";
+import { AMM_VAULT_PROGRAM_ID } from "../programs";
 
 export type VaultData = {
   admin: PublicKey;
@@ -62,6 +62,9 @@ export class Vault {
   }
 
   static getAuthorityAddress(vaultAddress: PublicKey): PublicKey {
-    return PublicKey.findProgramAddressSync([Buffer.from("vault_authority"), vaultAddress.toBuffer()], AMM_VAULT_ID)[0];
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("vault_authority"), vaultAddress.toBuffer()],
+      AMM_VAULT_PROGRAM_ID,
+    )[0];
   }
 }
