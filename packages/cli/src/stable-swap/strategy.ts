@@ -33,7 +33,7 @@ export function createStrategy(program: Command) {
         rampMinDuration: number;
         rampMaxDuration: number;
       }) => {
-        const { provider } = useContext();
+        const { provider, priorityLevel, simulate } = useContext();
 
         const stableSwap = new StableSwapContext(provider);
         const pool = await stableSwap.loadPool(poolK);
@@ -46,6 +46,8 @@ export function createStrategy(program: Command) {
           rampMaxStep,
           rampMinDuration,
           rampMaxDuration,
+          priorityLevel,
+          simulate,
         });
 
         console.log("Strategy:", address.toBase58());
@@ -74,7 +76,7 @@ export function execStrategy(program: Command) {
         rampStep: number;
         rampDuration: number;
       }) => {
-        const { provider } = useContext();
+        const { provider, priorityLevel, simulate } = useContext();
 
         const stableSwap = new StableSwapContext(provider);
         const pool = await stableSwap.loadPool(poolK);
@@ -84,6 +86,8 @@ export function execStrategy(program: Command) {
           address: strategyK,
           rampStep,
           rampDuration,
+          priorityLevel,
+          simulate,
         });
 
         console.log(signature);

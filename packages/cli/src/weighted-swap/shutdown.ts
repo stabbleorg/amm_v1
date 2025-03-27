@@ -10,12 +10,12 @@ export function shutdown(program: Command) {
     .description("shutdown weighted pool")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
     .action(async ({ poolK }: { poolK: PublicKey }) => {
-      const { provider } = useContext();
+      const { provider, priorityLevel, simulate } = useContext();
 
       const weightedSwap = new WeightedSwapContext(provider);
       const pool = await weightedSwap.loadPool(poolK);
 
-      const signature = await weightedSwap.shutdown({ pool });
+      const signature = await weightedSwap.shutdown({ pool, priorityLevel, simulate });
 
       console.log(signature);
     });

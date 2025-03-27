@@ -40,9 +40,10 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     beneficiaryAddress,
     beneficiaryFee,
     kind,
+    altAccounts,
     priorityLevel,
     maxPriorityMicroLamports,
-    altAccounts,
+    simulate,
   }: TransactionArgs<{
     keypair?: Keypair;
     beneficiaryAddress: PublicKey;
@@ -95,6 +96,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
       altAccounts,
       priorityLevel,
       maxPriorityMicroLamports,
+      simulate,
     );
 
     return { address: keypair.publicKey, signature };
@@ -103,9 +105,10 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
   async createMissingTokenAccounts({
     vault,
     mintAddresses,
+    altAccounts,
     priorityLevel,
     maxPriorityMicroLamports,
-    altAccounts,
+    simulate,
   }: TransactionArgs<{
     vault: Vault;
     mintAddresses: PublicKey[];
@@ -136,15 +139,16 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
 
     if (!instructions.length) return null;
 
-    return this.sendSmartTransaction(instructions, [], altAccounts, priorityLevel, maxPriorityMicroLamports);
+    return this.sendSmartTransaction(instructions, [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
   }
 
   async changeBeneficiary({
     vault,
     beneficiaryAddress,
+    altAccounts,
     priorityLevel,
     maxPriorityMicroLamports,
-    altAccounts,
+    simulate,
   }: TransactionArgs<{ vault: Vault; beneficiaryAddress: PublicKey }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
       .changeBeneficiary(beneficiaryAddress)
@@ -154,15 +158,16 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
       })
       .instruction();
 
-    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports);
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
   }
 
   async transferAdmin({
     vault,
     adminAddress,
+    altAccounts,
     priorityLevel,
     maxPriorityMicroLamports,
-    altAccounts,
+    simulate,
   }: TransactionArgs<{ vault: Vault; adminAddress: PublicKey }>): Promise<TransactionSignature> {
     const instruction = await this.program.methods
       .transferAdmin(adminAddress)
@@ -172,7 +177,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
       })
       .instruction();
 
-    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports);
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
   }
 }
 

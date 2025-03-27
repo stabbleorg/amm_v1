@@ -27,7 +27,7 @@ export function swap(program: Command) {
         amount: number;
         slippage: number;
       }) => {
-        const { provider, altAccounts, simulate } = useContext();
+        const { provider, altAccounts, priorityLevel, simulate } = useContext();
 
         const stableSwap = new StableSwapContext(provider);
         const pool = await stableSwap.loadPool(poolK);
@@ -49,8 +49,6 @@ export function swap(program: Command) {
         console.log("Exchange rate:", amountOut / amount);
         console.log("Estimation:", amountOut);
 
-        if (simulate) return;
-
         const signature = await stableSwap.swap({
           pool,
           mintInAddress: mintInK,
@@ -58,6 +56,8 @@ export function swap(program: Command) {
           amountIn: amount,
           minimumAmountOut: amountOut * (1 - slippage),
           altAccounts,
+          priorityLevel,
+          simulate,
         });
 
         console.log(signature);
