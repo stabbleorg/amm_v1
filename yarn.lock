@@ -838,10 +838,10 @@
     rpc-websockets "^9.0.2"
     superstruct "^2.0.2"
 
-"@stabbleorg/anchor-contrib@^2.1.3":
-  version "2.1.3"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-2.1.3.tgz#d16cd229873e1c9db3e9975ba53a1a7ae816d361"
-  integrity sha512-kQsD9Z3tBcLo7ruZ6/0dRu91X/8NXOTVpEQVh7szMuNlD/t5Ccbj5QX9ADWMnfPSXJLg/05ngqvD/hamNdk7PA==
+"@stabbleorg/anchor-contrib@^2.1.6":
+  version "2.1.6"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-2.1.6.tgz#56fd660440d62c5d9839739a9e4642c54a5fa018"
+  integrity sha512-v1G7Wx7WnZyd/TyIbGK7fWYPFOxiDXY2a5tkhyrkbx54K8C1rr0YbVj5hwHw3ws/EOoNsQ58wihPIPjEMrtp3w==
   dependencies:
     "@coral-xyz/anchor" "^0.31.0"
     "@solana/spl-token" "^0.4.13"
