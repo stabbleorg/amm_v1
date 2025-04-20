@@ -72,6 +72,22 @@ export class StablePool implements Pool<StablePoolData> {
     }
   }
 
+  get ampStart(): number {
+    return this.data.ampInitialFactor;
+  }
+
+  get ampEnd(): number {
+    return this.data.ampTargetFactor;
+  }
+
+  get ampStartTime(): Date {
+    return new Date(this.data.rampStartTs.toNumber() * 1000);
+  }
+
+  get ampEndTime(): Date {
+    return new Date(this.data.rampStopTs.toNumber() * 1000);
+  }
+
   get swapFee(): number {
     return SafeAmount.toNano(this.data.swapFee);
   }
