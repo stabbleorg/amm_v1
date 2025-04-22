@@ -85,6 +85,17 @@ pub struct CreateStrategy<'info> {
 }
 
 #[derive(Accounts)]
+pub struct CloseStrategy<'info> {
+    pub owner_only: OwnerOnly<'info>,
+
+    #[account(mut, close = rent_collector)]
+    pub strategy: Account<'info, Strategy>,
+
+    #[account(mut)]
+    pub rent_collector: SystemAccount<'info>,
+}
+
+#[derive(Accounts)]
 pub struct ApproveStrategy<'info> {
     pub admin_only: AdminOnly<'info>,
 

@@ -23,9 +23,8 @@ pub mod stable_swap {
     }
 
     /// shutdown the zero-liquidity pool
-    #[access_control(ctx.accounts.validate())]
-    pub fn shutdown(ctx: Context<Shutdown>) -> Result<()> {
-        Ok(())
+    pub fn shutdown<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, 'info, 'info, Shutdown<'info>>) -> Result<()> {
+        process_shutdown(ctx)
     }
 
     /// add liquidity
@@ -115,6 +114,10 @@ pub mod stable_swap {
             ramp_min_duration,
             ramp_max_duration,
         )
+    }
+
+    pub fn close_strategy(_ctx: Context<CloseStrategy>) -> Result<()> {
+        Ok(())
     }
 
     pub fn approve_strategy(ctx: Context<ApproveStrategy>) -> Result<()> {

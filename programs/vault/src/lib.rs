@@ -76,4 +76,8 @@ pub mod vault {
     pub fn reject_admin(ctx: Context<PendingAdminOnly>) -> Result<()> {
         process_reject_admin(ctx)
     }
+
+    pub fn create_price_feed(ctx: Context<CreatePriceFeed>, feed_id: String) -> Result<()> {
+        process_create_price_feed(ctx, &feed_id)
+    }
 }

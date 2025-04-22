@@ -1,6 +1,7 @@
 
 .anchor
 .DS_Store
+packages/**/generated
 target
 node_modules
 dist
