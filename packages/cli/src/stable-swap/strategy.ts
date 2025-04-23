@@ -56,6 +56,37 @@ export function createStrategy(program: Command) {
     );
 }
 
+export function closeStrategy(program: Command) {
+  program
+    .command("stable-strategy-close")
+    .description("close strategy for stable pool")
+    .requiredOption("--pool-k <string>", "pool key", parseKey)
+    .requiredOption("--strategy-k <string>", "strategy key", parseKey)
+    .action(
+      async ({
+        poolK,
+        strategyK,
+      }: {
+        poolK: PublicKey;
+        strategyK: PublicKey;
+      }) => {
+        const { provider, priorityLevel, simulate } = useContext();
+
+        const stableSwap = new StableSwapContext(provider);
+        const pool = await stableSwap.loadPool(poolK);
+
+        const signature = await stableSwap.closeStrategy({
+          pool,
+          address: strategyK,
+          priorityLevel,
+          simulate,
+        });
+
+        console.log(signature);
+      },
+    );
+}
+
 export function execStrategy(program: Command) {
   program
     .command("stable-strategy-exec")

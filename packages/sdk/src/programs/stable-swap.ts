@@ -34,7 +34,7 @@ import {
   AddressWithTransactionSignature,
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_PROGRAM_ID } from "./vault";
-import { Vault, StablePool, StablePoolData } from "../accounts";
+import { Vault, PriceFeed, StablePool, StablePoolData } from "../accounts";
 import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
@@ -105,9 +105,11 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     symbol?: string;
     uri?: string;
   }>): Promise<AddressWithTransactionSignature> {
+    const address = keypair.publicKey;
+
     // https://www.anchor-lang.com/docs/references/space#type-chart
     const size = this.program.account.pool.size + (4 + StablePool.POOL_TOKEN_SIZE * mintAddresses.length) + 8;
-    const poolAuthorityAddress = StablePool.getAuthorityAddress(keypair.publicKey);
+    const poolAuthorityAddress = StablePool.getAuthorityAddress(address);
     const mintAccounts = await this.provider.connection.getMultipleAccountsInfo(mintAddresses);
     const mints = mintAccounts.map((account, index) => unpackMint(mintAddresses[index], account!, account!.owner));
 
@@ -163,7 +165,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
       createSetAuthorityInstruction(poolMintKP.publicKey, this.walletAddress, AuthorityType.FreezeAccount, null),
       SystemProgram.createAccount({
         fromPubkey: this.walletAddress,
-        newAccountPubkey: keypair.publicKey,
+        newAccountPubkey: address,
         space: size,
         lamports: await this.provider.connection.getMinimumBalanceForRentExemption(size),
         programId: this.program.programId,
@@ -177,7 +179,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
         .accountsStrict({
           owner: this.walletAddress,
           mint: poolMintKP.publicKey,
-          pool: keypair.publicKey,
+          pool: address,
           poolAuthority: poolAuthorityAddress,
           withdrawAuthority: vault.withdrawAuthorityAddress,
           vault: vault.address,
@@ -195,7 +197,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
       simulate,
     );
 
-    return { address: keypair.publicKey, signature };
+    return { address, signature };
   }
 
   async deposit({
@@ -588,7 +590,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     const instruction = await this.program.methods
       .changeSwapFee(SafeAmount.toGiga(swapFee))
       .accountsStrict({
-        owner: this.walletAddress,
+        owner: pool.ownerAddress,
         pool: pool.address,
       })
       .instruction();
@@ -607,7 +609,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     const instruction = await this.program.methods
       .changeMaxSupply(SafeAmount.toU64Amount(maxSupply, StablePool.POOL_TOKEN_DECIMALS))
       .accountsStrict({
-        owner: this.walletAddress,
+        owner: pool.ownerAddress,
         pool: pool.address,
       })
       .instruction();
@@ -617,17 +619,38 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
 
   async shutdown({
     pool,
+    priceFeeds = [],
     altAccounts,
     priorityLevel,
     maxPriorityMicroLamports,
     simulate,
-  }: TransactionArgs<{ pool: StablePool }>): Promise<TransactionSignature> {
+  }: TransactionArgs<{ pool: StablePool; priceFeeds?: PriceFeed[] }>): Promise<TransactionSignature> {
+    const priceAccounts: AccountMeta[] = [];
+    const feedAccounts: AccountMeta[] = [];
+
+    pool.tokens.forEach((token) => {
+      const feed = priceFeeds.find((feed) => feed.mintAddress.equals(token.mintAddress));
+      if (feed) {
+        priceAccounts.push({
+          pubkey: feed.priceAddress,
+          isWritable: false,
+          isSigner: false,
+        });
+        feedAccounts.push({
+          pubkey: feed.address,
+          isWritable: false,
+          isSigner: false,
+        });
+      }
+    });
+
     const instruction = await this.program.methods
       .shutdown()
       .accountsStrict({
         owner: pool.ownerAddress,
         pool: pool.address,
       })
+      .remainingAccounts([...priceAccounts, ...feedAccounts])
       .instruction();
 
     return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
@@ -644,7 +667,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     const instruction = await this.program.methods
       .transferOwner(ownerAddress)
       .accountsStrict({
-        owner: this.walletAddress,
+        owner: pool.ownerAddress,
         pool: pool.address,
       })
       .instruction();
@@ -693,12 +716,15 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     rampMaxDuration: number;
     keypair?: Keypair;
   }>): Promise<AddressWithTransactionSignature> {
+    const address = keypair.publicKey;
+
     const size = this.program.account.strategy.size;
+
     const signature = await this.sendSmartTransaction(
       [
         SystemProgram.createAccount({
           fromPubkey: this.walletAddress,
-          newAccountPubkey: keypair.publicKey,
+          newAccountPubkey: address,
           space: size,
           lamports: await this.provider.connection.getMinimumBalanceForRentExemption(size),
           programId: this.program.programId,
@@ -707,10 +733,10 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
           .createStrategy(ampMinFactor, ampMaxFactor, rampMinStep, rampMaxStep, rampMinDuration, rampMaxDuration)
           .accountsStrict({
             ownerOnly: {
-              owner: this.walletAddress,
+              owner: pool.ownerAddress,
               pool: pool.address,
             },
-            strategy: keypair.publicKey,
+            strategy: address,
           })
           .instruction(),
       ],
@@ -721,7 +747,33 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
       simulate,
     );
 
-    return { address: keypair.publicKey, signature };
+    return { address, signature };
+  }
+
+  async closeStrategy({
+    pool,
+    address,
+    altAccounts,
+    priorityLevel,
+    maxPriorityMicroLamports,
+    simulate,
+  }: TransactionArgs<{
+    pool: StablePool;
+    address: PublicKey;
+  }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .closeStrategy()
+      .accountsStrict({
+        ownerOnly: {
+          owner: pool.ownerAddress,
+          pool: pool.address,
+        },
+        strategy: address,
+        rentCollector: this.walletAddress,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
   }
 
   async execStrategy({

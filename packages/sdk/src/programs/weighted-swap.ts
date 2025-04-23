@@ -105,9 +105,11 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     symbol?: string;
     uri?: string;
   }>): Promise<AddressWithTransactionSignature> {
+    const address = keypair.publicKey;
+
     // https://www.anchor-lang.com/docs/references/space#type-chart
     const size = this.program.account.pool.size + (4 + WeightedPool.POOL_TOKEN_SIZE * mintAddresses.length) + 8;
-    const poolAuthorityAddress = WeightedPool.getAuthorityAddress(keypair.publicKey);
+    const poolAuthorityAddress = WeightedPool.getAuthorityAddress(address);
     const mintAccounts = await this.provider.connection.getMultipleAccountsInfo(mintAddresses);
     const mints = mintAccounts.map((account, index) => unpackMint(mintAddresses[index], account!, account!.owner));
 
@@ -163,7 +165,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       createSetAuthorityInstruction(poolMintKP.publicKey, this.walletAddress, AuthorityType.FreezeAccount, null),
       SystemProgram.createAccount({
         fromPubkey: this.walletAddress,
-        newAccountPubkey: keypair.publicKey,
+        newAccountPubkey: address,
         space: size,
         lamports: await this.provider.connection.getMinimumBalanceForRentExemption(size),
         programId: this.program.programId,
@@ -179,7 +181,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         .accountsStrict({
           owner: this.walletAddress,
           mint: poolMintKP.publicKey,
-          pool: keypair.publicKey,
+          pool: address,
           poolAuthority: poolAuthorityAddress,
           withdrawAuthority: vault.withdrawAuthorityAddress,
           vault: vault.address,
@@ -197,7 +199,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       simulate,
     );
 
-    return { address: keypair.publicKey, signature };
+    return { address, signature };
   }
 
   async deposit({
@@ -569,7 +571,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     const instruction = await this.program.methods
       .changeSwapFee(SafeAmount.toGiga(swapFee))
       .accountsStrict({
-        owner: this.walletAddress,
+        owner: pool.ownerAddress,
         pool: pool.address,
       })
       .instruction();
@@ -588,7 +590,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     const instruction = await this.program.methods
       .changeMaxSupply(SafeAmount.toU64Amount(maxSupply, WeightedPool.POOL_TOKEN_DECIMALS))
       .accountsStrict({
-        owner: this.walletAddress,
+        owner: pool.ownerAddress,
         pool: pool.address,
       })
       .instruction();
@@ -625,7 +627,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     const instruction = await this.program.methods
       .transferOwner(ownerAddress)
       .accountsStrict({
-        owner: this.walletAddress,
+        owner: pool.ownerAddress,
         pool: pool.address,
       })
       .instruction();
