@@ -9,7 +9,7 @@ import {
   WalletContext,
   AddressWithTransactionSignature,
 } from "@stabbleorg/anchor-contrib";
-import { Vault, VaultData, WeightedPool, StablePool } from "../accounts";
+import { Vault, VaultData, PriceFeed, WeightedPool, StablePool } from "../accounts";
 import { type Vault as IDLType } from "../generated/vault";
 import IDL from "../generated/idl/vault.json";
 
@@ -29,17 +29,32 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
 
   constructor(provider: T) {
     super(provider);
-    this.program = new Program(IDL as any, provider);
+    this.program = new Program(IDL, provider);
   }
 
   async loadVault(vaultAddress: PublicKey): Promise<Vault> {
     const account = await this.program.account.vault.fetch(vaultAddress);
+
     return new Vault(vaultAddress, account);
   }
 
   async loadVaults(): Promise<Vault[]> {
     const accounts = await this.program.account.vault.all();
+
     return accounts.map((data) => new Vault(data.publicKey, data.account));
+  }
+
+  async loadPriceFeeds(vaultAddress: PublicKey): Promise<PriceFeed[]> {
+    const accounts = await this.program.account.priceFeed.all([
+      {
+        memcmp: {
+          offset: 8,
+          bytes: vaultAddress.toBase58(),
+        },
+      },
+    ]);
+
+    return accounts.map((data) => new PriceFeed(data.publicKey, data.account));
   }
 
   async initialize({
@@ -57,27 +72,25 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     beneficiaryFee: FloatLike;
     kind: PoolKind;
   }>): Promise<AddressWithTransactionSignature> {
+    const address = keypair.publicKey;
+
     let withdrawAuthorityAddress: PublicKey;
     let withdrawAuthorityBump: number;
 
     switch (kind) {
       case "stable_swap":
-        [withdrawAuthorityAddress, withdrawAuthorityBump] = StablePool.getWithdrawAuthorityAddressAndBump(
-          keypair.publicKey,
-        );
+        [withdrawAuthorityAddress, withdrawAuthorityBump] = StablePool.getWithdrawAuthorityAddressAndBump(address);
         break;
       case "weighted_swap":
       default:
-        [withdrawAuthorityAddress, withdrawAuthorityBump] = WeightedPool.getWithdrawAuthorityAddressAndBump(
-          keypair.publicKey,
-        );
+        [withdrawAuthorityAddress, withdrawAuthorityBump] = WeightedPool.getWithdrawAuthorityAddressAndBump(address);
         break;
     }
 
     const instructions: TransactionInstruction[] = [
       SystemProgram.createAccount({
         fromPubkey: this.walletAddress,
-        newAccountPubkey: keypair.publicKey,
+        newAccountPubkey: address,
         space: this.program.account.vault.size,
         lamports: await this.provider.connection.getMinimumBalanceForRentExemption(this.program.account.vault.size),
         programId: this.program.programId,
@@ -91,8 +104,8 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
         )
         .accountsStrict({
           admin: this.walletAddress,
-          vault: keypair.publicKey,
-          vaultAuthority: Vault.getAuthorityAddress(keypair.publicKey),
+          vault: address,
+          vaultAuthority: Vault.getAuthorityAddress(address),
         })
         .instruction(),
     ];
@@ -106,7 +119,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
       simulate,
     );
 
-    return { address: keypair.publicKey, signature };
+    return { address, signature };
   }
 
   async createMissingTokenAccounts({
@@ -160,7 +173,7 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     const instruction = await this.program.methods
       .changeBeneficiary(beneficiaryAddress)
       .accountsStrict({
-        admin: this.walletAddress,
+        admin: vault.adminAddress,
         vault: vault.address,
       })
       .instruction();
@@ -179,12 +192,65 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
     const instruction = await this.program.methods
       .transferAdmin(adminAddress)
       .accountsStrict({
-        admin: this.walletAddress,
+        admin: vault.adminAddress,
         vault: vault.address,
       })
       .instruction();
 
     return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
+  }
+
+  async createPriceFeed({
+    vault,
+    mintAddress,
+    pythPriceAddress,
+    pythPriceFeedId,
+    keypair = Keypair.generate(),
+    altAccounts,
+    priorityLevel,
+    maxPriorityMicroLamports,
+    simulate,
+  }: TransactionArgs<{
+    vault: Vault;
+    pythPriceAddress: PublicKey;
+    mintAddress: PublicKey;
+    pythPriceFeedId: string;
+    keypair?: Keypair;
+  }>): Promise<AddressWithTransactionSignature> {
+    const address = keypair.publicKey;
+
+    const instructions: TransactionInstruction[] = [
+      SystemProgram.createAccount({
+        fromPubkey: this.walletAddress,
+        newAccountPubkey: address,
+        space: this.program.account.priceFeed.size,
+        lamports: await this.provider.connection.getMinimumBalanceForRentExemption(this.program.account.priceFeed.size),
+        programId: this.program.programId,
+      }),
+      await this.program.methods
+        .createPriceFeed(pythPriceFeedId)
+        .accountsStrict({
+          adminOnly: {
+            admin: vault.adminAddress,
+            vault: vault.address,
+          },
+          priceFeed: address,
+          priceUpdate: pythPriceAddress,
+          mint: mintAddress,
+        })
+        .instruction(),
+    ];
+
+    const signature = await this.sendSmartTransaction(
+      instructions,
+      [keypair],
+      altAccounts,
+      priorityLevel,
+      maxPriorityMicroLamports,
+      simulate,
+    );
+
+    return { address, signature };
   }
 }
 

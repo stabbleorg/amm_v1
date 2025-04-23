@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { PublicKey } from "@solana/web3.js";
-import { StableSwapContext } from "@stabbleorg/amm-sdk";
+import { StableSwapContext, VaultContext } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
@@ -15,7 +15,10 @@ export function shutdown(program: Command) {
       const stableSwap = new StableSwapContext(provider);
       const pool = await stableSwap.loadPool(poolK);
 
-      const signature = await stableSwap.shutdown({ pool, priorityLevel, simulate });
+      const vaultContext = new VaultContext(provider);
+      const priceFeeds = await vaultContext.loadPriceFeeds(pool.vaultAddress);
+
+      const signature = await stableSwap.shutdown({ pool, priceFeeds, priorityLevel, simulate });
 
       console.log(signature);
     });
