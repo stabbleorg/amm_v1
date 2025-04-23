@@ -23,9 +23,8 @@ pub mod weighted_swap {
     }
 
     /// shutdown the zero-liquidity pool
-    #[access_control(ctx.accounts.validate())]
-    pub fn shutdown(ctx: Context<Shutdown>) -> Result<()> {
-        Ok(())
+    pub fn shutdown<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, 'info, 'info, Shutdown<'info>>) -> Result<()> {
+        process_shutdown(ctx)
     }
 
     /// add liquidity

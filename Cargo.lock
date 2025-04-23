@@ -3001,6 +3001,7 @@ dependencies = [
  "anchor-spl",
  "bn",
  "math",
+ "pyth-solana-receiver-sdk",
  "vault",
 ]
 

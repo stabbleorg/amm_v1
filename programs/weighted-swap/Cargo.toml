@@ -22,5 +22,6 @@ anchor-spl = { workspace = true }
 anchor-common = { workspace = true }
 bn = { workspace = true }
 math = { workspace = true }
+pyth-solana-receiver-sdk = { workspace = true }
 
 vault = { path = "../vault", features = ["cpi"] }
