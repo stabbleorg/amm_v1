@@ -4,7 +4,7 @@ use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 use vault::state::PriceFeed;
 
 const MINIMUM_TOTAL: f64 = 3.0;
-const MAXIMUM_AGE: u64 = 3;
+const MAXIMUM_AGE: u64 = 20;
 
 pub fn process_shutdown<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, 'info, 'info, Shutdown<'info>>) -> Result<()> {
     let num_tokens = ctx.accounts.pool.tokens.len();

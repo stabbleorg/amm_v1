@@ -6,7 +6,7 @@ import { swap } from "./swap";
 import { simulate } from "./simulate";
 import { changeAmpFactor, changeSwapFee, changeMaxSupply, transferOwner, acceptOwner } from "./config";
 import { shutdown } from "./shutdown";
-import { createStrategy, execStrategy } from "./strategy";
+import { createStrategy, closeStrategy, execStrategy } from "./strategy";
 
 export const setupStableSwapProgram = (program: Command) => {
   initialize(program);
@@ -21,5 +21,6 @@ export const setupStableSwapProgram = (program: Command) => {
   acceptOwner(program);
   shutdown(program);
   createStrategy(program);
+  closeStrategy(program);
   execStrategy(program);
 };

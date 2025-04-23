@@ -88,7 +88,7 @@ pub struct CreateStrategy<'info> {
 pub struct CloseStrategy<'info> {
     pub owner_only: OwnerOnly<'info>,
 
-    #[account(mut, close = rent_collector)]
+    #[account(mut, close = rent_collector, constraint = strategy.pool == owner_only.pool.key())]
     pub strategy: Account<'info, Strategy>,
 
     #[account(mut)]
