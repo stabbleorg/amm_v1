@@ -1,8 +1,4 @@
-import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { SafeAmount } from "@stabbleorg/anchor-contrib";
-import { AMM_VAULT_PROGRAM_ID } from "../programs";
 
 export type PriceFeedData = {
   vault: PublicKey;
@@ -27,5 +23,9 @@ export class PriceFeed {
 
   get priceAddress(): PublicKey {
     return this.data.priceUpdate;
+  }
+
+  get id(): string {
+    return "0x" + Buffer.from(new Uint8Array(this.data.feedId)).toString("hex");
   }
 }
