@@ -115,6 +115,31 @@ export const parseTransaction = ({
         const innerInstruction = instruction.innerInstructions[i];
         const innerInstructionVariant = getTransactionVariant(innerInstruction);
 
+        const programId = innerInstruction.programId;
+        let parentProgramId = instruction.programId;
+        switch (instruction.programId) {
+          case "11111111111111111111111111111111":
+          case "ComputeBudget111111111111111111111111111111":
+          case "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL":
+          case "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA":
+          case "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb":
+            const parentInstruction = transaction.instructions.find(
+              (instruction) =>
+                ![
+                  "11111111111111111111111111111111",
+                  "ComputeBudget111111111111111111111111111111",
+                  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+                  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+                ].includes(instruction.programId),
+            );
+            // HACK: sometimes, Helius transaction parser returns instructions in a wrong order
+            if (parentInstruction) {
+              parentProgramId = parentInstruction.programId;
+            }
+            break;
+        }
+
         switch (innerInstructionVariant) {
           case TransactionVariant.SWAP:
           case TransactionVariant.SWAP_V2:
@@ -125,8 +150,8 @@ export const parseTransaction = ({
                 .map<InstructionLog<PoolActivity>>((activity) => ({
                   signature: transaction.signature,
                   instructionIndex: instructionOffset + i,
-                  parentProgramId: instruction.programId,
-                  programId: innerInstruction.programId,
+                  parentProgramId,
+                  programId,
                   ...activity,
                 })),
             );
@@ -140,8 +165,8 @@ export const parseTransaction = ({
                 .map<InstructionLog<PoolActivity>>((activity) => ({
                   signature: transaction.signature,
                   instructionIndex: instructionOffset + i,
-                  parentProgramId: instruction.programId,
-                  programId: innerInstruction.programId,
+                  parentProgramId,
+                  programId,
                   ...activity,
                 })),
             );
@@ -155,8 +180,8 @@ export const parseTransaction = ({
                 .map<InstructionLog<PoolActivity>>((activity) => ({
                   signature: transaction.signature,
                   instructionIndex: instructionOffset + i,
-                  parentProgramId: instruction.programId,
-                  programId: innerInstruction.programId,
+                  parentProgramId,
+                  programId,
                   ...activity,
                 })),
             );
@@ -168,8 +193,8 @@ export const parseTransaction = ({
               ...cpiCreate,
               signature: transaction.signature,
               instructionIndex: instructionOffset,
-              parentProgramId: null,
-              programId: instruction.programId,
+              parentProgramId,
+              programId,
             });
           default:
             i++;

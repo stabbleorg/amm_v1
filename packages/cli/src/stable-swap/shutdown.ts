@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { PublicKey } from "@solana/web3.js";
-import { StableSwapContext, VaultContext } from "@stabbleorg/amm-sdk";
+import { VaultContext, StableSwapContext } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 

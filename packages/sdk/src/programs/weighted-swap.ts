@@ -34,7 +34,7 @@ import {
   AddressWithTransactionSignature,
 } from "@stabbleorg/anchor-contrib";
 import { AMM_VAULT_PROGRAM_ID } from "./vault";
-import { Vault, WeightedPool, WeightedPoolData } from "../accounts";
+import { Vault, PriceFeed, WeightedPool, WeightedPoolData } from "../accounts";
 import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type WeightedSwap as IDLType } from "../generated/weighted_swap";
 import IDL from "../generated/idl/weighted_swap.json";
@@ -600,17 +600,40 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
 
   async shutdown({
     pool,
+    priceFeeds = [],
     altAccounts,
     priorityLevel,
     maxPriorityMicroLamports,
     simulate,
-  }: TransactionArgs<{ pool: WeightedPool }>): Promise<TransactionSignature> {
+  }: TransactionArgs<{ pool: WeightedPool; priceFeeds?: PriceFeed[] }>): Promise<TransactionSignature> {
+    const remainingAccounts: AccountMeta[] = [];
+
+    for (const token of pool.tokens) {
+      const feed = priceFeeds.find((feed) => feed.mintAddress.equals(token.mintAddress));
+      if (feed) {
+        remainingAccounts.push(
+          {
+            pubkey: feed.priceAddress,
+            isWritable: false,
+            isSigner: false,
+          },
+          {
+            pubkey: feed.address,
+            isWritable: false,
+            isSigner: false,
+          },
+        );
+        break;
+      }
+    }
+
     const instruction = await this.program.methods
       .shutdown()
       .accountsStrict({
         owner: pool.ownerAddress,
         pool: pool.address,
       })
+      .remainingAccounts(remainingAccounts)
       .instruction();
 
     return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);

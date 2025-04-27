@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { PublicKey } from "@solana/web3.js";
-import { WeightedSwapContext } from "@stabbleorg/amm-sdk";
+import { VaultContext, WeightedSwapContext } from "@stabbleorg/amm-sdk";
 import { useContext } from "../context";
 import { parseKey } from "../utils";
 
@@ -15,7 +15,10 @@ export function shutdown(program: Command) {
       const weightedSwap = new WeightedSwapContext(provider);
       const pool = await weightedSwap.loadPool(poolK);
 
-      const signature = await weightedSwap.shutdown({ pool, priorityLevel, simulate });
+      const vaultContext = new VaultContext(provider);
+      const priceFeeds = await vaultContext.loadPriceFeeds(pool.vaultAddress);
+
+      const signature = await weightedSwap.shutdown({ pool, priceFeeds, priorityLevel, simulate });
 
       console.log(signature);
     });
