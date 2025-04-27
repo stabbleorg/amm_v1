@@ -302,6 +302,7 @@ export function parseWithdraw(
         amount: burn.tokenAmount,
         variant,
       });
+      break;
     } else {
       const transfer = getTokenTransferFromInnerInstruction(tokenTransfers, innerInstruction, mintDecimals);
       if (!transfer) throw TokenTransferNotFound;
