@@ -206,6 +206,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     amounts,
     minimumAmountOut = 0,
     wSolAccountKeypair,
+    wSolAmount,
     preTxBuffers = [],
     altAccounts = [],
     priorityLevel,
@@ -218,6 +219,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     minimumAmountOut?: FloatLike;
     // it will be ignored if there is no pre transactions to be executed
     wSolAccountKeypair?: Keypair;
+    wSolAmount?: FloatLike;
     preTxBuffers?: Buffer[];
   }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
@@ -227,7 +229,13 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
 
     if (preTxBuffers.length) {
       if (wSolAccountKeypair) {
-        instructions.push(...this.createTokenAccountInstructions(wSolAccountKeypair.publicKey));
+        const index = mintAddresses.findIndex((address) => address.equals(NATIVE_MINT));
+        if (index !== -1) {
+          instructions.push(...this.createTokenAccountInstructions(wSolAccountKeypair.publicKey));
+          if (wSolAmount) {
+            instructions.push(...this.transferWSOLInstructions(wSolAccountKeypair.publicKey, wSolAmount));
+          }
+        }
       }
 
       for (const preTxBuffer of preTxBuffers) {
