@@ -15,8 +15,13 @@ export function shutdown(program: Command) {
       const weightedSwap = new WeightedSwapContext(provider);
       const pool = await weightedSwap.loadPool(poolK);
 
-      const vaultContext = new VaultContext(provider);
-      const priceFeeds = await vaultContext.loadPriceFeeds(pool.vaultAddress);
+      const total = pool.tokens.reduce((total, token) => token.balance.uiAmount! + total, 0);
+
+      let priceFeeds;
+      if (total > 0) {
+        const vaultContext = new VaultContext(provider);
+        priceFeeds = await vaultContext.loadPriceFeeds(pool.vaultAddress);
+      }
 
       const signature = await weightedSwap.shutdown({ pool, priceFeeds, priorityLevel, simulate });
 

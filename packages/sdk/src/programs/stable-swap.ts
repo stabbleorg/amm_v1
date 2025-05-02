@@ -205,6 +205,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses,
     amounts,
     minimumAmountOut = 0,
+    wSolAccountKeypair,
     preTxBuffers = [],
     altAccounts = [],
     priorityLevel,
@@ -215,6 +216,8 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
     minimumAmountOut?: FloatLike;
+    // it will be ignored if there is no pre transactions to be executed
+    wSolAccountKeypair?: Keypair;
     preTxBuffers?: Buffer[];
   }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
@@ -223,6 +226,10 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     const vaultRemainingAccounts: AccountMeta[] = [];
 
     if (preTxBuffers.length) {
+      if (wSolAccountKeypair) {
+        instructions.push(...this.createTokenAccountInstructions(wSolAccountKeypair.publicKey));
+      }
+
       for (const preTxBuffer of preTxBuffers) {
         const { instructions: ixs, addressLookupTableAccounts: alts } =
           await this.getInstructionsFromBuffer(preTxBuffer);
@@ -240,13 +247,17 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
       let vaultTokenAddress = pool.vault.getAuthorityTokenAddress(mintAddress);
 
       if (mintAddress.equals(NATIVE_MINT)) {
-        const keypair = Keypair.generate();
-        signers.push(keypair);
-        instructions.push(
-          ...this.createTokenAccountInstructions(keypair.publicKey),
-          ...this.transferWSOLInstructions(keypair.publicKey, amounts[index]),
-        );
-        userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
+        if (preTxBuffers.length && wSolAccountKeypair) {
+          signers.push(wSolAccountKeypair);
+          userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: wSolAccountKeypair.publicKey });
+        } else {
+          const keypair = Keypair.generate();
+          instructions.push(
+            ...this.createTokenAccountInstructions(keypair.publicKey),
+            ...this.transferWSOLInstructions(keypair.publicKey, amounts[index]),
+          );
+          userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
+        }
       } else {
         const account = await this.provider.connection.getAccountInfo(mintAddress);
         const tokenProgramId = account!.owner;
