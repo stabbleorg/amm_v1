@@ -225,18 +225,25 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     preTxBuffers?: Buffer[];
   }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
+    let closeInstruction: TransactionInstruction | null = null;
     const signers: Signer[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
 
     if (preTxBuffers.length) {
-      if (wSolAccountKeypair) {
-        const index = mintAddresses.findIndex((address) => address.equals(NATIVE_MINT));
-        if (index !== -1) {
+      const index = mintAddresses.findIndex((address) => address.equals(NATIVE_MINT));
+      if (index !== -1) {
+        if (wSolAccountKeypair) {
           instructions.push(...this.createTokenAccountInstructions(wSolAccountKeypair.publicKey));
-          if (wSolAmount) {
-            instructions.push(...this.transferWSOLInstructions(wSolAccountKeypair.publicKey, wSolAmount));
-          }
+          closeInstruction = this.closeTokenAccountInstruction(wSolAccountKeypair.publicKey);
+          signers.push(wSolAccountKeypair);
+        }
+
+        if (wSolAmount) {
+          const { address, instruction } = await this.getOrCreateAssociatedTokenAddressInstruction(NATIVE_MINT);
+          if (instruction) instructions.push(instruction);
+          instructions.push(...this.transferWSOLInstructions(address, wSolAmount));
+          closeInstruction = this.closeTokenAccountInstruction(address);
         }
       }
 
@@ -257,15 +264,23 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       let vaultTokenAddress = pool.vault.getAuthorityTokenAddress(mintAddress);
 
       if (mintAddress.equals(NATIVE_MINT)) {
-        if (preTxBuffers.length && wSolAccountKeypair) {
-          signers.push(wSolAccountKeypair);
-          userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: wSolAccountKeypair.publicKey });
+        if (preTxBuffers.length) {
+          if (wSolAccountKeypair) {
+            userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: wSolAccountKeypair.publicKey });
+          }
+
+          if (wSolAmount) {
+            const address = this.getAssociatedTokenAddress(NATIVE_MINT);
+            userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: address });
+          }
         } else {
           const keypair = Keypair.generate();
           instructions.push(
             ...this.createTokenAccountInstructions(keypair.publicKey),
             ...this.transferWSOLInstructions(keypair.publicKey, amounts[index]),
           );
+          closeInstruction = this.closeTokenAccountInstruction(keypair.publicKey);
+          signers.push(keypair);
           userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
         }
       } else {
@@ -313,7 +328,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         .instruction(),
     );
 
-    if (signers.length) instructions.push(this.closeTokenAccountInstruction(signers[0].publicKey));
+    if (closeInstruction) instructions.push(closeInstruction);
 
     return this.sendSmartTransaction(
       instructions,
