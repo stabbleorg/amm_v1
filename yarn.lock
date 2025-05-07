@@ -472,6 +472,11 @@
     wrap-ansi "^8.1.0"
     wrap-ansi-cjs "npm:wrap-ansi@^7.0.0"
 
+"@jup-ag/api@^6.0.41":
+  version "6.0.41"
+  resolved "https://registry.yarnpkg.com/@jup-ag/api/-/api-6.0.41.tgz#2ec279663144cc5123d21c5bc1081ff2ab595c2d"
+  integrity sha512-u+eFVzw/dqlP1MBYYa9Ak39PTPMJjV8mHh2cZ3GkWQLBhoXFE8FkNMsKUJcYwLUkFHSz1kIOCNhDfxAjvwGuwg==
+
 "@metaplex-foundation/beet-solana@^0.4.0":
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/@metaplex-foundation/beet-solana/-/beet-solana-0.4.1.tgz#255747aa7feee1c20202146a752c057feca1948f"
@@ -838,10 +843,10 @@
     rpc-websockets "^9.0.2"
     superstruct "^2.0.2"
 
-"@stabbleorg/anchor-contrib@^2.2.1":
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-2.2.1.tgz#c805e0185e9fcedc1cfb21e7d1bfeeb77d3543dd"
-  integrity sha512-dvVePs/3JEELg375lTicOt2LszPQpMXJl0maSEAMXhjlPxXO9DX1C7iY5N65oApCmAoGUX5jtm6O1iaV1Yh87Q==
+"@stabbleorg/anchor-contrib@^2.3.1":
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/@stabbleorg/anchor-contrib/-/anchor-contrib-2.3.1.tgz#3d0a43c9074ac29599f6e0db640cbf554901fd73"
+  integrity sha512-dCZF170xUgVy21XmL5vK1D9DnsCv6jCC+HfaT02Q70OBaL83Pd/YDvk5+7fV/jXzyaXFkQYAxNrzPZs6jUJT/A==
   dependencies:
     "@coral-xyz/anchor" "^0.31.1"
     "@solana/spl-token" "^0.4.13"

@@ -39,10 +39,6 @@ import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
-/**
- * @deprecated Use `STABLE_SWAP_PROGRAM_ID` instead.
- */
-export const STABLE_SWAP_ID = new PublicKey(IDL.address);
 export const STABLE_SWAP_PROGRAM_ID = new PublicKey(IDL.address);
 
 export type StableSwapProgram = Program<IDLType>;
@@ -205,7 +201,6 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses,
     amounts,
     minimumAmountOut = 0,
-    wSolAccountKeypair,
     wSolAmount,
     preTxBuffers = [],
     altAccounts = [],
@@ -217,8 +212,6 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
     minimumAmountOut?: FloatLike;
-    // it will be ignored if there is no pre transactions to be executed
-    wSolAccountKeypair?: Keypair;
     wSolAmount?: FloatLike;
     preTxBuffers?: Buffer[];
   }>): Promise<TransactionSignature> {
@@ -231,16 +224,11 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     if (preTxBuffers.length) {
       const index = mintAddresses.findIndex((address) => address.equals(NATIVE_MINT));
       if (index !== -1) {
-        if (wSolAccountKeypair) {
-          instructions.push(...this.createTokenAccountInstructions(wSolAccountKeypair.publicKey));
-          closeInstruction = this.closeTokenAccountInstruction(wSolAccountKeypair.publicKey);
-          signers.push(wSolAccountKeypair);
-        }
+        const { address, instruction } = await this.getOrCreateAssociatedTokenAddressInstruction(NATIVE_MINT);
+        if (instruction) instructions.push(instruction);
 
         if (wSolAmount) {
-          const { address, instruction } = await this.getOrCreateAssociatedTokenAddressInstruction(NATIVE_MINT);
-          if (instruction) instructions.push(instruction);
-          instructions.push(...this.transferWSOLInstructions(address, wSolAmount));
+          instructions.push(...this.transferWSOLInstructions(address, Number(wSolAmount) + Number(amounts[index])));
           closeInstruction = this.closeTokenAccountInstruction(address);
         }
       }
@@ -263,14 +251,9 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
 
       if (mintAddress.equals(NATIVE_MINT)) {
         if (preTxBuffers.length) {
-          if (wSolAccountKeypair) {
-            userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: wSolAccountKeypair.publicKey });
-          }
-
-          if (wSolAmount) {
-            const address = this.getAssociatedTokenAddress(NATIVE_MINT);
-            userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: address });
-          }
+          const address = this.getAssociatedTokenAddress(NATIVE_MINT);
+          closeInstruction = this.closeTokenAccountInstruction(address);
+          userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: address });
         } else {
           const keypair = Keypair.generate();
           instructions.push(
