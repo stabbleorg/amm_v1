@@ -1,6 +1,6 @@
 {
   "name": "@stabbleorg/amm-parser",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "main": "src",
   "types": "src/index.d.ts",
   "license": "MIT",
@@ -8,8 +8,8 @@
     "@coral-xyz/anchor": "^0.31.1",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.0",
-    "@stabbleorg/amm-sdk": "^2.2.0",
-    "@stabbleorg/anchor-contrib": "^2.2.0",
+    "@stabbleorg/amm-sdk": "^2.3.0",
+    "@stabbleorg/anchor-contrib": "^2.4.0",
     "bs58": "^5.0.0",
     "helius-sdk": "^1.4.2"
   }

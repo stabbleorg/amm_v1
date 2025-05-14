@@ -39,10 +39,6 @@ import { SwapInstructionArgs, SwapArgs } from "../utils";
 import { type StableSwap as IDLType } from "../generated/stable_swap";
 import IDL from "../generated/idl/stable_swap.json";
 
-/**
- * @deprecated Use `STABLE_SWAP_PROGRAM_ID` instead.
- */
-export const STABLE_SWAP_ID = new PublicKey(IDL.address);
 export const STABLE_SWAP_PROGRAM_ID = new PublicKey(IDL.address);
 
 export type StableSwapProgram = Program<IDLType>;
@@ -205,6 +201,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses,
     amounts,
     minimumAmountOut = 0,
+    wSolAmount,
     preTxBuffers = [],
     altAccounts = [],
     priorityLevel,
@@ -215,14 +212,27 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     mintAddresses: PublicKey[];
     amounts: FloatLike[];
     minimumAmountOut?: FloatLike;
+    wSolAmount?: FloatLike;
     preTxBuffers?: Buffer[];
   }>): Promise<TransactionSignature> {
     const instructions: TransactionInstruction[] = [];
+    let closeInstruction: TransactionInstruction | null = null;
     const signers: Signer[] = [];
     const userRemainingAccounts: AccountMeta[] = [];
     const vaultRemainingAccounts: AccountMeta[] = [];
 
     if (preTxBuffers.length) {
+      const index = mintAddresses.findIndex((address) => address.equals(NATIVE_MINT));
+      if (index !== -1) {
+        const { address, instruction } = await this.getOrCreateAssociatedTokenAddressInstruction(NATIVE_MINT);
+        if (instruction) instructions.push(instruction);
+
+        if (wSolAmount) {
+          instructions.push(...this.transferWSOLInstructions(address, Number(wSolAmount) + Number(amounts[index])));
+          closeInstruction = this.closeTokenAccountInstruction(address);
+        }
+      }
+
       for (const preTxBuffer of preTxBuffers) {
         const { instructions: ixs, addressLookupTableAccounts: alts } =
           await this.getInstructionsFromBuffer(preTxBuffer);
@@ -240,13 +250,20 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
       let vaultTokenAddress = pool.vault.getAuthorityTokenAddress(mintAddress);
 
       if (mintAddress.equals(NATIVE_MINT)) {
-        const keypair = Keypair.generate();
-        signers.push(keypair);
-        instructions.push(
-          ...this.createTokenAccountInstructions(keypair.publicKey),
-          ...this.transferWSOLInstructions(keypair.publicKey, amounts[index]),
-        );
-        userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
+        if (preTxBuffers.length) {
+          const address = this.getAssociatedTokenAddress(NATIVE_MINT);
+          closeInstruction = this.closeTokenAccountInstruction(address);
+          userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: address });
+        } else {
+          const keypair = Keypair.generate();
+          instructions.push(
+            ...this.createTokenAccountInstructions(keypair.publicKey),
+            ...this.transferWSOLInstructions(keypair.publicKey, amounts[index]),
+          );
+          closeInstruction = this.closeTokenAccountInstruction(keypair.publicKey);
+          signers.push(keypair);
+          userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: keypair.publicKey });
+        }
       } else {
         const account = await this.provider.connection.getAccountInfo(mintAddress);
         const tokenProgramId = account!.owner;
@@ -292,7 +309,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
         .instruction(),
     );
 
-    if (signers.length) instructions.push(this.closeTokenAccountInstruction(signers[0].publicKey));
+    if (closeInstruction) instructions.push(closeInstruction);
 
     return this.sendSmartTransaction(
       instructions,
@@ -339,12 +356,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
         const tokenProgramId = account!.owner;
 
         const { address: userTokenAddress, instruction: createUserTokenInstruction } =
-          await this.getOrCreateAssociatedTokenAddressInstruction(
-            mintAddress,
-            this.walletAddress,
-            false,
-            tokenProgramId,
-          );
+          await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress, this.walletAddress, tokenProgramId);
         if (createUserTokenInstruction) instructions.push(createUserTokenInstruction);
         userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: userTokenAddress });
 
@@ -500,12 +512,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
       userTokenInAddress = tokenInAddress;
     } else {
       const { address: userTokenAddress, instruction: createUserTokenInstruction } =
-        await this.getOrCreateAssociatedTokenAddressInstruction(
-          mintInAddress,
-          this.walletAddress,
-          true,
-          tokenInProgramId,
-        );
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintInAddress, this.walletAddress, tokenInProgramId);
       if (createUserTokenInstruction) {
         instructions.push(createUserTokenInstruction);
       }
@@ -517,12 +524,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
       userTokenOutAddress = tokenOutAddress;
     } else {
       const { address: userTokenAddress, instruction: createUserTokenInstruction } =
-        await this.getOrCreateAssociatedTokenAddressInstruction(
-          mintOutAddress,
-          this.walletAddress,
-          true,
-          tokenOutProgramId,
-        );
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress, this.walletAddress, tokenOutProgramId);
       if (createUserTokenInstruction) {
         instructions.push(createUserTokenInstruction);
       }

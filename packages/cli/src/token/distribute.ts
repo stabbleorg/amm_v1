@@ -19,7 +19,7 @@ type WhitelistItem = { address: string; amount: number };
 
 export function distribute(program: Command) {
   program
-    .command("distribute")
+    .command("token-distribute")
     .description("distribute IOU tokens")
     .requiredOption("--iou-mint-k <string>", "iou mint key", parseKey)
     .requiredOption("--path <path>", "path")

@@ -13,10 +13,6 @@ import { Vault, VaultData, PriceFeed, WeightedPool, StablePool } from "../accoun
 import { type Vault as IDLType } from "../generated/vault";
 import IDL from "../generated/idl/vault.json";
 
-/**
- * @deprecated Use `AMM_VAULT_PROGRAM_ID` instead.
- */
-export const AMM_VAULT_ID = new PublicKey(IDL.address);
 export const AMM_VAULT_PROGRAM_ID = new PublicKey(IDL.address);
 export const AMM_ERRORS = new Map(IDL.errors.map((error) => [error.code, error.msg]));
 
@@ -142,18 +138,12 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
       const { instruction: createVaultTokenInstruction } = await this.getOrCreateAssociatedTokenAddressInstruction(
         mintAddress,
         vault.authorityAddress,
-        true,
         tokenProgramId,
       );
       if (createVaultTokenInstruction) instructions.push(createVaultTokenInstruction);
 
       const { instruction: createBeneficiaryTokenInstruction } =
-        await this.getOrCreateAssociatedTokenAddressInstruction(
-          mintAddress,
-          vault.beneficiaryAddress,
-          true,
-          tokenProgramId,
-        );
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress, vault.beneficiaryAddress, tokenProgramId);
       if (createBeneficiaryTokenInstruction) instructions.push(createBeneficiaryTokenInstruction);
     }
 
