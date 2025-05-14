@@ -138,18 +138,12 @@ export class VaultContext<T extends Provider> extends WalletContext<T> {
       const { instruction: createVaultTokenInstruction } = await this.getOrCreateAssociatedTokenAddressInstruction(
         mintAddress,
         vault.authorityAddress,
-        true,
         tokenProgramId,
       );
       if (createVaultTokenInstruction) instructions.push(createVaultTokenInstruction);
 
       const { instruction: createBeneficiaryTokenInstruction } =
-        await this.getOrCreateAssociatedTokenAddressInstruction(
-          mintAddress,
-          vault.beneficiaryAddress,
-          true,
-          tokenProgramId,
-        );
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress, vault.beneficiaryAddress, tokenProgramId);
       if (createBeneficiaryTokenInstruction) instructions.push(createBeneficiaryTokenInstruction);
     }
 

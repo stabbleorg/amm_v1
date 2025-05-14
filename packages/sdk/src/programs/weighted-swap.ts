@@ -358,12 +358,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
         const tokenProgramId = account!.owner;
 
         const { address: userTokenAddress, instruction: createUserTokenInstruction } =
-          await this.getOrCreateAssociatedTokenAddressInstruction(
-            mintAddress,
-            this.walletAddress,
-            false,
-            tokenProgramId,
-          );
+          await this.getOrCreateAssociatedTokenAddressInstruction(mintAddress, this.walletAddress, tokenProgramId);
         if (createUserTokenInstruction) instructions.push(createUserTokenInstruction);
         userRemainingAccounts.push({ isSigner: false, isWritable: true, pubkey: userTokenAddress });
 
@@ -519,12 +514,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       userTokenInAddress = tokenInAddress;
     } else {
       const { address: userTokenAddress, instruction: createUserTokenInstruction } =
-        await this.getOrCreateAssociatedTokenAddressInstruction(
-          mintInAddress,
-          this.walletAddress,
-          true,
-          tokenInProgramId,
-        );
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintInAddress, this.walletAddress, tokenInProgramId);
       if (createUserTokenInstruction) {
         instructions.push(createUserTokenInstruction);
       }
@@ -536,12 +526,7 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
       userTokenOutAddress = tokenOutAddress;
     } else {
       const { address: userTokenAddress, instruction: createUserTokenInstruction } =
-        await this.getOrCreateAssociatedTokenAddressInstruction(
-          mintOutAddress,
-          this.walletAddress,
-          true,
-          tokenOutProgramId,
-        );
+        await this.getOrCreateAssociatedTokenAddressInstruction(mintOutAddress, this.walletAddress, tokenOutProgramId);
       if (createUserTokenInstruction) {
         instructions.push(createUserTokenInstruction);
       }
