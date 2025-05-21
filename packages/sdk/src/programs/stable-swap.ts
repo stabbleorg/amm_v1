@@ -605,6 +605,42 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
     return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
   }
 
+  async pause({
+    pool,
+    altAccounts,
+    priorityLevel,
+    maxPriorityMicroLamports,
+    simulate,
+  }: TransactionArgs<{ pool: StablePool }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .pause()
+      .accountsStrict({
+        owner: pool.ownerAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
+  }
+
+  async unpause({
+    pool,
+    altAccounts,
+    priorityLevel,
+    maxPriorityMicroLamports,
+    simulate,
+  }: TransactionArgs<{ pool: StablePool }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .unpause()
+      .accountsStrict({
+        owner: pool.ownerAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
+  }
+
   async shutdown({
     pool,
     priceFeeds = [],

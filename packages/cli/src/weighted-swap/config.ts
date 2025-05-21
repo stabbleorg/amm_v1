@@ -54,6 +54,48 @@ export function changeMaxSupply(program: Command) {
     });
 }
 
+export function pause(program: Command) {
+  program
+    .command("weighted-pause")
+    .description("pause")
+    .requiredOption("--pool-k <string>", "pool key", parseKey)
+    .action(async ({ poolK }: { poolK: PublicKey }) => {
+      const { provider, priorityLevel, simulate } = useContext();
+
+      const weightedSwap = new WeightedSwapContext(provider);
+      const pool = await weightedSwap.loadPool(poolK);
+
+      const signature = await weightedSwap.pause({
+        pool,
+        priorityLevel,
+        simulate,
+      });
+
+      console.log(signature);
+    });
+}
+
+export function unpause(program: Command) {
+  program
+    .command("weighted-unpause")
+    .description("unpause")
+    .requiredOption("--pool-k <string>", "pool key", parseKey)
+    .action(async ({ poolK }: { poolK: PublicKey }) => {
+      const { provider, priorityLevel, simulate } = useContext();
+
+      const weightedSwap = new WeightedSwapContext(provider);
+      const pool = await weightedSwap.loadPool(poolK);
+
+      const signature = await weightedSwap.unpause({
+        pool,
+        priorityLevel,
+        simulate,
+      });
+
+      console.log(signature);
+    });
+}
+
 export function transferOwner(program: Command) {
   program
     .command("weighted-transfer-owner")

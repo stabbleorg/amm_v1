@@ -163,6 +163,10 @@ impl<'info> Validate<'info> for Deposit<'info> {
     fn validate(&self) -> Result<()> {
         assert!(self.vault.is_active);
 
+        if !self.pool.is_active {
+            assert_eq!(self.pool.owner, self.user.key());
+        }
+
         assert_eq!(self.user_pool_token.owner, self.user.key());
 
         Ok(())

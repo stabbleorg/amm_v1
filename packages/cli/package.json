@@ -15,6 +15,7 @@
     "@stabbleorg/amm-sdk": "^2.3.1",
     "@stabbleorg/anchor-contrib": "^2.4.0",
     "commander": "^11.0.0",
+    "helius-sdk": "^1.5.1",
     "table": "^6.9.0"
   }
 }

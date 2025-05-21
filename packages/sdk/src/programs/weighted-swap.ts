@@ -586,6 +586,42 @@ export class WeightedSwapContext<T extends Provider = Provider> extends WalletCo
     return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
   }
 
+  async pause({
+    pool,
+    altAccounts,
+    priorityLevel,
+    maxPriorityMicroLamports,
+    simulate,
+  }: TransactionArgs<{ pool: WeightedPool }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .pause()
+      .accountsStrict({
+        owner: pool.ownerAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
+  }
+
+  async unpause({
+    pool,
+    altAccounts,
+    priorityLevel,
+    maxPriorityMicroLamports,
+    simulate,
+  }: TransactionArgs<{ pool: WeightedPool }>): Promise<TransactionSignature> {
+    const instruction = await this.program.methods
+      .unpause()
+      .accountsStrict({
+        owner: pool.ownerAddress,
+        pool: pool.address,
+      })
+      .instruction();
+
+    return this.sendSmartTransaction([instruction], [], altAccounts, priorityLevel, maxPriorityMicroLamports, simulate);
+  }
+
   async shutdown({
     pool,
     priceFeeds = [],
