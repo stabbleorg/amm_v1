@@ -64,6 +64,10 @@ pub mod stable_swap {
         process_change_amp_factor(ctx, new_amp_factor, ramp_duration)
     }
 
+    pub fn change_swap_fee_privileged(ctx: Context<AdminOnly>, new_swap_fee: u64) -> Result<()> {
+        process_change_swap_fee_privileged(ctx, new_swap_fee)
+    }
+
     pub fn change_swap_fee(ctx: Context<OwnerOnly>, new_swap_fee: u64) -> Result<()> {
         process_change_swap_fee(ctx, new_swap_fee)
     }

@@ -4,6 +4,16 @@ use bn::safe_math::CheckedDivCeil;
 use math::stable_math;
 use vault::state::Vault;
 
+pub fn process_change_swap_fee_privileged(ctx: Context<AdminOnly>, new_swap_fee: u64) -> Result<()> {
+    assert_ne!(ctx.accounts.pool.swap_fee, new_swap_fee);
+
+    ctx.accounts.pool.swap_fee = new_swap_fee;
+
+    ctx.accounts.pool.emit_updated_event();
+
+    Ok(())
+}
+
 pub fn process_change_amp_factor(ctx: Context<AdminOnly>, new_amp_factor: u16, ramp_duration: u32) -> Result<()> {
     assert_ne!(ctx.accounts.pool.amp_target_factor, new_amp_factor);
     assert_ne!(ramp_duration, 0);
