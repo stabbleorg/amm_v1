@@ -6,6 +6,7 @@ use vault::state::Vault;
 
 pub fn process_change_swap_fee_privileged(ctx: Context<AdminOnly>, new_swap_fee: u64) -> Result<()> {
     assert_ne!(ctx.accounts.pool.swap_fee, new_swap_fee);
+    assert!(new_swap_fee <= stable_math::MAX_SWAP_FEE);
 
     ctx.accounts.pool.swap_fee = new_swap_fee;
 

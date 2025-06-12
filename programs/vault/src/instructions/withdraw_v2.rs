@@ -1,7 +1,7 @@
 use crate::state::*;
 use anchor_common::validate::Validate;
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{transfer_checked, Mint, TransferChecked};
+use anchor_spl::token_interface::{transfer_checked, Mint, TokenInterface, TransferChecked};
 
 pub fn process_withdraw_v2<'a, 'b, 'c, 'info>(
     ctx: Context<'_, '_, '_, 'info, WithdrawV2<'info>>,
@@ -80,6 +80,5 @@ pub struct WithdrawV2<'info> {
 
     pub mint: InterfaceAccount<'info, Mint>,
 
-    /// CHECK: checked by swap programs
-    pub token_program: UncheckedAccount<'info>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
