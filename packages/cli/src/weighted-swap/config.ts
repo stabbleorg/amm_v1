@@ -101,7 +101,7 @@ export function transferOwner(program: Command) {
     .command("weighted-transfer-owner")
     .description("transfer ownership")
     .requiredOption("--pool-k <string>", "pool key", parseKey)
-    .requiredOption("--owner-k <string>", "new owner key")
+    .requiredOption("--owner-k <string>", "new owner key", parseKey)
     .action(async ({ poolK, ownerK }: { poolK: PublicKey; ownerK: PublicKey }) => {
       const { provider, simulate } = useContext();
 
@@ -115,6 +115,30 @@ export function transferOwner(program: Command) {
       const signature = await weightedSwap.transferOwner({
         pool,
         ownerAddress: ownerK,
+      });
+
+      console.log(signature);
+    });
+}
+
+export function acceptOwner(program: Command) {
+  program
+    .command("weighted-accept-owner")
+    .description("accept ownership")
+    .requiredOption("--pool-k <string>", "pool key", parseKey)
+    .action(async ({ poolK }: { poolK: PublicKey }) => {
+      const { provider, priorityLevel, simulate } = useContext();
+
+      const weightedSwap = new WeightedSwapContext(provider);
+      const pool = await weightedSwap.loadPool(poolK);
+
+      console.log("Current owner:", pool.ownerAddress.toBase58());
+      console.log("Pending owner:", pool.data.pendingOwner?.toBase58());
+
+      const signature = await weightedSwap.acceptOwner({
+        pool,
+        priorityLevel,
+        simulate,
       });
 
       console.log(signature);
