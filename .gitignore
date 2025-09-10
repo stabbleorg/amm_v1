@@ -12,3 +12,6 @@ test-ledger
 .yarn
 *.log
 /*.sh
+.env
+new_owner.json
+scripts
