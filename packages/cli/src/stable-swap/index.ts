@@ -4,6 +4,7 @@ import { deposit } from "./deposit";
 import { withdraw } from "./withdraw";
 import { swap } from "./swap";
 import { simulate } from "./simulate";
+import { fetchPool } from "./fetchPool";
 import { changeAmpFactor, changeSwapFee, changeMaxSupply, transferOwner, acceptOwner, pause, unpause } from "./config";
 import { shutdown } from "./shutdown";
 import { createStrategy, closeStrategy, execStrategy } from "./strategy";
@@ -25,4 +26,5 @@ export const setupStableSwapProgram = (program: Command) => {
   createStrategy(program);
   closeStrategy(program);
   execStrategy(program);
+  fetchPool(program);
 };
