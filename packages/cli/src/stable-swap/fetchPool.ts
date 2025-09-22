@@ -20,7 +20,12 @@ export function fetchPool(program: Command) {
         data: {
           ...pool.data,
           maxSupply: pool.data.maxSupply.toString(),
-        }
+          rampStartTs: pool.data.rampStartTs.toString(),
+          rampStopTs: pool.data.rampStopTs.toString(),
+          tokens: JSON.stringify(pool.data.tokens.map(t => ({
+            ...t,
+          })), null, 2),
+        },
       });
     })
 }

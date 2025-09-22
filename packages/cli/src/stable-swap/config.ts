@@ -14,11 +14,11 @@ export function changeAmpFactor(program: Command) {
     .action(
       async ({ poolK, ampFactor, rampDuration }: { poolK: PublicKey; ampFactor: number; rampDuration: number }) => {
         const { provider, priorityLevel, simulate } = useContext();
-
         const stableSwap = new StableSwapContext(provider);
         const pool = await stableSwap.loadPool(poolK);
 
         console.log("Current amplification:", pool.amplification);
+        console.log(`Sending tx with: ${provider.wallet.publicKey.toBase58()}`);
 
         const signature = await stableSwap.changeAmpFactor({
           pool,
