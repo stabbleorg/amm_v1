@@ -28,7 +28,7 @@ pub fn process_withdraw<'a, 'b, 'c, 'info>(
     let clock = Clock::get()?;
     let amplification = ctx.accounts.pool.get_amplification(clock.unix_timestamp).unwrap();
     let balances = ctx.accounts.pool.get_balances();
-    let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
+    let current_invariant = stable_math::calc_invariant(amplification, &balances, None).unwrap();
 
     if num_tokens == 1 {
         let mint = &ctx.remaining_accounts[2];

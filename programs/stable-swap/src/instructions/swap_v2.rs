@@ -22,7 +22,7 @@ pub fn process_swap_v2(ctx: Context<SwapV2>, amount_in: Option<u64>, minimum_amo
 
     let amplification = ctx.accounts.pool.get_amplification(clock.unix_timestamp).unwrap();
     let balances = ctx.accounts.pool.get_balances();
-    let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
+    let current_invariant = stable_math::calc_invariant(amplification, &balances, None).unwrap();
 
     let token_in_index = ctx.accounts.pool.get_token_index(ctx.accounts.mint_in.key()).unwrap();
     let token_out_index = ctx.accounts.pool.get_token_index(ctx.accounts.mint_out.key()).unwrap();

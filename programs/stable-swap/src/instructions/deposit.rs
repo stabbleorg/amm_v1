@@ -57,11 +57,12 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                         .unwrap()
                 })
                 .collect(),
+            None,
         )
         .unwrap()
     } else {
         let balances = ctx.accounts.pool.get_balances();
-        let current_invariant = stable_math::calc_invariant(amplification, &balances).unwrap();
+        let current_invariant = stable_math::calc_invariant(amplification, &balances, None).unwrap();
 
         // do_join
         if num_tokens == 1 {
@@ -92,6 +93,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                 ctx.accounts.mint.supply,
                 current_invariant,
                 ctx.accounts.pool.swap_fee,
+                None
             )
             .unwrap()
         } else {
@@ -122,6 +124,7 @@ pub fn process_deposit<'a, 'b, 'c, 'info>(
                 ctx.accounts.mint.supply,
                 current_invariant,
                 ctx.accounts.pool.swap_fee,
+                None
             )
             .unwrap()
         }

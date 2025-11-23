@@ -17,6 +17,6 @@ codegen-units = 1
 anchor-lang = "0.31.1"
 anchor-spl = "0.31.1"
 anchor-common = { git = "https://github.com/stabbleorg/anchor-common.git", rev = "d44abfdac69e158759ba8a130acd929ff26378f4" }
-bn = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "71843f4d848e133e87ce3f42e011b78bf926c5a3" }
-math = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "71843f4d848e133e87ce3f42e011b78bf926c5a3" }
+bn = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "80ffe018f1f200f280f4ff83f4c283375777d257" }
+math = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "80ffe018f1f200f280f4ff83f4c283375777d257" }
 pyth-solana-receiver-sdk = "0.6.0"

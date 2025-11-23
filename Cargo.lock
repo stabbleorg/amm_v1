@@ -360,7 +360,7 @@ dependencies = [
 [[package]]
 name = "bn"
 version = "0.1.0"
-source = "git+https://github.com/stabbleorg/amm-sdk.git?rev=71843f4d848e133e87ce3f42e011b78bf926c5a3#71843f4d848e133e87ce3f42e011b78bf926c5a3"
+source = "git+https://github.com/stabbleorg/amm-sdk.git?rev=80ffe018f1f200f280f4ff83f4c283375777d257#80ffe018f1f200f280f4ff83f4c283375777d257"
 dependencies = [
  "uint",
 ]
@@ -713,7 +713,7 @@ dependencies = [
 [[package]]
 name = "fixed-exp"
 version = "0.1.0"
-source = "git+https://github.com/stabbleorg/amm-sdk.git?rev=71843f4d848e133e87ce3f42e011b78bf926c5a3#71843f4d848e133e87ce3f42e011b78bf926c5a3"
+source = "git+https://github.com/stabbleorg/amm-sdk.git?rev=80ffe018f1f200f280f4ff83f4c283375777d257#80ffe018f1f200f280f4ff83f4c283375777d257"
 dependencies = [
  "fixed",
  "num-traits",
@@ -948,7 +948,7 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 [[package]]
 name = "math"
 version = "0.1.0"
-source = "git+https://github.com/stabbleorg/amm-sdk.git?rev=71843f4d848e133e87ce3f42e011b78bf926c5a3#71843f4d848e133e87ce3f42e011b78bf926c5a3"
+source = "git+https://github.com/stabbleorg/amm-sdk.git?rev=80ffe018f1f200f280f4ff83f4c283375777d257#80ffe018f1f200f280f4ff83f4c283375777d257"
 dependencies = [
  "bn",
  "fixed",
