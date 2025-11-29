@@ -8,6 +8,7 @@ import { fetchPool } from "./fetchPool";
 import { changeAmpFactor, changeSwapFee, changeMaxSupply, transferOwner, acceptOwner, pause, unpause } from "./config";
 import { shutdown } from "./shutdown";
 import { createStrategy, closeStrategy, execStrategy } from "./strategy";
+import { fetchPools } from "./fetchPools";
 
 export const setupStableSwapProgram = (program: Command) => {
   initialize(program);
@@ -27,4 +28,5 @@ export const setupStableSwapProgram = (program: Command) => {
   closeStrategy(program);
   execStrategy(program);
   fetchPool(program);
+  fetchPools(program)
 };
