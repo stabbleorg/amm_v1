@@ -819,6 +819,7 @@ export class StableSwapContext<T extends Provider = Provider> extends WalletCont
       .execStrategy(rampStep, rampDuration)
       .accountsStrict({
         strategy: address,
+        owner: pool.ownerAddress,
         pool: pool.address,
       })
       .instruction();
