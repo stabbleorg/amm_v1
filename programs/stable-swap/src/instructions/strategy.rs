@@ -108,6 +108,8 @@ pub struct ExecStrategy<'info> {
     #[account(has_one = pool)]
     pub strategy: Account<'info, Strategy>,
 
-    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    #[account(mut, has_one = owner)]
     pub pool: Account<'info, Pool>,
 }
