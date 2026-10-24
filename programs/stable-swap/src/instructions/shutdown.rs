@@ -48,9 +48,8 @@ pub fn process_shutdown<'a, 'b, 'c, 'info>(ctx: Context<'_, '_, 'info, 'info, Sh
 
 #[derive(Accounts)]
 pub struct Shutdown<'info> {
-    /// CHECK: OK
     #[account(mut)]
-    pub owner: UncheckedAccount<'info>,
+    pub owner: Signer<'info>,
 
     #[account(mut, close = owner, has_one = owner)]
     pub pool: Account<'info, Pool>,
