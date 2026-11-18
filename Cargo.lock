@@ -138,7 +138,7 @@ dependencies = [
 [[package]]
 name = "anchor-common"
 version = "0.1.0"
-source = "git+https://github.com/stabbleorg/anchor-common.git?rev=e48297e17c31bb3be5e4ae7842737e888e5f2942#e48297e17c31bb3be5e4ae7842737e888e5f2942"
+source = "git+https://github.com/stabbleorg/anchor-common.git?rev=1c09b9f96899c93d5b0f37afa14f724c558d003a#1c09b9f96899c93d5b0f37afa14f724c558d003a"
 dependencies = [
  "anchor-lang",
  "anchor-spl",

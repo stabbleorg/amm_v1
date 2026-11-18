@@ -16,7 +16,7 @@ codegen-units = 1
 [workspace.dependencies]
 anchor-lang = "0.31.1"
 anchor-spl = "0.31.1"
-anchor-common = { git = "https://github.com/stabbleorg/anchor-common.git", rev = "e48297e17c31bb3be5e4ae7842737e888e5f2942" }
+anchor-common = { git = "https://github.com/stabbleorg/anchor-common.git", rev = "1c09b9f96899c93d5b0f37afa14f724c558d003a" }
 bn = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "b3ce8a43aa4601b5bfa6c8daeba9e108ab364d2b" }
 math = { git = "https://github.com/stabbleorg/amm-sdk.git", rev = "b3ce8a43aa4601b5bfa6c8daeba9e108ab364d2b" }
 pyth-solana-receiver-sdk = "0.6.0"
